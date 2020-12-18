@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="82845198-8b83-497d-9712-4c9aaf26ce3f" name="新直播" url="http://8.210.195.192">
+        <fileTransfer host="8.210.195.192" port="64064" rootFolder="/var/wwwroot/live" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+          <option name="port" value="64064" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
