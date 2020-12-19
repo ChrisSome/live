@@ -1,0 +1,5 @@
+/composer.lock
+/Temp/esCache/*
+/Temp/logs/*
+/vendor/
+/.idea/

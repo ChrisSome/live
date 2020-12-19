@@ -400,28 +400,23 @@ class DataApi extends FrontUserController
      */
     public function teamInfo(): bool
     {
-
-        // 类型
-        $type = 1;
-        if (!empty($this->params['type'])) $type = intval($this->params['type']);
-
         // 球队信息
         $teamId = empty($this->params['team_id']) ? 0 : intval($this->params['team_id']);
         $team = $teamId > 0 ? Utils::queryHandler(AdminTeam::getInstance(), 'team_id=?', $teamId) : false;
         if (empty($team)) return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-
         // 赛季 & 当前赛季
         $season = [];
         $currentSeasonId = $selectSeasonId = 0;
         $competitionId = intval($this->params['competition_id']);
-
         $competition = Utils::queryHandler(AdminCompetition::getInstance(), 'competition_id=?', $competitionId);
         if (!empty($competition)) {
             $season = Utils::queryHandler(AdminSeason::getInstance(), 'competition_id=?', $competitionId, 'id, season_id, year', false);
             $currentSeasonId = $selectSeasonId = $competition['cur_season_id'];
         }
         if (!empty($this->params['select_season_id'])) $selectSeasonId = $this->params['select_season_id'];
-
+		// 类型
+		$type = 1;
+		if (!empty($this->params['type'])) $type = intval($this->params['type']);
         switch ($type) {
             case 1:
                 // 球队荣誉
@@ -497,10 +492,8 @@ class DataApi extends FrontUserController
                         $id = intval($v['id']);
                         $promotionMapper[$id] = $v['name_zh'];
                     }
-
                     //
                     $promotion = empty($promotionMapper) ? 0 : 1;
-                    //
                     if ($promotion > 0) {
                         // 球队信息映射
                         $teamMapper = $teamIds = [];
@@ -695,7 +688,6 @@ class DataApi extends FrontUserController
                         $mostRedCards = $handler($v, 'red_cards', $mostRedCards);
                         $mostMinutesPlayed = $handler($v, 'minutes_played', $mostMinutesPlayed);
                     }
-
                     $keyPlayers = [
                         'most_goals' => FrontService::formatKeyPlayer($mostGoals, 'goals'),
                         'most_assists' => FrontService::formatKeyPlayer($mostAssists, 'assists'),

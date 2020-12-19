@@ -14,16 +14,6 @@ class AdminInformationComment extends BaseModel
     const SHOW_IN_FRONT = [self::STATUS_REPORTED, self::STATUS_NORMAL, self::STATUS_ADMIN_DELETE];
     protected $tableName = "admin_information_comments";
 
-
-    /**
-     * $value mixed 是原值
-     * $data  array 是当前model所有的值
-     */
-    protected function getContentAttr($value, $data)
-    {
-        return base64_decode($data['content']);
-
-    }
     public function getLimit($page, $limit)
     {
         return $this->order('created_at', 'DESC')
