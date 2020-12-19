@@ -18,6 +18,7 @@ use EasySwoole\ORM\Db\Config as DbConfig;
 use EasySwoole\RedisPool\RedisPoolException;
 use EasySwoole\Socket\Config as SocketConfig;
 use EasySwoole\RedisPool\Exception\Exception;
+use easySwoole\Cache\Exception\CacheException;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
 
@@ -81,6 +82,10 @@ class EasySwooleEvent implements Event
 		}
 	}
 	
+	/**
+	 * @param EventRegister $register
+	 * @throws CacheException
+	 */
 	public static function mainServerCreate(EventRegister $register)
 	{
 		// 配置服务热启动
@@ -88,8 +93,8 @@ class EasySwooleEvent implements Event
 		ServerManager::getInstance()->getSwooleServer()->addProcess($hot_reload);
 		
 		// 配置timer定时
-		// $nami_task = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
-		// ServerManager::getInstance()->getSwooleServer()->addProcess($nami_task);
+		// $namiTask = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
+		// ServerManager::getInstance()->getSwooleServer()->addProcess($namiTask);
 		
 		// 配置缓存
 		$conf = Config::getInstance()->getConf('app.cache');

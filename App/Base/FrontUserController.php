@@ -2,186 +2,118 @@
 
 namespace App\Base;
 
+use App\Common\AppFunc;
 use App\Model\AdminUser;
+use App\Utility\Message\Status;
 use EasySwoole\EasySwoole\Config;
-
 use App\Model\AdminLog as LogModel;
 
-use App\Common\AppFunc;
-use App\Utility\Message\Status;
-use EasySwoole\Template\Render;
-
-
-/**
- * 前台用户基类
- * Class FrontUserController
- * @package App\Base
- */
 class FrontUserController extends BaseController
 {
-	protected $auth;   // 保存了登录用户的信息
-	protected $role_group;
+	protected $params = []; // 请求参数清单
+	protected $auth = null; // 登录用户信息
+	protected $role = null; // 登录用户角色
 	protected $isCheckSign = false;
-
-
-
-    public function render(string $template, array $data = [])
-    {
-        $api = $this->request()->getUri()->getPath();
-        $apis = explode('/', $api);
-        if ($this->auth) {
-            $data = array_merge(['realname' => $this->auth['realname'], 'auth' => $this->auth], $data);
-        }
-        $data = array_merge($data, [
-            'module' => strtolower($apis[1]),
-            'action' => isset($apis[2]) ? strtolower($apis[2]) : 0
-        ]);
-
-        $this->response()->write(Render::getInstance()->render($template, $data));
-    }
-
-    public $no_need_sign_keys = ['content', 'id'];
-    private $sign_key = 'sign';
-    /**
-     * 加密或者验签
-     * @param $params
-     * @param bool $checked
-     * @return bool|string
-     */
-    public function checkSign($params) {
-        ksort($params); //ascii升序
-        $sSafeStr = ''; //加密字段
-        foreach ($params as $k => $v) {
-            if ($k != $this->sign_key &&  !in_array($k, $this->no_need_sign_keys)) {
-                $sSafeStr .= $k.'='.$v.'&';
-            }
-        }
-
-        $sSafeStr = rtrim($sSafeStr, '&');
-        if (!isset($params[$this->sign_key]) || md5($sSafeStr) != $params[$this->sign_key]) {
-            $this->writeJson(403, '验签不通过');
-            return false;
-        }
-        return true;
-    }
-
-	// 检查token 是否合法
-	public function checkToken()
+	private $needCheckToken = false;
+	private $signKey = 'sign';
+	private $noNeedSignKeys = ['content', 'id'];
+	private $ignoreCheckRoutes = [
+		'/User/Login',
+		'/User/Post/detail',
+		'/User/System/detail',
+		'/User/User/userSendSmg',
+	];
+	
+	/**
+	 * 加密或者验签
+	 * @param $params
+	 * @return bool
+	 */
+	private function checkSign($params): bool
 	{
-		$r = $this->request();
-		$id = $r->getCookieParams('front_id');
-		$time = $r->getCookieParams('front_time');
-		$token = md5($id . Config::getInstance()->getConf('app.token') . $time);
-        if (!$id) {
-            return false;
-        }
-        $this->auth['id'] = 0;
-        if($r->getCookieParams('front_token') == $token) {
-            $this->auth = AdminUser::getInstance()->find($id);
-			return true;
-		} else if ($token = $r->getHeaderLine('authorization')) {
-		    //头部传递access_token
-		    $tokenKey = sprintf(AdminUser::USER_TOKEN_KEY, $token);
-
-		    if (!$json = AppFunc::redisGetKey($tokenKey)) {
-                return false;
-            } else {
-		        AppFunc::redisSetStr($tokenKey, $json);
-		        $this->auth = json_decode($json, true);
-		        return true;
-            }
-        } else {
+		if (!isset($params[$this->signKey])) {
+			$this->writeJson(403, '验签不通过');
 			return false;
 		}
+		ksort($params); // Ascii升序
+		$string = ''; // 加密字符串
+		foreach ($params as $k => $v) {
+			if ($k != $this->signKey && !in_array($k, $this->noNeedSignKeys)) {
+				$string .= $k . '=' . $v . '&';
+			}
+		}
+		$string = md5(rtrim($string, '&'));
+		if ($string != $params[$this->signKey]) {
+			$this->writeJson(403, '验签不通过');
+			return false;
+		}
+		return true;
 	}
-
-	// 操作记录
-	protected function Record()
+	
+	/**
+	 * 检查token 是否合法
+	 * @throws
+	 */
+	private function checkToken(): bool
 	{
+		// 参数校验
+		$request = $this->request();
+		$authId = $request->getCookieParams('front_id');
+		if (empty($authId) || intval($authId) < 1) return false;
+		
+		$this->auth = null;
+		$authId = intval($authId);
+		$timestamp = $request->getCookieParams('front_time');
+		$token = md5($authId . Config::getInstance()->getConf('app.token') . $timestamp);
+		if ($request->getCookieParams('front_token') == $token) {
+			$this->auth = AdminUser::getInstance()->find($authId);
+			return true;
+		}
+		$token = $request->getHeaderLine('authorization');
+		if (empty($token)) return false;
+		$key = sprintf(AdminUser::USER_TOKEN_KEY, $token);
+		$tmp = AppFunc::redisGetKey($key);
+		if (empty($tmp)) return false;
+		AppFunc::redisSetStr($key, $tmp);
+		$this->auth = json_decode($tmp, true);
+		return true;
+	}
+	
+	/**
+	 * 操作记录
+	 * @throws
+	 */
+	protected function Record(): bool
+	{
+		$request = $this->request();
 		$data = [
-			'url'  => $this->request()->getUri()->getPath(),
-			'data' => json_encode($this->request()->getParsedBody()),
-			'uid'  => $this->auth['id']
+			'uid' => $this->auth['id'],
+			'url' => $request->getUri()->getPath(),
+			'data' => json_encode($request->getParsedBody()),
 		];
 		LogModel::getInstance()->insert($data);
 		return true;
 	}
-
-	// get 请求是否有权限访问
-	public function  hasRuleForGet($rule)
-	{
-		if(!$this->role_group->hasRule($rule)) {
-			$this->show404();
-			return false;
-		}
-
-		return true;
-	}
-
-	// post 请求是否有权限访问
-	public function  hasRuleForPost($rule)
-	{
-		if(!$this->role_group->hasRule($rule)) {
-			$this->writeJson(Status::CODE_RULE_ERR,'权限不足');
-			return false;
-		}
-		return true;
-	}
-
-
-	public $params;
-    public $needCheckToken = false;
-    public $needLogin = false;
-
-	public $no_need_check_rule = [
-        '/User/Login',
-        '/User/System/detail',
-        '/User/Post/detail',
-        '/User/User/userSendSmg',
-    ];
-
+	
+	/**
+	 * 请求前执行
+	 * @param string|null $action
+	 * @return bool|null
+	 */
 	public function onRequest(?string $action): ?bool
 	{
-	    $this->params = $this->request()->getRequestParam();
-	    if ($this->needCheckToken) {
-	        if(!$this->checkToken()) {
-	            $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
-	            return false;
-
-            }
-        } else {
-            $id = $this->request()->getCookieParams('front_id');
-	        if ($id) {
-                $this->checkToken();
-            }
-        }
-        $api = $this->request()->getUri()->getPath();
-	    if ($this->isCheckSign && !in_array($api, $this->no_need_check_rule) && !empty($this->params)) {
-	        return $this->checkSign($this->params);
-        }
-
-
-	    return parent::onRequest($action);
-	}
-
-	public function dataJson($data)
-	{
-        if (!$this->response()->isEndResponse()) {
-            $this->response()->write(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-            $this->response()->withHeader('Content-type', 'application/json;charset=utf-8');
-            return true;
-        } else {
-            return false;
-        }
-	}
-
-	// 获取 page limit 信息
-	public function getPage()
-	{
 		$request = $this->request();
-		$data = $request->getRequestParam('page','limit');
-		$data['page'] =  $data['page']?:1;
-		$data['limit'] =  $data['limit']?:10;
-		return $data;
+		$params = $request->getRequestParam();
+		$this->params = empty($params) ? [] : $params;
+		$isOk = $this->checkToken();
+		if ($this->needCheckToken && !$this->checkToken() && !$isOk) {
+			$this->writeJson(Status::CODE_VERIFY_ERR, '登录令牌缺失或者已过期');
+			return false;
+		}
+		$route = $request->getUri()->getPath();
+		if ($this->isCheckSign && !in_array($route, $this->ignoreCheckRoutes) && !empty($params)) {
+			return $this->checkSign($params);
+		}
+		return parent::onRequest($action);
 	}
 }

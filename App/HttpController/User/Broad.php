@@ -8,13 +8,7 @@ use App\Base\FrontUserController;
 
 class Broad extends FrontUserController
 {
-    public $needCheckToken = true;
-
-    public function index()
-    {
-      return $this->render('front.broad.list');
-    }
-
+    public bool $needCheckToken = true;
 
     public function getList()
     {

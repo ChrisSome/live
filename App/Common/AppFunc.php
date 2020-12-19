@@ -2,36 +2,32 @@
 
 namespace App\Common;
 
+use App\Model\AdminUser;
 use App\lib\FrontService;
-use App\Model\AdminAlphaMatch;
-use App\Model\AdminInterestMatches;
 use App\Model\AdminMatch;
 use App\Model\AdminSeason;
-use App\Model\AdminSysSettings;
-use App\Model\AdminUser;
-use App\Model\AdminUserSetting;
-use App\Model\AdminZoneList;
 use App\Storage\OnlineUser;
 use easySwoole\Cache\Cache;
+use App\Model\AdminZoneList;
+use App\Model\AdminAlphaMatch;
+use App\Model\AdminSysSettings;
+use App\Model\AdminUserSetting;
+use App\Model\AdminInterestMatches;
 use EasySwoole\Redis\Redis as Redis;
 use EasySwoole\RedisPool\Redis as RedisPool;
 
 class AppFunc
 {
-	const USER_FOLLOWS = "user_follows:uid:%s";  //用户关注列表
+	const USER_BLACK_LIST = 'user_black_list:%s';
 	const USER_FANS = 'user_fans:uid:%s'; //用户粉丝列表
-
+	const USER_FOLLOWS = "user_follows:uid:%s";  //用户关注列表
+	const USERS_IN_ROOM = 'users_in_room:%s'; //该房间下的用户 RoomId
 	const USER_MESS = 'user_messageCount:uid:%s'; //哈希表 用来存放用户消息的数量
 	const USER_MESS_TYPE_COUNT = 'user_message:type_%s';  //type=4的消息的未读数
-
-	const USER_MESS_TYPE_TABLE = 'user_message_number:uid:%s';  //用与存各类消息数量的哈希表
-
 	const USER_INTEREST_MATCH = 'user_insterest_match:match_id:%s';  //关注此场比赛的用户
-	const USER_BLACK_LIST = 'user_black_list:%s';
-	const USERS_IN_ROOM = 'users_in_room:%s'; //该房间下的用户  roomid
-
+	const USER_MESS_TYPE_TABLE = 'user_message_number:uid:%s';  //用与存各类消息数量的哈希表
 	const MATCH_INFO = 'match_info_match_id_%s'; //某场比赛的乱七八糟的信息 进攻/危险进攻/控球率/射正/射偏  从stats中提取
-
+	
 	// 二维数组 转 tree
 	public static function arrayToTree($list, $pid = 'pid')
 	{
@@ -41,17 +37,17 @@ class AppFunc
 				$map[$v[$pid]][] = $v; // 同一个pid 放在同一个数组中
 			}
 		}
-
+		
 		return self::makeTree($map);
 	}
-
+	
 	private static function makeTree($list, $parent_id = 0)
 	{
 		$items = isset($list[$parent_id]) ? $list[$parent_id] : [];
 		if (!$items) {
 			return null;
 		}
-
+		
 		$trees = [];
 		foreach ($items as $k => $v) {
 			$children = self::makeTree($list, $v['id']); // 找到以这个id 为pid 的数据
@@ -60,10 +56,10 @@ class AppFunc
 			}
 			$trees[] = $v;
 		}
-
+		
 		return $trees;
 	}
-
+	
 	/**
 	 * / 规则 |--- 就分的
 	 * @param  [type] $tree_list [树 数组]
@@ -85,7 +81,7 @@ class AppFunc
 			}
 		}
 	}
-
+	
 	/**
 	 * / 规则 |--- 就分的
 	 * @param  [type] $tree_list [树 数组]
@@ -107,7 +103,7 @@ class AppFunc
 			}
 		}
 	}
-
+	
 	/**
 	 * 获得随机字符串
 	 * @param $len             需要的长度
@@ -124,7 +120,7 @@ class AppFunc
 			"S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2",
 			"3", "4", "5", "6", "7", "8", "9",
 		];
-
+		
 		if ($special) {
 			$chars = array_merge($chars, [
 				"!", "@", "#", "$", "?", "|", "{", "/", ":", ";",
@@ -132,7 +128,7 @@ class AppFunc
 				"}", "<", ">", "~", "+", "=", ",", ".",
 			]);
 		}
-
+		
 		$charsLen = count($chars) - 1;
 		shuffle($chars); //打乱数组顺序
 		$str = '';
@@ -141,7 +137,7 @@ class AppFunc
 		}
 		return $str;
 	}
-
+	
 	/**
 	 * easyswoole where 条件不支持or，此处改造
 	 * @param string $col
@@ -151,14 +147,14 @@ class AppFunc
 	public static function getWhereArray(string $col, array $where)
 	{
 		if (!$where) return '';
-
+		
 		$str = '';
 		foreach ($where as $v) {
 			$str .= ($col . '=' . $v . ' or ');
 		}
 		return '(' . rtrim($str, 'or ') . ')';
 	}
-
+	
 	/**
 	 * 验证必须存在
 	 * @param $col
@@ -170,7 +166,7 @@ class AppFunc
 			}
 		}
 	}
-
+	
 	/**
 	 * @param $col
 	 * @param $item
@@ -180,8 +176,7 @@ class AppFunc
 	{
 		return $col . "like '%" . $item . "%'";
 	}
-
-
+	
 	/**
 	 * 获取汉字字符串首字母
 	 * @param $str
@@ -263,8 +258,7 @@ class AppFunc
 			return 'Z';
 		return 'hot';
 	}
-
-
+	
 	/**
 	 * 将整数转化为 x亿x千万
 	 * @param $number
@@ -273,7 +267,7 @@ class AppFunc
 	public static function formatValue($number)
 	{
 		$wan_int = substr($number, -8);
-
+		
 		$length = strlen($number);  //数字长度
 		if ($length > 8) { //亿单位
 			$yi = substr_replace(strstr($number, substr($number, -7), ' '), '.', -1, 0);
@@ -281,25 +275,19 @@ class AppFunc
 			$wan = substr_replace(strstr($wan_int, substr($wan_int, -3), ' '), '.', -1, 0);
 			if (floor($wan) == 0) {
 				$wan_str = '1万';
-
 			} else {
 				$wan_str = floor($wan) . '万';
-
 			}
 			return $yi_str . $wan_str . '欧';
-
 		} elseif ($length > 4) { //万单位
 			$wan = substr_replace(strstr($wan_int, substr($wan_int, -3), ' '), '.', -1, 0);
 			$wan_str = floor($wan) . '万欧';
 			return $wan_str;
 		} else {
 			return '';
-
 		}
-
-
 	}
-
+	
 	/**
 	 * 将整数转为万
 	 * @param        $number
@@ -318,9 +306,8 @@ class AppFunc
 			$wan_str = number_format($number / 10000, 0);
 			return $wan_str . $unit;
 		}
-
 	}
-
+	
 	public static function getUserLvByPoint($point)
 	{
 		if (0 <= $point && $point < 15000) {
@@ -328,9 +315,8 @@ class AppFunc
 		} elseif (15000 <= $point && $point < 45000) {
 			return floor(($point - 15000) / 1000) + 30;
 		}
-
 	}
-
+	
 	/**
 	 * @param $level
 	 * @return int
@@ -343,7 +329,7 @@ class AppFunc
 			return 1000;
 		}
 	}
-
+	
 	/**
 	 * 距离下一级相差多少分
 	 * @param $uid
@@ -352,7 +338,7 @@ class AppFunc
 	public static function getPointsToNextLevel($uid)
 	{
 		$user = AdminUser::getInstance()->where('id', $uid)->get();
-
+		
 		$level = $user->level;
 		$point = $user->point;
 		if ($level < 30) {
@@ -362,7 +348,7 @@ class AppFunc
 		}
 		return $D_value;
 	}
-
+	
 	/**
 	 * 总比分
 	 * @param $home_score
@@ -382,11 +368,10 @@ class AppFunc
 		} else {
 			$home_total_score = $home_score[5] + $home_score[6];
 			$away_total_score = $away_score[6] + $away_score[6];
-
 		}
 		return [$home_total_score, $away_total_score];
 	}
-
+	
 	/**
 	 * 获取黄牌数
 	 * @param $home_score
@@ -397,7 +382,7 @@ class AppFunc
 	{
 		return [$home_score[3], $away_score[3]];
 	}
-
+	
 	/**
 	 * 获取红牌数量
 	 * @param $home_score
@@ -407,9 +392,8 @@ class AppFunc
 	public static function getRedCard($home_score, $away_score)
 	{
 		return [$home_score[2], $away_score[2]];
-
 	}
-
+	
 	/**
 	 * 获取角球数量
 	 * @param $home_score
@@ -419,10 +403,8 @@ class AppFunc
 	public static function getCorner($home_score, $away_score)
 	{
 		return [$home_score[4], $away_score[4]];
-
 	}
-
-
+	
 	public static function getAllScoreType($home_score, $away_score)
 	{
 		//半场
@@ -430,7 +412,7 @@ class AppFunc
 		$away_half_score = $away_score[1];
 		$home_corner = $home_score[4];
 		$away_corner = $away_score[4];
-
+		
 		//总比分
 		if (!$home_score[5] && !$away_score[5]) {
 			$home_total_score = $home_score[0] + $home_score[6];
@@ -438,12 +420,11 @@ class AppFunc
 		} else {
 			$home_total_score = $home_score[5] + $home_score[6];
 			$away_total_score = $away_score[6] + $away_score[6];
-
 		}
-
+		
 		return [$home_total_score, $away_total_score, $home_half_score, $away_half_score, $home_corner, $away_corner];
 	}
-
+	
 	/**
 	 * 半场比分
 	 * @param $home_score
@@ -457,17 +438,16 @@ class AppFunc
 		} else {
 			$home_half_score = 0;
 		}
-
+		
 		if (isset($away_score[1])) {
 			$away_half_score = $away_score[1];
 		} else {
 			$away_half_score = 0;
 		}
-
+		
 		return [$home_half_score, $away_half_score];
 	}
-
-
+	
 	/**
 	 * 是否关注
 	 * @param $uid
@@ -488,7 +468,7 @@ class AppFunc
 			return false;
 		}
 	}
-
+	
 	/**
 	 * 用户点击关注 增加关注列表 增加被关注人粉丝列表
 	 * @param $uid
@@ -505,9 +485,8 @@ class AppFunc
 			$redis->sAdd(sprintf(self::USER_FANS, $followId), $uid);
 		});
 		return true;
-
 	}
-
+	
 	/**
 	 * 取消关注
 	 * @param $uid
@@ -525,7 +504,7 @@ class AppFunc
 		});
 		return true;
 	}
-
+	
 	/**
 	 * 用户关注列表
 	 * @param $uid
@@ -539,11 +518,11 @@ class AppFunc
 			RedisPool::invoke('redis', function (Redis $redis) use ($uid, &$id_arr) {
 				$id_arr = $redis->sMembers(sprintf(self::USER_FOLLOWS, $uid));
 			});
-
+			
 			return !empty($id_arr) ? $id_arr : [];
 		}
 	}
-
+	
 	/**
 	 * 用户粉丝列表
 	 * @param $uid
@@ -558,11 +537,9 @@ class AppFunc
 				$id_arr = $redis->sMembers(sprintf(self::USER_FANS, $uid));
 			});
 			return !empty($id_arr) ? $id_arr : [];
-
 		}
 	}
-
-
+	
 	/**
 	 * 获取此比赛所有的关注用户
 	 * @param $match_id
@@ -579,18 +556,17 @@ class AppFunc
 			return $uids;
 		}
 	}
-
-
+	
 	public static function getTestDomain()
 	{
 		return 'http://test.ymtyadmin.com';
 	}
-
+	
 	public function getFormalDomain()
 	{
 		return 'http://www.yemaoty.cn';
 	}
-
+	
 	/**
 	 * 是否在推荐赛事中
 	 * @param $competitionId
@@ -608,10 +584,8 @@ class AppFunc
 		} else {
 			return false;
 		}
-
 	}
-
-
+	
 	/**
 	 * 是否该提示
 	 * @param $uid
@@ -631,10 +605,9 @@ class AppFunc
 					return true;
 				}
 			}
-
 		}
 	}
-
+	
 	/**
 	 * 是否需要提示
 	 * @param $user_id
@@ -669,30 +642,25 @@ class AppFunc
 							case 12: //结束
 								if ($notice['over']) $bool = true;
 								break;
-
+							
 							case 3: //黄牌
 								if ($notice['yellow_card']) $bool = true;
 								break;
-
+							
 							case 4: //红牌
-
+								
 								if ($notice['red_card']) $bool = true;
 								break;
-
 						}
 						return $bool;
 					}
-
 				}
 			}
-
 		} else {
 			return false;
 		}
-
 	}
-
-
+	
 	/**
 	 * 获取房间内fd
 	 * @param $match_id
@@ -709,7 +677,7 @@ class AppFunc
 			return $fd_arr;
 		}
 	}
-
+	
 	/**
 	 * 用户进入房间
 	 * @param $match_id
@@ -726,7 +694,7 @@ class AppFunc
 			});
 		}
 	}
-
+	
 	/**
 	 * 用户退出房间
 	 * @param $match_id
@@ -745,20 +713,19 @@ class AppFunc
 			return true;
 		}
 	}
-
+	
 	/**
 	 * 获取正在进行中的比赛的进行时间
 	 * @param $match_id
 	 * @return int
 	 */
-
-
+	
 	public static function getPlayingTime($match_id)
 	{
 		$time = Cache::get('match_time_' . $match_id);
 		return $time ?: 0;
 	}
-
+	
 	public static function setPlayingTime($match_id, $score)
 	{
 		if (!$score) {
@@ -773,11 +740,10 @@ class AppFunc
 			$time = 0;
 		}
 		Cache::set('match_time_' . $match_id, $time, 60 * 240);
-
+		
 		return $time;
 	}
-
-
+	
 	/**
 	 * 用户关注比赛
 	 * @param $match_id
@@ -796,7 +762,6 @@ class AppFunc
 				$update_match = json_encode($match_ids);
 			} else {
 				$update_match = json_encode([$match_id]);
-
 			}
 			$matchRes->match_ids = $update_match;
 			RedisPool::invoke('redis', function (Redis $redis) use ($match_id, $uid) {
@@ -816,8 +781,7 @@ class AppFunc
 			}
 		}
 	}
-
-
+	
 	/**
 	 * 用户取消关注比赛
 	 * @param $match_id
@@ -849,7 +813,7 @@ class AppFunc
 			return false;
 		}
 	}
-
+	
 	public static function getMatchTeamName($match_id)
 	{
 		if ($match = AdminMatch::getInstance()->where('match_id', $match_id)->get()) {
@@ -860,7 +824,7 @@ class AppFunc
 			return ['', ''];
 		}
 	}
-
+	
 	public static function getBasic($match_id)
 	{
 		if ($match = AdminMatch::getInstance()->where('match_id', $match_id)->get()) {
@@ -874,8 +838,7 @@ class AppFunc
 			return [];
 		}
 	}
-
-
+	
 	public static function changeArrToStr(array $arr)
 	{
 		if (!$arr) return '';
@@ -886,8 +849,7 @@ class AppFunc
 		$str = rtrim($str, ',') . ')';
 		return $str;
 	}
-
-
+	
 	public static function getAlphaLiving($home_team_en, $away_team_en)
 	{
 		if (!$home_team_en || !$away_team_en) {
@@ -896,7 +858,7 @@ class AppFunc
 		$str_like = trim($home_team_en, ' FC') . '%' . trim($away_team_en, ' FC') . '%';
 		return AdminAlphaMatch::getInstance()->where('teamsEn', $str_like, 'like')->get();
 	}
-
+	
 	public static function getProvinceAndCityCode($province, $city)
 	{
 		$provinceCode = '';
@@ -909,13 +871,12 @@ class AppFunc
 		}
 		return [$provinceCode, $cityCode];
 	}
-
-
+	
 	public static function is_utf8($string)
 	{
 		return mb_detect_encoding($string, 'UTF-8') === 'UTF-8';
 	}
-
+	
 	static function have_special_char($str)
 	{
 		$length = mb_strlen($str);
@@ -924,13 +885,11 @@ class AppFunc
 			$array[] = mb_substr($str, $i, 1, 'utf-8');
 			if (strlen($array[$i]) >= 4) {
 				return true;
-
 			}
 		}
 		return false;
 	}
-
-
+	
 	public static function redisSetStr($key, $value)
 	{
 		if (!$key || !$key) {
@@ -941,8 +900,7 @@ class AppFunc
 		});
 		return true;
 	}
-
-
+	
 	public static function redisGetKey($key)
 	{
 		if ($key) return false;
@@ -951,18 +909,17 @@ class AppFunc
 		});
 		return $value;
 	}
-
+	
 	public static function getPlayerSeasons($seasons)
 	{
 		if (!$seasons) return [];
 		$data = [];
 		foreach ($seasons as $season) {
 			$season_info = AdminSeason::getInstance()->where('season_id', $season)->get();
-
+			
 			$competition_info = $season_info->getCompetition();
 			$season_item = ['season_id' => $season_info->season_id, 'year' => $season_info->year];
-
-
+			
 			if (isset($data[$competition_info->competition_id])) {
 				array_push($data[$competition_info->competition_id]['season_list'], $season_item);
 			} else {
@@ -971,8 +928,6 @@ class AppFunc
 					'season_list' => [$season_item],
 				];
 			}
-
-
 		}
 		$return = [];
 		if ($data) {
@@ -980,14 +935,13 @@ class AppFunc
 				$return[] = $datum;
 			}
 		}
-
+		
 		return $return;
 	}
-
+	
 	public static function getAverageData($data, $match)
 	{
 		if (!$match || !$data) return '0';
 		return number_format($data / $match, 1);
 	}
-
 }

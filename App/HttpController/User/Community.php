@@ -39,8 +39,8 @@ class Community extends FrontUserController
      * 社区板块
      * @var bool
      */
-    protected $isCheckSign = false;
-    public $needCheckToken = false;
+    protected bool $isCheckSign = false;
+    public bool $needCheckToken = false;
 
 
 
