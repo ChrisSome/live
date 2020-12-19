@@ -552,6 +552,7 @@ class DataApi extends FrontUserController
                             foreach ($rows as $vv) {
                                 $id = intval($vv['team_id']);
                                 $team = empty($teamMapper[$id]) ? false : $teamMapper[$id];
+
                                 $items[] = [
                                     'team_id' => $id,
                                     'logo' => empty($team) ? '' : $team['logo'],
@@ -624,6 +625,7 @@ class DataApi extends FrontUserController
                 }
                 return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
             case 4:
+
                 $teamStr = $playerStr = '';
                 //
                 $seasonTeamPlayerKey = 'season_team_player_' . $selectSeasonId;
@@ -969,10 +971,13 @@ class DataApi extends FrontUserController
             if (!empty($this->params['group_id']) && intval($this->params['group_id']) > 0) $groupId = intval($this->params['group_id']);
             // 比赛信息
             $tmp = Utils::queryHandler(SeasonMatchList::getInstance(), 'season_id=?', $selectSeasonId, '*', false);
+
             foreach ($tmp as $v) {
                 $round = json_decode($v['round'], true);
                 $isOk = intval($round['stage_id']) == $stageId && (intval($round['round_num']) == $roundId || intval($round['group_num']) == $groupId);
+
                 if (!$isOk) continue;
+
                 $decodeHomeScore = json_decode($v['home_scores'], true);
                 $decodeAwayScore = json_decode($v['away_scores'], true);
                 $data = [];
@@ -986,7 +991,9 @@ class DataApi extends FrontUserController
                 [$data['home_corner'], $data['away_corner']] = AppFunc::getCorner($decodeHomeScore, $decodeAwayScore);
                 //list($data['home_scores'], $data['away_scores'], $data['half_home_scores'], $data['half_away_scores'], $data['home_corner'], $data['away_corner']) = AppFunc::getAllScoreType($decode_home_score, $decode_away_score);
                 $result['match_list'][] = $data;
+
             }
+
         } else { // 最佳球员
             // 输出数据
             $result = [];

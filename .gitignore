@@ -3,9 +3,9 @@
 vendor
 /Log
 
-/.dev.php
+.dev.php
 App/Config/Database.php
 /mysql/data
-/.idea
+/.idea/*
 /.metadata
 /RemoteSystemsTempFiles

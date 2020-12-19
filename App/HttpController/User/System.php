@@ -85,7 +85,6 @@ class System extends FrontUserController
                 $idff = version_compare($version, $sysVer);
                 $data['is_new'] = $idff;
                 $data['accoucement'] = $value['accoucement'];
-//                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $value);
 
                 $shield_live = DbManager::getInstance()->invoke(function ($client){
                     $shieldModel = AdminSysSettings::invoke($client)->get(['sys_key' => self::SYS_KEY_SHIELD_LIVE]);

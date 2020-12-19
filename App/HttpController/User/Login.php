@@ -71,11 +71,8 @@ class Login extends FrontUserController
 
             }
 
-
-
         } else if ($type == 2) { //账号密码登录
             $password = $this->params['password'];
-
             if (!$user = AdminUser::getInstance()->where('mobile', $mobile)->where('status', [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED, AdminUser::STATUS_FORBIDDEN], 'in')->get()) {
                 return $this->writeJson(Statuses::CODE_W_PHONE, Statuses::$msg[Statuses::CODE_W_PHONE]);
             } else if (!PasswordTool::getInstance()->checkPassword($password, $user->password_hash)) {
@@ -375,7 +372,6 @@ class Login extends FrontUserController
                 'nickname' => $this->params['nickname'],
                 'password_hash' => $password_hash,
                 'mobile' => $this->params['mobile'],
-//                'photo' => !empty($this->params['wx_photo']) ? $this->params['wx_photo'] : Gravatar::makeGravatar($this->params['nickname']),
                 'photo' => !empty($this->params['wx_photo']) ? $this->params['wx_photo'] : self::DEFAULT_PHOTO,
                 'sign_at' => date('Y-m-d H:i:s'),
                 'cid' => isset($this->params['cid']) ? $this->params['cid'] : '',
@@ -387,13 +383,11 @@ class Login extends FrontUserController
                 'device_type' => $this->params['device_type']
             ];
             $rs = AdminUser::getInstance()->insert($userData);
-
             $time = time();
             $token = md5($rs . Config::getInstance()->getConf('app.token') . $time);
             $sUserKey = sprintf(UserModel::USER_TOKEN_KEY, $token);
-            $mobile = $this->params['mobile'];
-            RedisPool::invoke('redis', function(Redis $redis) use ($sUserKey, $mobile) {
-                $redis->set($sUserKey, $mobile);
+            RedisPool::invoke('redis', function(Redis $redis) use ($sUserKey, $rs) {
+                $redis->set($sUserKey, $rs);
             });
             $logon = true;
             //写用户设置

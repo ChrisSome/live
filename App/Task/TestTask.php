@@ -7,12 +7,11 @@ use App\lib\pool\PhoneCodeService as PhoneCodeService;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserPhonecode;
 use App\Utility\Log\Log;
-use EasySwoole\Component\Singleton;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 
 class TestTask implements TaskInterface
 {
-    use Singleton;
+//    use Singleton;
     protected $taskData;
 
     public function __construct($taskData)
@@ -27,11 +26,12 @@ class TestTask implements TaskInterface
      * @param int $workerIndex
      * @throws \Exception
      */
-    public function run(int $taskId,int $workerIndex)
+    public function run(int $taskId, int $workerIndex)
     {
+        Log::getInstance()->info('task start');
+
         // TODO: Implement run() method.
         $isDebug = AdminSysSettings::getInstance()->getSysKey('is_debug');
-        Log::getInstance()->info('code 4');
 
         if (!$isDebug) {
 
