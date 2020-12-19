@@ -29,6 +29,7 @@ use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Swoole\Task\TaskManager;
 use App\Utility\Message\Status;
 use EasySwoole\Mysqli\QueryBuilder;
+use EasySwoole\ORM\DbManager;
 use EasySwoole\Validate\Validate;
 
 
@@ -162,10 +163,8 @@ class Community extends FrontUserController
         $uid = $this->auth['id'] ? $this->auth['id'] : 0;
         $only_author = isset($this->params['only_author']) ? (int)$this->params['only_author'] : 0;
         $order_type = isset($this->params['order_type']) ? (int)$this->params['order_type'] : 1;
-
         $postInfo = FrontService::handPosts([$info], $this->auth['id'] ?: 0)[0];
 
-        Log::getInstance()->info('post info-' . json_encode($postInfo));
         //展示最新评论
         $commentModel = AdminPostComment::getInstance();
         $commentModel = $commentModel->where('post_id', $id)
@@ -233,7 +232,6 @@ class Community extends FrontUserController
      */
     public function getContent(): bool
     {
-        Log::getInstance()->info('params-' . json_encode($this->params));
         // 参数过滤
         $params = $this->params;
         $categoryId = empty($params['category_id']) || intval($params['category_id']) < 1 ? 1 : intval($params['category_id']);
@@ -378,21 +376,25 @@ class Community extends FrontUserController
     }
 
     /**
-     * 热搜榜
+     * 热搜
      * @return bool
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \EasySwoole\Pool\Exception\PoolEmpty
+     * @throws \Throwable
      */
     public function hotSearch()
     {
-        if (!$hot_search = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_HOT_SEARCH)->get()) {
-            $res = [];
-        } else {
-            $res = json_decode($hot_search->sys_value, true);
-        }
-
-        if (!$default_search = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_HOT_SEARCH_CONTENT)->get()) {
-            $content = '';
-        } else {
-            $content = $default_search->sys_value;
+        $settings = DbManager::getInstance()->invoke(function ($client){
+            $hotSearch = AdminSysSettings::invoke($client)->where('sys_key', [AdminSysSettings::SETTING_HOT_SEARCH, AdminSysSettings::SETTING_HOT_SEARCH_CONTENT], 'in')->all();
+            return $hotSearch;
+        });
+        $res = $content = [];
+        foreach ($settings as $setting) {
+            if ($setting->sys_key == AdminSysSettings::SETTING_HOT_SEARCH) {
+                $res = json_decode($setting->sys_value, true);
+            } else if ($setting->sys_key == AdminSysSettings::SETTING_HOT_SEARCH_CONTENT) {
+                $content = $setting->sys_value;
+            }
         }
         $return = [
             'hot_search' => $res,

@@ -25,7 +25,7 @@ class  FrontService
 	const TEAM_LOGO = 'https://cdn.sportnanoapi.com/football/team/';
 	const PLAYER_LOGO = 'https://cdn.sportnanoapi.com/football/player/';
 	const ALPHA_LIVE_LIVING_URL = 'https://cdn.sportnanoapi.com/football/player/';
-
+	
 	/** 登录人id
 	 * @param $posts
 	 * @param $authId
@@ -45,7 +45,7 @@ class  FrontService
 			$id = intval($v['cat_id']);
 			if ($id > 0 && !in_array($id, $categoryIds)) $categoryIds[] = $id;
 		});
-
+		
 		// 点赞/收藏数据映射
 		$tmp = Utils::queryHandler(AdminUserOperate::getInstance(),
 			'(type=1 or type=2) and item_type=1 and is_cancel=0 and item_id in(' . join(',', $postIds) . ')', null,
@@ -70,7 +70,7 @@ class  FrontService
 				'id in(' . join(',', $userIds) . ')', null,
 				'id,photo,nickname,level,is_offical', false, null, 'id,*,1');
 		}
-
+		
 		$list = [];
 		foreach ($posts as $v) {
 			$postId = intval($v['id']);
@@ -113,13 +113,11 @@ class  FrontService
 				'is_collect' => $authId ? (!empty($operateMapper[$postId . '_2'])) : false, //是否收藏该帖子
 				'lasted_resp' => empty($commentMapper[$postId]) ? $v['created_at'] : $commentMapper[$postId], //帖子最新回复
 				'is_fabolus' => $authId ? (!empty($operateMapper[$postId . '_1'])) : false, //是否赞过
-
 			];
 		}
 		return $list;
 	}
-
-
+	
 	/**
 	 * 处理评论
 	 * @param $comments
@@ -150,12 +148,11 @@ class  FrontService
 				$data['t_u_info'] = $item->tuInfo();
 				$datas[] = $data;
 				unset($data);
-
 			}
 		}
 		return $datas;
 	}
-
+	
 	public static function handInformationComment($informationComments, $authId)
 	{
 		$authId = intval($authId);
@@ -230,7 +227,7 @@ class  FrontService
 		}
 		return $list;
 	}
-
+	
 	/**
 	 * @param $uid
 	 * @return mixed
@@ -238,17 +235,13 @@ class  FrontService
 	public static function myPostsCount($uid)
 	{
 		return AdminUserPost::getInstance()->where('user_id', $uid)->where('status', AdminUserPost::STATUS_EXAMINE_SUCC)->count();
-
 	}
-
-
+	
 	public static function ifFabolus($uid, $cid)
 	{
 		return AdminPostOperate::getInstance()->get(['comment_id' => $cid, 'user_id' => $uid, 'action_type' => 1]);
-
 	}
-
-
+	
 	/**
 	 * 今天及未来七天的日期
 	 * @param string $time
@@ -264,9 +257,8 @@ class  FrontService
 			$date[$i] = date($format, strtotime('+' . $i . ' days', $time));
 		}
 		return $date;
-
 	}
-
+	
 	/**
 	 * 比赛格式化
 	 * @param      $matches
@@ -286,10 +278,10 @@ class  FrontService
 			if ($competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
 				$userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
 			}
-//            $userInterestCompetitiones = $competitiones ? json_decode($competitiones['competition_ids'], true) : [];
+			//            $userInterestCompetitiones = $competitiones ? json_decode($competitiones['competition_ids'], true) : [];
 			//用户关注比赛
 			$userInterestMatchIds = [];
-
+			
 			if ($userInterestMatchRes = AdminInterestMatches::getInstance()->where('uid', $uid)->get()) {
 				$userInterestMatchIds = json_decode($userInterestMatchRes->match_ids, true);
 			}
@@ -297,7 +289,7 @@ class  FrontService
 			if ($recommand_competition_id_arr = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get()) {
 				$in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
 			}
-
+			
 			foreach ($matches as $match) {
 				$match_data_info = Cache::get('match_data_info' . $match->match_id);
 				$home_team = isset($match->home_team_id) ? $match->homeTeamName() : '';
@@ -317,24 +309,21 @@ class  FrontService
 							'liveUrl3' => $living_match['liveUrl3'],
 						];
 					}
-
 				}
-
+				
 				if (!$is_show) {
 					if ($uid && !$showWhenUserNotInterestCompetition && !in_array($match->competition_id, $userInterestCompetitiones)) {
 						continue;
-
 					}
-
+					
 					if (!in_array($match->competition_id, $in_competition_arr)) {
 						continue;
 					}
-//                    if (!AppFunc::isInHotCompetition($match->competition_id)) {
-//                        continue;
-//                    }
+					// if (!AppFunc::isInHotCompetition($match->competition_id)) {
+					//     continue;
+					// }
 				}
-
-
+				
 				$is_start = false;
 				if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
 					$is_start = false;
@@ -343,14 +332,14 @@ class  FrontService
 				} elseif (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
 					$is_start = false;
 				}
-
+				
 				$item['home_team_name'] = $home_team['name_zh'];
 				$item['home_team_logo'] = $home_team['logo'];
 				$item['away_team_name'] = $away_team['name_zh'];
 				$item['away_team_logo'] = $away_team['logo'];
 				$item['group_num'] = json_decode($match->round, true)['group_num']; //第几组
 				$item['round_num'] = json_decode($match->round, true)['round_num']; //第几轮
-//                $item['competition_type'] = $match->competitionName['type'];
+				//                $item['competition_type'] = $match->competitionName['type'];
 				$item['competition_name'] = $competition['short_name_zh'];
 				$item['competition_color'] = $competition['primary_color'];
 				$item['match_time'] = date('H:i', $match['match_time']);
@@ -361,30 +350,27 @@ class  FrontService
 				$item['status_id'] = $match->status_id;
 				$item['is_interest'] = in_array($match->match_id, $userInterestMatchIds) ? true : false;
 				$item['neutral'] = $match->neutral;  //1中立 0否
-//                $item['competition_id'] = $match->competition_id;  //1中立 0否
+				//                $item['competition_id'] = $match->competition_id;  //1中立 0否
 				$item['note'] = $match->note;  //备注   欧青连八分之一决赛
 				$item['home_scores'] = $match->home_scores;  //主队比分
 				$item['away_scores'] = $match->away_scores;  //主队比分
 				$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '';  //直播地址
 				$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
 				$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
-//                $item['home_win'] = $homeWin;  //比赛输赢
+				//                $item['home_win'] = $homeWin;  //比赛输赢
 				$item['matching_time'] = AppFunc::getPlayingTime($match->match_id);  //比赛进行时间
 				$item['matching_info'] = json_decode($match_data_info, true);
 				$item['has_living'] = $has_living;
 				$item['living_url'] = $living_url;
-
+				
 				$data[] = $item;
-
+				
 				unset($item);
-
-
 			}
 			return isset($data) ? $data : [];
 		}
 	}
-
-
+	
 	static function formatMatch($matches, $uid)
 	{
 		if (!$matches) return [];
@@ -393,8 +379,7 @@ class  FrontService
 			if (!AppFunc::isInHotCompetition($match->competition_id)) {
 				continue;
 			}
-
-
+			
 			//用户关注赛事
 			$userInterestCompetitiones = [];
 			if ($competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
@@ -402,11 +387,11 @@ class  FrontService
 			}
 			//用户关注比赛
 			$userInterestMatchIds = [];
-
+			
 			if ($userInterestMatchRes = AdminInterestMatches::getInstance()->where('uid', $uid)->get()) {
 				$userInterestMatchIds = json_decode($userInterestMatchRes->match_ids, true);
 			}
-
+			
 			if ($uid && !in_array($match->competition_id, $userInterestCompetitiones)) {
 				continue;
 			}
@@ -416,7 +401,7 @@ class  FrontService
 			if (!$home_team || !$away_team || !$competition) {
 				continue;
 			}
-
+			
 			$is_start = false;
 			if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
 				$is_start = false;
@@ -429,7 +414,7 @@ class  FrontService
 			$has_living = 0;
 			$living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
 			$match_data_info = Cache::get('match_data_info' . $match->match_id);
-
+			
 			$item['home_team_name'] = $home_team['name_zh'];
 			$item['home_team_logo'] = $home_team['logo'];
 			$item['away_team_name'] = $away_team['name_zh'];
@@ -457,16 +442,14 @@ class  FrontService
 			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '';  //直播地址
 			$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
 			$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
-
-
+			
 			$data[] = $item;
-
+			
 			unset($item);
 		}
 		return $data;
 	}
-
-
+	
 	/**
 	 * @return array
 	 */
@@ -478,28 +461,27 @@ class  FrontService
 		}
 		return $competition_ids;
 	}
-
-
+	
 	static function formatMatchTwo($matches, $uid)
 	{
 		if (!$matches) return [];
 		$data = [];
-
+		
 		//用户关注比赛
-
+		
 		$userInterestMatchIds = [];
-
+		
 		if ($userInterestMatchRes = AdminInterestMatches::getInstance()->where('uid', $uid)->get()) {
 			$userInterestMatchIds = json_decode($userInterestMatchRes->match_ids, true);
 		}
-
+		
 		foreach ($matches as $match) {
 			//用户关注比赛
 			$is_interest = false;
 			if ($userInterestMatchIds && $uid && in_array($match->match_id, $userInterestMatchIds)) {
 				$is_interest = true;
 			}
-
+			
 			$is_start = false;
 			if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
 				$is_start = false;
@@ -510,7 +492,7 @@ class  FrontService
 			}
 			$has_living = 0;
 			$living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
-
+			
 			$match_data_info = Cache::get('match_data_info' . $match->match_id);
 			$round = json_decode($match->round, true);
 			$item['home_team_name'] = $match->home_team_name;
@@ -540,22 +522,21 @@ class  FrontService
 			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '';  //直播地址
 			$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
 			$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
-
+			
 			$data[] = $item;
-
+			
 			unset($item);
 		}
 		return $data;
 	}
-
-
+	
 	/**
 	 * 关键球员
 	 * @param $item
 	 * @param $column
 	 * @return array
 	 */
-
+	
 	public static function formatKeyPlayer($item, $column)
 	{
 		if (empty($item)) return [];
@@ -566,8 +547,7 @@ class  FrontService
 		$data['total'] = $item[$column];
 		return $data;
 	}
-
-
+	
 	/**
 	 * 转会球员
 	 */
@@ -583,10 +563,10 @@ class  FrontService
 			}
 			$from_team = $item->fromTeamInfo();
 			$to_team = $item->ToTeamInfo();
-//            if(!$to_team = AdminTeam::getInstance()->where('team_id', $item['to_team_id'])->get()) {
-//                continue;
-//            }
-
+			//            if(!$to_team = AdminTeam::getInstance()->where('team_id', $item['to_team_id'])->get()) {
+			//                continue;
+			//            }
+			
 			$data['player_id'] = $item['player_id'];
 			$data['player_position'] = $player['position'];
 			$data['transfer_time'] = date('Y-m-d', $item['transfer_time']);
@@ -605,8 +585,7 @@ class  FrontService
 		}
 		return $return;
 	}
-
-
+	
 	public static function handChangePlayer($res)
 	{
 		$return = $playerMapper = $teamMapper = $playerIds = $teamIds = [];
@@ -663,7 +642,7 @@ class  FrontService
 		}
 		return $return;
 	}
-
+	
 	/**
 	 * @param $informations
 	 * @return array
@@ -692,14 +671,14 @@ class  FrontService
 			$data['is_title'] = ($item['type'] == 1) ? true : false;
 			$data['competition_short_name_zh'] = isset($competition->short_name_zh) ? $competition->short_name_zh : '';
 			$data['user_info'] = ['id' => $user->id, 'nickname' => $user->nickname, 'photo' => $user->photo, 'level' => $user->level, 'is_offical' => $user->is_offical];
-
+			
 			$format[] = $data;
 			unset($data);
 		}
-
+		
 		return $format;
 	}
-
+	
 	/**
 	 * @param $users
 	 * @param $uid
@@ -721,9 +700,7 @@ class  FrontService
 			$format_users[] = $data;
 			unset($data);
 		}
-
+		
 		return $format_users;
 	}
-
-
 }

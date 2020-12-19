@@ -30,11 +30,11 @@ class AdminUserPost extends BaseModel
      * $value mixed 是原值
      * $data  array 是当前model所有的值
      */
-    protected function getContentAttr($value, $data)
-    {
-        return base64_decode($data['content']);
-
-    }
+//    protected function getContentAttr($value, $data)
+//    {
+//        return base64_decode($data['content']);
+//
+//    }
     public function findAll($page, $limit)
     {
         return $this->order('created_at', 'DESC')

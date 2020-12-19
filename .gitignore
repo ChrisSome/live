@@ -1,5 +1,9 @@
+/App/Config/database.php
+/RemoteSystemsTempFiles/
 /composer.lock
 /Temp/esCache/*
 /Temp/logs/*
+/mysql/data
+/.metadata/
 /vendor/
 /.idea/

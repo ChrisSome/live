@@ -92,7 +92,7 @@ class EasySwooleEvent implements Event
 		// ServerManager::getInstance()->getSwooleServer()->addProcess($nami_task);
 		
 		// 配置缓存
-		$conf = Config::getInstance()->getConf('cache');
+		$conf = Config::getInstance()->getConf('app.cache');
 		Cache::init($conf);
 		
 		// 注册Websocket相关
