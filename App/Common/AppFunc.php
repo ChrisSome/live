@@ -456,17 +456,12 @@ class AppFunc
 	 */
 	public static function isFollow($uid, $followId)
 	{
-		if (!$uid || !$followId) {
-			return false;
-		}
+		if (!$uid || !$followId) return false;
 		RedisPool::invoke('redis', function (Redis $redis) use ($uid, &$id_arr) {
 			$id_arr = $redis->sMembers(sprintf(self::USER_FOLLOWS, $uid));
 		});
-		if (in_array($followId, $id_arr)) {
-			return true;
-		} else {
-			return false;
-		}
+		if (in_array($followId, $id_arr)) return true;
+		return false;
 	}
 	
 	/**
@@ -510,17 +505,13 @@ class AppFunc
 	 * @param $uid
 	 * @return array
 	 */
-	public static function getUserFollowing($uid)
+	public static function getUserFollowing($uid): array
 	{
-		if (!$uid) {
-			return [];
-		} else {
-			RedisPool::invoke('redis', function (Redis $redis) use ($uid, &$id_arr) {
-				$id_arr = $redis->sMembers(sprintf(self::USER_FOLLOWS, $uid));
-			});
-			
-			return !empty($id_arr) ? $id_arr : [];
-		}
+		if (empty($uid) || intval($uid) < 1) return [];
+		RedisPool::invoke('redis', function (Redis $redis) use ($uid, &$id_arr) {
+			$id_arr = $redis->sMembers(sprintf(self::USER_FOLLOWS, $uid));
+		});
+		return !empty($id_arr) ? $id_arr : [];
 	}
 	
 	/**
@@ -528,16 +519,13 @@ class AppFunc
 	 * @param $uid
 	 * @return array
 	 */
-	public static function getUserFans($uid)
+	public static function getUserFans($uid): array
 	{
-		if (!$uid) {
-			return [];
-		} else {
-			RedisPool::invoke('redis', function (Redis $redis) use ($uid, &$id_arr) {
-				$id_arr = $redis->sMembers(sprintf(self::USER_FANS, $uid));
-			});
-			return !empty($id_arr) ? $id_arr : [];
-		}
+		if (empty($uid) || intval($uid) < 1) return [];
+		RedisPool::invoke('redis', function (Redis $redis) use ($uid, &$id_arr) {
+			$id_arr = $redis->sMembers(sprintf(self::USER_FANS, $uid));
+		});
+		return !empty($id_arr) ? $id_arr : [];
 	}
 	
 	/**

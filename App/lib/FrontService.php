@@ -685,9 +685,7 @@ class  FrontService
 	 */
 	public static function handUser($users, $uid)
 	{
-		if (!$users) {
-			return [];
-		}
+		if (!$users) return [];
 		$format_users = [];
 		foreach ($users as $user) {
 			$data['id'] = $user['id'];
