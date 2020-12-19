@@ -366,14 +366,14 @@ class UserCenter   extends FrontUserController{
 
                 if ($item['item_type'] == 1) { //赞我的帖子
                     $post = AdminUserPost::getInstance()->where('id', $item['item_id'])->get();
-                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => $post->content] : [];
+                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => base64_decode($post->content)] : [];
                 } else if ($item['item_type'] == 2) { //赞帖子回复
                     $post_comment = AdminPostComment::getInstance()->where('id', $item['item_id'])->get();
 
                     if ($post_comment) {
                         $post = $post_comment->postInfo();
                         $data['post_comment_info'] = $post_comment ? ['id' => $post_comment->id, 'content' => $post_comment->content] : [];
-                        $data['post_info'] = ['id' => $post->id, 'title' => $post->title, 'content' => $post->content];
+                        $data['post_info'] = ['id' => $post->id, 'title' => $post->title, 'content' => base64_decode($post->content)];
                     } else {
                         $data['post_comment_info'] = [];
                         $data['post_info'] = [];
