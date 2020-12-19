@@ -31,7 +31,6 @@ class BroadcastTask implements TaskInterface
 
     public function __construct($taskData)
     {
-        Log::getInstance()->info('asdf');
         $this->taskData = $taskData;
     }
 

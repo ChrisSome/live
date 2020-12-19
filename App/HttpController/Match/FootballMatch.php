@@ -12,6 +12,7 @@ use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
+use App\Model\SeasonMatchListOne;
 use App\Task\TestTask;
 use EasySwoole\Component\Process\Manager;
 use App\Model\SeasonAllTableDetail;
@@ -783,21 +784,7 @@ class FootBallMatch extends FrontUserController
         }
     }
 
-    public function test()
-    {
-        $code = Tool::getInstance()->generateCode();
-        //异步task
 
-        $res = TaskManager::getInstance()->async(new TestTask([
-            'code' => $code,
-            'mobile' => '15670660962',
-            'name' => '短信验证码'
-        ]));
-//
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
-
-
-    }
 
 
 
@@ -1485,7 +1472,7 @@ class FootBallMatch extends FrontUserController
     /**
      * 赛季比赛列表  一天一次
      */
-    public function updateMatchSeason()
+    public function updateMatchSeason1()
     {
 
 //        $season_id = Cache::get('update_season_id');
@@ -1504,7 +1491,7 @@ class FootBallMatch extends FrontUserController
                 if ($results = $decode['results']) {
 
                     foreach ($results as $data) {
-
+                        if (SeasonMatchList::getInstance()->get(['match_id' => $data['id']])) continue;
                         $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
                         $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
                         $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
@@ -1549,5 +1536,147 @@ class FootBallMatch extends FrontUserController
     }
 
 
+    /**
+     * 赛季比赛列表  一天一次
+     */
+    public function updateMatchSeason()
+    {
+
+        $season_id = Cache::get('update_season_id');
+        $season_id = SeasonMatchList::getInstance()->max('season_id');
+        $select_season_id = isset($season_id) ? $season_id : 0;
+        $season = AdminSeason::getInstance()->field(['season_id'])->where('season_id', $select_season_id, '>')->limit(2000)->all();
+
+        foreach ($season as $item) {
+            $res = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/match/season?user=%s&secret=%s&id=%s', 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['season_id']));
+            $decode = json_decode($res, true);
+
+            if ($decode['code'] == 0) {
+                if ($decode['total'] == '0') {
+                    continue;
+                }
+                if ($results = $decode['results']) {
+
+                    foreach ($results as $data) {
+                        if (SeasonMatchList::getInstance()->get(['match_id' => $data['id']])) continue;
+                        $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+                        $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                        $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+                        $insertData = [
+                            'match_id' => $data['id'],
+                            'competition_id' => $data['competition_id'],
+                            'home_team_id' => $data['home_team_id'],
+                            'away_team_id' => $data['away_team_id'],
+                            'match_time' => $data['match_time'],
+                            'neutral' => $data['neutral'],
+                            'note' => $data['note'],
+                            'season_id' => $data['season_id'],
+                            'home_scores' => json_encode($data['home_scores']),
+                            'away_scores' => json_encode($data['away_scores']),
+                            'home_position' => $data['home_position'],
+                            'away_position' => $data['away_position'],
+                            'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                            'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                            'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                            'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                            'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                            'status_id' => $data['status_id'],
+                            'updated_at' => $data['updated_at'],
+                            'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                            'home_team_logo' => $home_team->logo,
+                            'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                            'away_team_logo' => $away_team->logo,
+                            'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
+                            'competition_color' => $competition->primary_color
+                        ];
+                        SeasonMatchList::getInstance()->insert($insertData);
+                    }
+                } else {
+                    continue;
+                }
+
+            } else {
+                continue;
+            }
+        }
+
+    }
+
+
+    public function test()
+    {
+        ini_set("max_execution_time", 1000);
+//        $season_id = Cache::get('season_match_list_seasonId-');
+        $season_id = SeasonMatchListOne::getInstance()->max('season_id');
+        $season = AdminSeason::getInstance()->field(['season_id'])->where('season_id', $season_id, '>')->limit(2000)->all();
+        foreach ($season as $item) {
+            Cache::set('season_match_list_seasonId-', $item['id']);
+            $res = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/match/season?user=%s&secret=%s&id=%s', 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['season_id']));
+            $decode = json_decode($res, true);
+            if ($decode['code'] == 0) {
+
+                if ($results = $decode['results']) {
+
+                    foreach ($results as $data) {
+
+                        if (SeasonMatchListOne::getInstance()->get(['match_id' => $data['id']])) continue;
+                        $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+                        $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                        $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+                        $insertData = [
+                            'match_id' => $data['id'],
+                            'competition_id' => $data['competition_id'],
+                            'home_team_id' => $data['home_team_id'],
+                            'away_team_id' => $data['away_team_id'],
+                            'match_time' => $data['match_time'],
+                            'neutral' => $data['neutral'],
+                            'note' => $data['note'],
+                            'season_id' => $data['season_id'],
+                            'home_scores' => json_encode($data['home_scores']),
+                            'away_scores' => json_encode($data['away_scores']),
+                            'home_position' => $data['home_position'],
+                            'away_position' => $data['away_position'],
+                            'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                            'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                            'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                            'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                            'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                            'status_id' => $data['status_id'],
+                            'updated_at' => $data['updated_at'],
+                            'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                            'home_team_logo' => $home_team->logo,
+                            'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                            'away_team_logo' => $away_team->logo,
+                            'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
+                            'competition_color' => $competition->primary_color
+                        ];
+                        SeasonMatchListOne::getInstance()->insert($insertData);
+                    }
+                } else {
+                    continue;
+                }
+
+            } else {
+                continue;
+            }
+        }
+
+return ;
+
+
+
+//        $code = Tool::getInstance()->generateCode();
+//        //异步task
+//
+//        $res = TaskManager::getInstance()->async(new TestTask([
+//            'code' => $code,
+//            'mobile' => '15670660962',
+//            'name' => '短信验证码'
+//        ]));
+//
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+
+
+    }
 
 }
