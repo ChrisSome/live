@@ -2,52 +2,55 @@
 
 namespace EasySwoole\EasySwoole;
 
-use App\Process\Consumer;
 use App\Process\HotReload;
 use App\Storage\OnlineUser;
-use App\WebSocket\event\OnWorkStart;
+use easySwoole\Cache\Cache;
+use EasySwoole\Http\Request;
+use EasySwoole\Utility\File;
+use EasySwoole\Http\Response;
+use EasySwoole\ORM\DbManager;
+use EasySwoole\ORM\Db\Connection;
+use EasySwoole\Socket\Dispatcher;
 use App\WebSocket\WebSocketEvents;
 use App\WebSocket\WebSocketParser;
-use easySwoole\Cache\Cache;
-use EasySwoole\Component\Pool\PoolManager;
-use EasySwoole\EasySwoole\AbstractInterface\Event;
-use EasySwoole\EasySwoole\Swoole\EventRegister;
-use EasySwoole\Http\Request;
-use EasySwoole\Http\Response;
+use App\WebSocket\event\OnWorkStart;
 use EasySwoole\ORM\Db\Config as DbConfig;
+use EasySwoole\RedisPool\RedisPoolException;
 use EasySwoole\Socket\Config as SocketConfig;
-use EasySwoole\ORM\Db\Connection;
-use EasySwoole\ORM\DbManager;
-use EasySwoole\Socket\Dispatcher;
-use EasySwoole\Template\Render;
-use EasySwoole\Utility\File;
+use EasySwoole\RedisPool\Exception\Exception;
+use EasySwoole\EasySwoole\Swoole\EventRegister;
+use EasySwoole\EasySwoole\AbstractInterface\Event;
 
 class EasySwooleEvent implements Event
 {
-
+	/**
+	 * @throws \EasySwoole\Pool\Exception\Exception
+	 * @throws Exception
+	 * @throws RedisPoolException
+	 */
 	public static function initialize()
 	{
 		// ini_set('memory_limit', '2048M');
 		self::loadConf(); // 加载配置项
-
+		
 		// 配置Redis
-		$conf = Config::getInstance()->getConf('REDIS');
+		$config = Config::getInstance()->getConf('REDIS');
 		$redisConfig = new \EasySwoole\Redis\Config\RedisConfig();
-		$redisConfig->setHost($conf['host']);
-		$redisConfig->setPort($conf['port']);
+		$redisConfig->setHost($config['host']);
+		$redisConfig->setPort($config['port']);
 		$redisPoolConfig = \EasySwoole\RedisPool\Redis::getInstance()->register('redis', $redisConfig);
 		$redisPoolConfig->setMinObjectNum(15);
 		$redisPoolConfig->setMaxObjectNum(100);
-
+		
 		// 配置数据库
-		$conf = Config::getInstance()->getConf('MYSQL');
+		$config = Config::getInstance()->getConf('MYSQL');
 		$mysqlConfig = new DbConfig();
-		$mysqlConfig->setHost($conf['host']);
-		$mysqlConfig->setPort($conf['port']);
-		$mysqlConfig->setDatabase($conf['db']);
-		$mysqlConfig->setUser($conf['username']);
-		$mysqlConfig->setCharset($conf['charset']);
-		$mysqlConfig->setPassword($conf['password']);
+		$mysqlConfig->setHost($config['host']);
+		$mysqlConfig->setPort($config['port']);
+		$mysqlConfig->setDatabase($config['db']);
+		$mysqlConfig->setUser($config['username']);
+		$mysqlConfig->setCharset($config['charset']);
+		$mysqlConfig->setPassword($config['password']);
 		// 设置检测连接存活执行回收和创建的周期
 		$mysqlConfig->setIntervalCheckTime(30000);
 		// 连接池对象最大闲置时间(秒)
@@ -62,12 +65,12 @@ class EasySwooleEvent implements Event
 		$mysqlConfig->setAutoPing(5);
 		DbManager::getInstance()->addConnection(new Connection($mysqlConfig));
 	}
-
+	
 	public static function loadConf()
 	{
 		$files = File::scanDirectory(EASYSWOOLE_ROOT . '/App/Config');
 		if (!is_array($files)) return;
-
+		
 		foreach ($files['files'] as $file) {
 			$suffix = strtolower(substr($file, strrpos($file, '.') + 1));
 			if ($suffix == 'php') {
@@ -77,21 +80,21 @@ class EasySwooleEvent implements Event
 			}
 		}
 	}
-
+	
 	public static function mainServerCreate(EventRegister $register)
 	{
 		// 配置服务热启动
 		$hot_reload = (new HotReload('HotReload', ['disableInotify' => false]))->getProcess();
 		ServerManager::getInstance()->getSwooleServer()->addProcess($hot_reload);
-
+		
 		// 配置timer定时
 		// $nami_task = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
 		// ServerManager::getInstance()->getSwooleServer()->addProcess($nami_task);
-
+		
 		// 配置缓存
 		$conf = Config::getInstance()->getConf('cache');
 		Cache::init($conf);
-
+		
 		// 注册Websocket相关
 		OnlineUser::getInstance();
 		$web = new WebSocketEvents();
@@ -121,12 +124,12 @@ class EasySwooleEvent implements Event
 			DbManager::getInstance()->getConnection()->getClientPool()->keepMin();
 		});
 	}
-
+	
 	public static function onRequest(Request $request, Response $response): bool
 	{
 		return true;
 	}
-
+	
 	public static function afterRequest(Request $request, Response $response): void
 	{
 		// todo ...
