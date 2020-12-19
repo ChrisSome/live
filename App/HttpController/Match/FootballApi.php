@@ -224,6 +224,8 @@ class FootballApi extends FrontUserController
         } else {
             $selectCompetition = $in_competition_arr;
         }
+        if (!$selectCompetition) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
+
         $playMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')
             ->where('competition_id', $selectCompetition, 'in')
             ->where('is_delete', 0)->order('match_time', 'ASC')
@@ -301,7 +303,8 @@ class FootballApi extends FrontUserController
         } else {
             $selectCompetition = $in_competition_arr;
         }
-
+        $selectCompetition = array_values($selectCompetition);
+        if (!$selectCompetition) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
 
         $model = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
             ->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')
@@ -314,7 +317,6 @@ class FootballApi extends FrontUserController
 
         $formatMatch = FrontService::formatMatchTwo($list, $uid);
         $return = ['list' => $formatMatch, 'count' => $total];
-
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
     }
@@ -355,6 +357,8 @@ class FootballApi extends FrontUserController
         } else {
             $selectCompetition = $in_competition_arr;
         }
+        if (!$selectCompetition) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
+
         $matches = AdminMatch::getInstance()
             ->where('match_time', $start, '>=')
             ->where('match_time', $end, '<')
@@ -633,8 +637,11 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
 
         }
-
         $formatMatch = FrontService::formatMatchTwo([$match], $this->auth['id']);
+        if (!$return = $formatMatch[0]) {
+            return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+
+        }
         $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
         $competition_id = $return['competition_id'];
         $type = DbManager::getInstance()->invoke(function ($client) use ($competition_id) {

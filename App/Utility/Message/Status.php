@@ -59,6 +59,7 @@ class Status
     const CODE_WRONG_USER = 501; //未查询到有效用户
     const CODE_WRONG_RES = 502; //未查询到有效数据
     const CODE_WRONG_LIMIT = 503; //频繁操作
+    const CODE_WRONG_INTERNET = 504; //网络繁忙
 
 
 
@@ -105,6 +106,7 @@ class Status
         self::CODE_MATCH_FOLLOW_ERR => '关注比赛失败',
         self::CODE_MATCH_LINE_UP_ERR => '阵容获取失败',
         self::CODE_SENSITIVE_WORD => '敏感词',
+        self::CODE_WRONG_INTERNET => '网络繁忙, 请稍后重试',
 
         self::CODE_UNVALID_CODE => '格式错误，请重新编辑',
     ];

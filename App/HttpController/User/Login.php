@@ -16,6 +16,7 @@ use App\Model\AdminUserInterestCompetition;
 use App\Model\AdminUserPhonecode;
 use App\Model\AdminUserSetting;
 use App\Storage\OnlineUser;
+use App\Task\PhoneTask;
 use App\Task\TestTask;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Config;
@@ -175,11 +176,7 @@ class Login extends FrontUserController
         $code = Tool::getInstance()->generateCode();
         //异步task
 
-        $res = TaskManager::getInstance()->async(new TestTask([
-            'code' => $code,
-            'mobile' => $mobile,
-            'name' => '短信验证码'
-        ]));
+        $res = TaskManager::getInstance()->async(new PhoneTask(['code' => $code, 'mobile' => $mobile, 'name' => '短信验证码']));
         return $this->writeJson(Statuses::CODE_OK, '验证码以发送至尾号' . substr($mobile, -4) .'手机', $res);
 
     }
