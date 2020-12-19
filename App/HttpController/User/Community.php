@@ -163,10 +163,8 @@ class Community extends FrontUserController
         $uid = $this->auth['id'] ? $this->auth['id'] : 0;
         $only_author = isset($this->params['only_author']) ? (int)$this->params['only_author'] : 0;
         $order_type = isset($this->params['order_type']) ? (int)$this->params['order_type'] : 1;
-
         $postInfo = FrontService::handPosts([$info], $this->auth['id'] ?: 0)[0];
 
-        Log::getInstance()->info('post info-' . json_encode($postInfo));
         //展示最新评论
         $commentModel = AdminPostComment::getInstance();
         $commentModel = $commentModel->where('post_id', $id)
@@ -234,7 +232,6 @@ class Community extends FrontUserController
      */
     public function getContent(): bool
     {
-        Log::getInstance()->info('params-' . json_encode($this->params));
         // 参数过滤
         $params = $this->params;
         $categoryId = empty($params['category_id']) || intval($params['category_id']) < 1 ? 1 : intval($params['category_id']);
