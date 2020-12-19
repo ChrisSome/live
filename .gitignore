@@ -1,0 +1,11 @@
+
+
+vendor
+/Log
+
+/.dev.php
+App/Config/Database.php
+/mysql/data
+/.idea
+/.metadata
+/RemoteSystemsTempFiles

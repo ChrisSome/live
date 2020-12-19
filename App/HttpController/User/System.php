@@ -14,6 +14,7 @@ use App\Task\MessageTask;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use EasySwoole\EasySwoole\Task\TaskManager;
+use EasySwoole\ORM\DbManager;
 
 class System extends FrontUserController
 {
@@ -71,8 +72,10 @@ class System extends FrontUserController
     {
 
         if (isset($this->params['version']) && isset($this->params['phone_type'])) {
-
-            $package = AdminSysSettings::getInstance()->order('created_at', 'DESC')->where('sys_key', self::SYS_KEY_HOT_RELOAD)->limit(1)->get();
+            $package = DbManager::getInstance()->invoke(function ($client){
+                $packageModel = AdminSysSettings::invoke($client)->get(['sys_key' => self::SYS_KEY_HOT_RELOAD]);
+                return $packageModel;
+            });
             if (!$package) {
                 $data['is_new'] = 1;
             } else {
@@ -81,10 +84,13 @@ class System extends FrontUserController
                 $sysVer = $value['version'];
                 $idff = version_compare($version, $sysVer);
                 $data['is_new'] = $idff;
-                $accountment = AdminSystemAnnoucement::getInstance()->field(['id', 'title', 'content', 'created_at'])->where('id', $value['accoucement_id'])->get();
+                $data['accoucement'] = $value['accoucement'];
+//                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $value);
 
-                $data['accoucement'] = $accountment;
-                $shield_live = AdminSysSettings::getInstance()->order('created_at', 'DESC')->where('sys_key', self::SYS_KEY_SHIELD_LIVE)->limit(1)->get();
+                $shield_live = DbManager::getInstance()->invoke(function ($client){
+                    $shieldModel = AdminSysSettings::invoke($client)->get(['sys_key' => self::SYS_KEY_SHIELD_LIVE]);
+                    return $shieldModel;
+                });
                 $phoneType = $this->params['phone_type'];
                 $sys_value_decode = json_decode($shield_live['sys_value'], true);
                 $phoneTypeSetting = isset($sys_value_decode[$phoneType]) ? $sys_value_decode[$phoneType] : '';

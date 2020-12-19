@@ -26,10 +26,8 @@ use App\Process\HotReload;
 use App\Utility\Template\Blade;
 use EasySwoole\Template\Render;
 use easySwoole\Cache\Cache;
-use EasySwoole\ORM\Db\Config as DbConfig;
 use EasySwoole\ORM\DbManager;
 use EasySwoole\ORM\Db\Connection;
-use EasySwoole\EasySwoole\Config;
 class EasySwooleEvent implements Event
 {
 
@@ -53,12 +51,9 @@ class EasySwooleEvent implements Event
         $redisPoolConfig->setMinObjectNum(15);
         $redisPoolConfig->setMaxObjectNum(100);
 
-	//$conf_server = Config::getInstance()->getConf('MAIN_SERVER');
-	//file_put_contents('/var/wwwroot/log.txt', '3-' . json_encode($conf_server));
         //数据库
-        //$dbConf = Config::getInstance()->getConf('database')['MYSQL'];
         $dbConf = Config::getInstance()->getConf('MYSQL');
-	$config = new DbConfig();
+	    $config = new \EasySwoole\ORM\Db\Config();;
         $config->setDatabase($dbConf['db']);
         $config->setUser($dbConf['username']);
         $config->setPassword($dbConf['password']);
@@ -70,9 +65,13 @@ class EasySwooleEvent implements Event
         $config->setIntervalCheckTime(30*1000); //设置检测连接存活执行回收和创建的周期
         $config->setMaxIdleTime(15); //连接池对象最大闲置时间(秒)
         $config->setMinObjectNum(15); //设置最小连接池存在连接对象数量
+
         $config->setMaxObjectNum(100); //设置最大连接池存在连接对象数量
         $config->setAutoPing(5); //设置自动ping客户端链接的间隔
-        DbManager::getInstance()->addConnection(new Connection($config));
+
+        $connection = new \EasySwoole\ORM\Db\Connection($config);
+        \EasySwoole\ORM\DbManager::getInstance()->addConnection($connection);
+//        DbManager::getInstance()->addConnection(new Connection($config));
     }
 
     public static function loadConf()

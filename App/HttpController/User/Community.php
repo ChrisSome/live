@@ -29,6 +29,7 @@ use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Swoole\Task\TaskManager;
 use App\Utility\Message\Status;
 use EasySwoole\Mysqli\QueryBuilder;
+use EasySwoole\ORM\DbManager;
 use EasySwoole\Validate\Validate;
 
 
@@ -378,21 +379,25 @@ class Community extends FrontUserController
     }
 
     /**
-     * 热搜榜
+     * 热搜
      * @return bool
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \EasySwoole\Pool\Exception\PoolEmpty
+     * @throws \Throwable
      */
     public function hotSearch()
     {
-        if (!$hot_search = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_HOT_SEARCH)->get()) {
-            $res = [];
-        } else {
-            $res = json_decode($hot_search->sys_value, true);
-        }
-
-        if (!$default_search = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_HOT_SEARCH_CONTENT)->get()) {
-            $content = '';
-        } else {
-            $content = $default_search->sys_value;
+        $settings = DbManager::getInstance()->invoke(function ($client){
+            $hotSearch = AdminSysSettings::invoke($client)->where('sys_key', [AdminSysSettings::SETTING_HOT_SEARCH, AdminSysSettings::SETTING_HOT_SEARCH_CONTENT], 'in')->all();
+            return $hotSearch;
+        });
+        $res = $content = [];
+        foreach ($settings as $setting) {
+            if ($setting->sys_key == AdminSysSettings::SETTING_HOT_SEARCH) {
+                $res = json_decode($setting->sys_value, true);
+            } else if ($setting->sys_key == AdminSysSettings::SETTING_HOT_SEARCH_CONTENT) {
+                $content = $setting->sys_value;
+            }
         }
         $return = [
             'hot_search' => $res,
