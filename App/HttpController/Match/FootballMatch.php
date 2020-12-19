@@ -12,6 +12,7 @@ use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
+use App\Task\TestTask;
 use EasySwoole\Component\Process\Manager;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
@@ -385,6 +386,7 @@ class FootBallMatch extends FrontUserController
                 } else {
                     $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
                     $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                    if (!$home_team || !$away_team) continue;
                     $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
                     $insertData = [
                         'match_id' => $data['id'],
@@ -783,8 +785,16 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
+        $code = Tool::getInstance()->generateCode();
+        //异步task
+
+        $res = TaskManager::getInstance()->async(new TestTask([
+            'code' => $code,
+            'mobile' => '15670660962',
+            'name' => '短信验证码'
+        ]));
 //
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
 
 
     }

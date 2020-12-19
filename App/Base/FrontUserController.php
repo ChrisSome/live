@@ -13,8 +13,8 @@ class FrontUserController extends BaseController
 	protected $params = []; // 请求参数清单
 	protected $auth = null; // 登录用户信息
 	protected $role = null; // 登录用户角色
-	protected $isCheckSign = false;
-	private $needCheckToken = false;
+	protected $isCheckSign = false;    // 是否校验签名
+	protected $needCheckToken = false; // 是否校验用户
 	private $signKey = 'sign';
 	private $noNeedSignKeys = ['content', 'id'];
 	private $ignoreCheckRoutes = [

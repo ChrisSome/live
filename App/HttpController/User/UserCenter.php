@@ -366,14 +366,14 @@ class UserCenter   extends FrontUserController{
 
                 if ($item['item_type'] == 1) { //赞我的帖子
                     $post = AdminUserPost::getInstance()->where('id', $item['item_id'])->get();
-                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => $post->content] : [];
+                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => base64_decode($post->content)] : [];
                 } else if ($item['item_type'] == 2) { //赞帖子回复
                     $post_comment = AdminPostComment::getInstance()->where('id', $item['item_id'])->get();
 
                     if ($post_comment) {
                         $post = $post_comment->postInfo();
                         $data['post_comment_info'] = $post_comment ? ['id' => $post_comment->id, 'content' => $post_comment->content] : [];
-                        $data['post_info'] = ['id' => $post->id, 'title' => $post->title, 'content' => $post->content];
+                        $data['post_info'] = ['id' => $post->id, 'title' => $post->title, 'content' => base64_decode($post->content)];
                     } else {
                         $data['post_comment_info'] = [];
                         $data['post_info'] = [];
@@ -406,27 +406,27 @@ class UserCenter   extends FrontUserController{
 
 
                 if ($item['item_type'] == 1) {//帖子
-                    $post_comment = AdminPostComment::getInstance()->where('id', $item['item_id'])->get();
+                    if (!$post_comment = AdminPostComment::getInstance()->where('id', $item['item_id'])->get()) continue;
                     $post = $post_comment->postInfo();
                     $data['item_type'] = $item['item_type'];
                     $data['user_info'] = $post_comment->uInfo();
                     $data['post_comment_info'] = $post_comment ? ['id' => $post_comment->id, 'content' => $post_comment->content] : [];
-                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => $post->content] : [];
+                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => base64_decode($post->content)] : [];
                     $data['status'] = $item['status'];
 
                 } else if ($item['item_type'] == 2) { //帖子评论
-                    $post_comment = AdminPostComment::getInstance()->where('id', $item['item_id'])->get();
+                    if (!$post_comment = AdminPostComment::getInstance()->where('id', $item['item_id'])->get()) continue;
                     $post = $post_comment->postInfo();
                     $data['item_type'] = $item['item_type'];
                     $data['parent_comment_info'] = $post_comment->getParentContent();
                     $data['post_comment_info'] = $post_comment ? ['id' => $post_comment->id, 'content' => $post_comment->content] : [];
-                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => mb_substr($post->content, 0, 30)] : [];
+                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => mb_substr(base64_decode($post->content), 0, 30)] : [];
                     $data['user_info'] = $post_comment->uInfo();
                     $data['status'] = $item['status'];
 
                 } else if ($item['item_type'] == 4) { //资讯回复
 
-                    $information_comment = AdminInformationComment::getInstance()->where('id', $item['item_id'])->get();
+                    if (!$information_comment = AdminInformationComment::getInstance()->where('id', $item['item_id'])->get()) continue;
                     $information = $information_comment->getInformation();
                     $data['information_comment_info'] = $information_comment ? ['id' => $information_comment->id, 'content' => $information_comment->content] : [];
                     $data['information_info'] = $information ? ['id' => $information->id, 'title' => $information->title, 'content' => mb_substr($information->content, 0, 30)] : [];
@@ -837,7 +837,7 @@ class UserCenter   extends FrontUserController{
         $data = [];
         if ($operate->item_type == 1) {
             $post = AdminUserPost::getInstance()->where('id', $operate->item_id)->field(['id', 'content'])->get();
-            $data = ['item_id' => $id, 'item_type' => 1, 'content' => $post->content, 'title' => $post->title];
+            $data = ['item_id' => $id, 'item_type' => 1, 'content' => base64_decode($post->content), 'title' => $post->title];
         } else if ($operate->item_type == 2) {
             $post_comment = AdminPostComment::getInstance()->where('id', $id)->field(['id', 'content'])->get();
             $data = ['item_id' => $id, 'item_type' => 2, 'content' => $post_comment->content];

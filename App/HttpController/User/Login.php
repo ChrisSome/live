@@ -31,7 +31,7 @@ use EasySwoole\ORM\Exception\Exception as OrmException;
 class Login extends FrontUserController
 {
 	protected $isCheckSign = false;
-	public $needCheckToken = false;
+	protected $needCheckToken = false;
 	const DEFAULT_PHOTO = 'http://live-broadcast-system.oss-cn-hongkong.aliyuncs.com/859c3661cbcc2902.jpg';
 	
 	/**
