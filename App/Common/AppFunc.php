@@ -106,11 +106,11 @@ class AppFunc
 	
 	/**
 	 * 获得随机字符串
-	 * @param $len             需要的长度
-	 * @param $special         是否需要特殊符号
+	 * @param int  $len     需要的长度
+	 * @param bool $special 是否需要特殊符号
 	 * @return string       返回随机字符串
 	 */
-	public static function getRandomStr($len, $special = true)
+	public static function getRandomStr(int $len, bool $special = true): string
 	{
 		$chars = [
 			"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",

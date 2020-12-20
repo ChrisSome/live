@@ -6,8 +6,5 @@ use App\Base\BaseModel;
 
 class AdminNormalProblems extends BaseModel
 {
-    protected $tableName = "admin_normal_problems";
-
-
-
+	protected $tableName = 'admin_normal_problems';
 }

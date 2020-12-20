@@ -6,9 +6,6 @@ use App\Base\FrontUserController;
 
 class Broad extends FrontUserController
 {
+	//protected $isCheckSign = false;
 	protected $needCheckToken = true;
-	
-	public function getList()
-	{
-	}
 }

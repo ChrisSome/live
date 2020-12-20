@@ -67,7 +67,7 @@ class WebSocketEvents
         $match_id = isset($request->get['match_id']) ? $request->get['match_id'] : 0;
         if ($user_id) {
             $user = DbManager::getInstance()->invoke(function ($client) use ($user_id) {
-                $userModel = AdminUser::invoke($client)->find($user_id);
+                $userModel = AdminUser::invoke($client)->findOne($user_id);
                 return $userModel;
             });
 

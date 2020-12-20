@@ -3,28 +3,33 @@
 namespace App\Model;
 
 use App\Base\BaseModel;
-use App\Model\AdminRule as RuleModel;
-use easySwoole\Cache\Cache;
 
 class AdminRole extends BaseModel
 {
-    protected $tableName = "admin_role";
-    protected $role_group_dir = EASYSWOOLE_ROOT . DIRECTORY_SEPARATOR . 'App' 
-                                . DIRECTORY_SEPARATOR . 'Utility' 
-                                . DIRECTORY_SEPARATOR . 'RoleGroup' . DIRECTORY_SEPARATOR;
-
-    public function findAll($page, $limit)
-    {
-        return $this->orderBy('created_at', 'ASC')
-            ->limit(($page - 1) * $limit, $limit)
-            ->all();
-    }
-
-    public function add($data) 
-    {
-        $id = $this->insert($data);
-        if($id) {
-            $context = <<<EOF
+	protected $tableName = 'admin_role';
+	private $roleGroupDir = EASYSWOOLE_ROOT . DIRECTORY_SEPARATOR . 'App' . DIRECTORY_SEPARATOR . 'Utility' . DIRECTORY_SEPARATOR . 'RoleGroup' . DIRECTORY_SEPARATOR;
+	/**
+	 * @param $page
+	 * @param $limit
+	 * @return array
+	 * @throws
+	 */
+	//	public function findAll($page, $limit): array
+	//	{
+	//		$list = $this->order('created_at', 'ASC')->limit(($page - 1) * $limit, $limit)->all();
+	//		return empty($list) ? [] : $list;
+	//	}
+	
+	/**
+	 * @param $data
+	 * @return bool
+	 * @throws
+	 */
+	public function add($data): bool
+	{
+		$id = $this->insert($data);
+		if ($id > 0) {
+			$context = <<<EOF
 <?php
 namespace App\Utility\RoleGroup;
 class RoleGroup{$id} extends RoleGroup
@@ -32,46 +37,9 @@ class RoleGroup{$id} extends RoleGroup
 
 }
 EOF;
-            @file_put_contents ( $this->role_group_dir . 'RoleGroup' . $id . '.php', $context);          
-            return true;
-        }
-
-        return false;
-
-
-    }
-
-    public function saveIdData($id, $data)
-    {
-        return $this->where('id', $id)->update($data);
-    }
-
-    public function saveIdRules($id, $rules_checked, $rules)
-    {
-        if ($this->saveIdData($id, ['rules_checked' => implode(',', $rules_checked), 'rules' => implode(',', $rules)])) {
-            // $this->cacheRules($id);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public function delToId($id)
-    {
-        if($this->delId($id, true)) {
-            @unlink($this->role_group_dir . 'RoleGroup' . $id . '.php');
-            // Cache::delete('role_' . $id);
-            return true;
-        }
-
-        return false;
-        
-    }
-
-    public function cacheRules($id)
-    {
-        $data = $this->find($id);
-        $rules = RuleModel::getInstance()->getIdsInNode($data['rules']);
-        Cache::set('role_' . $id, $rules);
-    }
+			@file_put_contents($this->roleGroupDir . 'RoleGroup' . $id . '.php', $context);
+			return true;
+		}
+		return false;
+	}
 }

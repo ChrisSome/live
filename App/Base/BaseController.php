@@ -6,27 +6,30 @@ use EasySwoole\Http\AbstractInterface\Controller;
 
 abstract class BaseController extends Controller
 {
-	public function index()
+	function onException(\Throwable $throwable): void
 	{
-		$this->actionNotFound('index');
+		$msg = $throwable->getMessage();
+		if ($msg != 'request_end') echo $msg . PHP_EOL;
 	}
 	
-	public function show404()
+	/**
+	 * 返回请求结果
+	 * @param int  $statusCode
+	 * @param null $msg
+	 * @param null $result
+	 * @param bool $justData
+	 * @return bool
+	 * @throws
+	 */
+	public function output($statusCode = 200, $msg = null, $result = null, bool $justData = false): bool
 	{
-		$this->render('路由未能匹配');
-	}
-	
-	public function render(string $message)
-	{
-		$this->response()->write($message);
-	}
-	
-	public function writeJson($statusCode = 200, $msg = null, $result = null, bool $justData = false): bool
-	{
-		if ($this->response()->isEndResponse()) return true;
-		$result = $justData ? $result : ['code' => $statusCode, 'msg' => $msg, 'data' => $result];
-		$this->response()->write(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-		$this->response()->withHeader('Content-type', 'application/json;charset=utf-8');
-		return true;
+		if ($this->response()->isEndResponse() < 1) {
+			$result = $justData ? $result : ['code' => $statusCode, 'msg' => $msg, 'data' => $result];
+			$this->response()->write(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+			$this->response()->withHeader('Content-type', 'application/json;charset=utf-8');
+			$this->response()->withStatus(200);
+			$this->response()->end();
+		}
+		throw new \Exception('request_end');
 	}
 }

@@ -1,30 +1,26 @@
 <?php
 
 namespace App\Utility\RoleGroup;
-use easySwoole\Cache\Cache;
-use App\Model\AdminRole as RoleModel;
-use App\Model\AdminRule as RuleModel;
 
-class RoleGroup 
+use App\Model\AdminRole;
+use App\Model\AdminRule;
+
+class RoleGroup
 {
-	private $role_id;
-	public function __construct($role_id)
+	private $roleId;
+	
+	public function __construct($roleId)
 	{
-		$this->role_id = $role_id;
+		$this->roleId = $roleId;
 	}
 	
-	public function hasRule($rule)
+	public function hasRule($rule): bool
 	{
-		if(empty($rule)) {
-            return true;
-        }
-
-        if(!isset($this->rules)) {
-        	$data = RoleModel::getInstance()->find($this->role_id);
-        	$this->rules = RuleModel::getInstance()->getIdsInNode($data['rules']);
-        }
-
-        return in_array($rule, $this->rules);
+		if (empty($rule)) return true;
+		if (!isset($this->rules)) {
+			$data = AdminRole::getInstance()->findOne($this->roleId);
+			$this->rules = !empty($data['rules']) ? AdminRule::getInstance()->getIdsInNode($data['rules']) : [];
+		}
+		return in_array($rule, $this->rules);
 	}
-	
 }

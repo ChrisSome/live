@@ -17,18 +17,15 @@ class AdminSysSettings extends BaseModel
 	const SETTING_OPEN_ADVER = 'open_adver';  //开屏广告页
 	const COMPETITION_ARR = 'array_competition';  //左上角的赛事列表数组
 	const RECOMMEND_COM = 'recommond_com'; //左上角的赛事列表
-	
-	public function findAll($page, $limit)
-	{
-		return $this
-			->order('created_at', 'desc ')
-			->limit(($page - 1) * $limit, $limit)
-			->all();
-	}
-	
-	public function saveIdData($id, $data)
-	{
-		//需要修改对应配置项的值，更新redis
-		return $this->where('id', $id)->update($data);
-	}
+	/**
+	 * @param $page
+	 * @param $limit
+	 * @return array
+	 * @throws
+	 */
+	//	public function findAll($page, $limit): array
+	//	{
+	//		$list = $this->order('created_at', 'DESC')->limit(($page - 1) * $limit, $limit)->all();
+	//		return empty($list) ? [] : $list;
+	//	}
 }

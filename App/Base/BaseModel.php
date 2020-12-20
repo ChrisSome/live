@@ -2,33 +2,55 @@
 
 namespace App\Base;
 
-use Throwable;
 use EasySwoole\ORM\AbstractModel;
-use EasySwoole\ORM\Exception\Exception;
-use EasySwoole\Component\CoroutineSingleTon;
 
 abstract class BaseModel extends AbstractModel
 {
-	use CoroutineSingleTon;
+	private static $instance = [];
 	
 	/**
-	 * @param string $filedName
-	 * @param        $value
-	 * @param array  $where
-	 * @return bool
-	 * @throws Exception | Throwable
+	 * @param mixed ...$args
+	 * @return BaseModel
+	 * @throws
 	 */
-	public function setValue(string $filedName, $value, $where = []): bool
+	static function getInstance(...$args): BaseModel
 	{
-		if (empty($filedName)) return false;
-		return self::create()->update([$filedName => $value], $where);
+		$obj_name = static::class;
+		if (!isset(self::$instance[$obj_name])) {
+			self::$instance[$obj_name] = new static(...$args);
+		}
+		return self::$instance[$obj_name];
+	}
+	
+	/**
+	 * @param string $filed
+	 * @param        $value
+	 * @param        $where
+	 * @return bool
+	 * @throws
+	 */
+	public function setField(string $filed, $value, $where = []): bool
+	{
+		if (empty($filed)) return false;
+		return self::create()->update([$filed => $value], $where);
+	}
+	
+	/**
+	 * @param $id
+	 * @param $data
+	 * @return bool
+	 * @throws
+	 */
+	public function saveDataById(int $id, array $data): bool
+	{
+		return empty($data) || $id < 1 ? false : $this->update($data, $id);
 	}
 	
 	/**
 	 * 新增数据
 	 * @param array $data
 	 * @return int
-	 * @throws Exception | Throwable
+	 * @throws
 	 */
 	public function insert(array $data): int
 	{
@@ -38,30 +60,98 @@ abstract class BaseModel extends AbstractModel
 	}
 	
 	/**
-	 * @param $options
-	 * @return array|null
-	 * @throws Exception | Throwable
+	 * @param $where
+	 * @return mixed
+	 * @throws
 	 */
-	public function find($options): ?array
+	public function findOne($where)
 	{
 		$data = null;
-		if (!is_array($options)) {
-			$id = intval($options);
+		if (!is_array($where)) {
+			$id = intval($where);
 			if ($id < 1) return null;
 			$data = self::create()->get($id);
 		} else {
-			$data = self::create()->where($options)->get();
+			$data = self::create()->where($where)->get();
 		}
 		return empty($data) ? null : $data->toArray();
 	}
 	
 	/**
-	 * 设置排序
-	 * @param mixed ...$args
-	 * @return AbstractModel
+	 * @param null $where
+	 * @param null $fields
+	 * @param null $order
+	 * @param bool $isPager
+	 * @param      $page
+	 * @param      $size
+	 * @return array
+	 * @throws
 	 */
-	public function orderBy(...$args): AbstractModel
+	public function findAll($where = null, $fields = null, $order = null, bool $isPager = false, $page = 0, $size = 10): array
 	{
-		return parent::order($args);
+		$page = $isPager && (empty($page) || intval($page) < 1) ? 0 : intval($page);
+		$size = empty($size) || intval($size) < 1 ? 10 : intval($size);
+		$self = $this;
+		// 查询条件
+		if (!empty($where)) {
+			if (is_array($where)) {
+				foreach ($where as $field => $v) {
+					if (is_string($v)) $v = [$v];
+					if (!is_array($v)) continue;
+					if (isset($v[1])) {
+						$type = strtolower($v[1]);
+						if ($type == 'like') {
+							$v[0] = '%' . trim($v[0], '% ') . '%';
+						} elseif ($type == 'in' && is_string($v[0])) {
+							$str = trim($v[0]);
+							$v[0] = array_filter(array_unique(array_filter(explode(',', $str))));
+							if (preg_match('/^\d+(,\d+)*$/', $str)) {
+								$v[0] = array_map(function ($x) {
+									return intval($x);
+								}, $v[0]);
+							}
+							if (empty($v[0])) $v = ['-1'];
+						}
+					}
+					$self = $self->where($field, ...$v);
+				}
+			} elseif (is_string($where)) {
+				$where = trim($where);
+				if (!empty($where)) $self = $self->where($where);
+			}
+		}
+		// 查询字段
+		$fields = empty($fields) || $fields == '*' || !(is_array($fields) || is_string($fields)) ? null : $fields;
+		if (!empty($fields)) $self = $self->field($fields);
+		// 排序部分
+		if (!empty($order) && is_string($order)) {
+			$order = trim(preg_replace('/\s+,\s+/', ',', $order), ',');
+		}
+		if (!empty($order)) {
+			if (is_array($order)) {
+				$order = array_values($order);
+				if (is_string($order[0])) {
+					if (count($order) == 2) $self = $self->order(...$order);
+				} elseif (is_array($order[0])) {
+					foreach ($order as $v) {
+						if (count($v) == 2) {
+							$self = $self->order(...$v);
+						}
+					}
+				}
+			} elseif (is_string($order) && count(explode(',', $order)) == 2) {
+				$self = $self->order(...explode(',', $order));
+			}
+		}
+		// 获取清单
+		if ($isPager) {
+			$tmp = $self->page($page, $size)->withTotalCount();
+			$list = $tmp->all();
+			if (empty($list)) $list = [];
+			$count = $tmp->lastQueryResult()->getTotalCount();
+			return [$list, $count];
+		}
+		$list = $self->all();
+		return empty($list) ? [] : $list;
 	}
 }

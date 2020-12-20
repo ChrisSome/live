@@ -46,13 +46,13 @@ class Login extends FrontUserController
 			->required('手机号不能为空')->regex('/^1\d{10}/', '手机号格式不正确');
 		$validator->addColumn('type')->required();
 		if (!$validator->validate($this->params)) {
-			return $this->writeJson(Status::CODE_BAD_REQUEST, $validator->getError()->__toString());
+			$this->output(Status::CODE_BAD_REQUEST, $validator->getError()->__toString());
 		}
 		// 手机号
 		$mobile = $this->params['mobile'];
 		// 登录方式: 1手机号登录, 2账号密码登录
 		$type = intval($this->params['type']);
-		if ($type != 1 && $type != 2) return $this->writeJson(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
+		if ($type != 1 && $type != 2) $this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 		// 手机验证码校验
 		/*
 		if ($type == 1) {
@@ -73,19 +73,19 @@ class Login extends FrontUserController
 		$user = AdminUser::getInstance()->where('mobile', $mobile)->where('status', $statusArr, 'in')->get();
 		// 用户不存在
 		if (empty($user)) {
-			return $this->writeJson(StatusMapper::CODE_W_PHONE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE]);
+			$this->output(StatusMapper::CODE_W_PHONE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE]);
 		}
 		// 密码错误
 		if ($type == 2 && !PasswordTool::getInstance()->checkPassword($this->params['password'], $user['password_hash'])) {
-			return $this->writeJson(StatusMapper::CODE_W_PHONE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE]);
+			$this->output(StatusMapper::CODE_W_PHONE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE]);
 		}
 		// 用户已被禁用
 		if ($user['status'] == AdminUser::STATUS_BAN) {
-			return $this->writeJson(StatusMapper::CODE_USER_STATUS_BAN, StatusMapper::$msg[StatusMapper::CODE_USER_STATUS_BAN]);
+			$this->output(StatusMapper::CODE_USER_STATUS_BAN, StatusMapper::$msg[StatusMapper::CODE_USER_STATUS_BAN]);
 		}
 		// 用户已被注销
 		if ($user['status'] == AdminUser::STATUS_CANCEL) {
-			return $this->writeJson(StatusMapper::CODE_USER_STATUS_CANCLE, StatusMapper::$msg[StatusMapper::CODE_USER_STATUS_CANCLE]);
+			$this->output(StatusMapper::CODE_USER_STATUS_CANCLE, StatusMapper::$msg[StatusMapper::CODE_USER_STATUS_CANCLE]);
 		}
 		// 更新用户手机cid
 		$cid = empty($this->params['cid']) ? '' : trim($this->params['cid']);
@@ -131,7 +131,7 @@ class Login extends FrontUserController
 		$this->response()->setCookie('front_id', $userId);
 		$this->response()->setCookie('front_token', $token);
 		$this->response()->setCookie('front_time', $timestamp);
-		return $this->writeJson(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $userInfo);
+		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $userInfo);
 	}
 	
 	/**
@@ -147,7 +147,7 @@ class Login extends FrontUserController
 		$this->response()->setCookie('front_id', '');
 		$this->response()->setCookie('front_time', '');
 		$this->response()->setCookie('front_token', '');
-		return $this->writeJson(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK]);
+		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK]);
 	}
 	
 	/**
@@ -160,7 +160,7 @@ class Login extends FrontUserController
 		$validator->addColumn('mobile', '手机号码')
 			->required('手机号不能为空')->regex('/^1[3456789]\d{9}$/', '手机号格式不正确');
 		if (!$validator->validate($this->params)) {
-			return $this->writeJson(StatusMapper::CODE_W_PARAM, $validator->getError()->__toString());
+			$this->output(StatusMapper::CODE_W_PARAM, $validator->getError()->__toString());
 		}
 		$mobile = $this->params['mobile'];
 		$code = Tool::getInstance()->generateCode();
@@ -170,7 +170,7 @@ class Login extends FrontUserController
 			'mobile' => $mobile,
 			'name' => '短信验证码',
 		]));
-		return $this->writeJson(StatusMapper::CODE_OK, '验证码以发送至尾号' . substr($mobile, -4) . '手机', $result);
+		$this->output(StatusMapper::CODE_OK, '验证码以发送至尾号' . substr($mobile, -4) . '手机', $result);
 	}
 	
 	/**
@@ -184,28 +184,28 @@ class Login extends FrontUserController
 		$validator->addColumn('access_token')->required('access_token不能为空');
 		$validator->addColumn('open_id')->required('open_id不能为空');
 		if (!$validator->validate($this->params)) {
-			return $this->writeJson(StatusMapper::CODE_ERR, $validator->getError()->__toString());
+			$this->output(StatusMapper::CODE_ERR, $validator->getError()->__toString());
 		}
 		// 获取用户信息
 		$userId = $this->request()->getCookieParams('front_id');
 		$user = AdminUser::create()->get(['id' => $userId]);
 		if (empty($user)) {
-			return $this->writeJson(StatusMapper::CODE_LOGIN_ERR, StatusMapper::$msg[StatusMapper::CODE_LOGIN_ERR]);
+			$this->output(StatusMapper::CODE_LOGIN_ERR, StatusMapper::$msg[StatusMapper::CODE_LOGIN_ERR]);
 		}
 		$params = $this->params;
 		// 获取三方微信账户信息
 		$wxInfo = AdminUser::getInstance()->getWxUser($params['access_token'], $params['open_id']);
 		$wxInfo = empty($wxInfo) ? [] : json_decode($wxInfo, true);
 		if (json_last_error()) {
-			return $this->writeJson(StatusMapper::CODE_ERR, 'json parse error');
+			$this->output(StatusMapper::CODE_ERR, 'json parse error');
 		}
 		if (!empty($wxInfo['errcode'])) {
-			return $this->writeJson(StatusMapper::CODE_ERR, $wxInfo['errmsg']);
+			$this->output(StatusMapper::CODE_ERR, $wxInfo['errmsg']);
 		}
 		// 判断是否微信已绑定
 		$user = AdminUser::getInstance()->where('third_wx_unionid', base64_encode($wxInfo['unionid']))->get();
 		if (!empty($user)) {
-			return $this->writeJson(StatusMapper::CODE_BIND_WX, StatusMapper::$msg[StatusMapper::CODE_BIND_WX]);
+			$this->output(StatusMapper::CODE_BIND_WX, StatusMapper::$msg[StatusMapper::CODE_BIND_WX]);
 		}
 		// 更新用户数据
 		$data = [
@@ -215,9 +215,9 @@ class Login extends FrontUserController
 			'third_wx_unionid' => base64_encode($wxInfo['unionid']),
 		];
 		if (!AdminUser::create()->update($data, $userId)) {
-			return $this->writeJson(StatusMapper::CODE_BINDING_ERR, StatusMapper::$msg[StatusMapper::CODE_BINDING_ERR]);
+			$this->output(StatusMapper::CODE_BINDING_ERR, StatusMapper::$msg[StatusMapper::CODE_BINDING_ERR]);
 		}
-		return $this->writeJson(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $wxInfo);
+		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $wxInfo);
 	}
 	
 	/**
@@ -231,10 +231,10 @@ class Login extends FrontUserController
 		$wxInfo = AdminUser::getInstance()->getWxUser($params['access_token'], $params['open_id']);
 		$wxInfo = empty($wxInfo) ? [] : json_decode($wxInfo, true);
 		if (json_last_error()) {
-			return $this->writeJson(StatusMapper::CODE_ERR, 'json parse error');
+			$this->output(StatusMapper::CODE_ERR, 'json parse error');
 		}
 		if (!empty($wxInfo['errcode'])) {
-			return $this->writeJson(StatusMapper::CODE_ERR, $wxInfo['errmsg']);
+			$this->output(StatusMapper::CODE_ERR, $wxInfo['errmsg']);
 		}
 		$unionId = empty($wxInfo['unionid']) ? '' : base64_encode($wxInfo['unionid']);
 		$user = empty($unionId) ? false : AdminUser::getInstance()->where('third_wx_unionid', $unionId)->get();
@@ -244,7 +244,7 @@ class Login extends FrontUserController
 				'wx_name' => $wxInfo['nickname'],
 				'wx_photo' => $wxInfo['headimgurl'],
 			];
-			return $this->writeJson(StatusMapper::CODE_UNBIND_WX, StatusMapper::$msg[StatusMapper::CODE_UNBIND_WX], $wxInfo);
+			$this->output(StatusMapper::CODE_UNBIND_WX, StatusMapper::$msg[StatusMapper::CODE_UNBIND_WX], $wxInfo);
 		}
 		// 更新用户数据
 		$userId = $user['id'];
@@ -291,7 +291,7 @@ class Login extends FrontUserController
 		$this->response()->setCookie('front_id', $userId);
 		$this->response()->setCookie('front_token', $token);
 		$this->response()->setCookie('front_time', $timestamp);
-		return $this->writeJson(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $userInfo);
+		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $userInfo);
 	}
 	
 	/**
@@ -307,18 +307,18 @@ class Login extends FrontUserController
 		$validator->addColumn('mobile')->required();
 		$validator->addColumn('password')->required();
 		if (!$validator->validate($this->params)) {
-			return $this->writeJson(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
+			$this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 		}
 		// 敏感词校验
 		$params = $this->params;
 		$nickname = trim($params['nickname']);
 		$sensitive = AdminSensitive::getInstance()->where('word', '%' . $nickname . '%', 'like')->get();
 		if (!empty($sensitive)) {
-			return $this->writeJson(StatusMapper::CODE_ADD_POST_SENSITIVE, sprintf(StatusMapper::$msg[StatusMapper::CODE_ADD_POST_SENSITIVE], $sensitive->word));
+			$this->output(StatusMapper::CODE_ADD_POST_SENSITIVE, sprintf(StatusMapper::$msg[StatusMapper::CODE_ADD_POST_SENSITIVE], $sensitive->word));
 		}
 		// 是否utf8编码
 		if (AppFunc::have_special_char($nickname)) {
-			return $this->writeJson(StatusMapper::CODE_UNVALID_CODE, StatusMapper::$msg[StatusMapper::CODE_UNVALID_CODE], $sensitive->word);
+			$this->output(StatusMapper::CODE_UNVALID_CODE, StatusMapper::$msg[StatusMapper::CODE_UNVALID_CODE], $sensitive->word);
 		}
 		// 账号格式校验
 		/*
@@ -328,14 +328,14 @@ class Login extends FrontUserController
         */
 		// 是否重复
 		if (AdminUser::getInstance()->where('nickname', $nickname)->get()) {
-			return $this->writeJson(StatusMapper::CODE_USER_DATA_EXIST, StatusMapper::$msg[StatusMapper::CODE_USER_DATA_EXIST]);
+			$this->output(StatusMapper::CODE_USER_DATA_EXIST, StatusMapper::$msg[StatusMapper::CODE_USER_DATA_EXIST]);
 		}
 		if (AdminUser::getInstance()->where('mobile', $params['mobile'])->get()) {
-			return $this->writeJson(StatusMapper::CODE_PHONE_EXIST, StatusMapper::$msg[StatusMapper::CODE_PHONE_EXIST]);
+			$this->output(StatusMapper::CODE_PHONE_EXIST, StatusMapper::$msg[StatusMapper::CODE_PHONE_EXIST]);
 		}
 		// 密码格式校验
 		if (!preg_match('/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/', $params['password'])) {
-			return $this->writeJson(StatusMapper::CODE_W_FORMAT_PASS, StatusMapper::$msg[StatusMapper::CODE_W_FORMAT_PASS]);
+			$this->output(StatusMapper::CODE_W_FORMAT_PASS, StatusMapper::$msg[StatusMapper::CODE_W_FORMAT_PASS]);
 		}
 		// 密码处理
 		$password = PasswordTool::getInstance()->generatePassword($params['password']);
@@ -367,7 +367,7 @@ class Login extends FrontUserController
 			$userId = AdminUser::getInstance()->insert($data);
 			// 注册失败
 			if (empty($userId) || $userId < 1) {
-				return $this->writeJson(StatusMapper::CODE_ERR, '用户注册失败');
+				$this->output(StatusMapper::CODE_ERR, '用户注册失败');
 			}
 			// 用户设置
 			$timestamp = time();
@@ -411,7 +411,7 @@ class Login extends FrontUserController
 				}
 			});
 		} catch (\Exception $e) {
-			return $this->writeJson(StatusMapper::CODE_ERR, '用户不存在或密码错误');
+			$this->output(StatusMapper::CODE_ERR, '用户不存在或密码错误');
 		}
 		// 获取新增的用户信息
 		$user = AdminUser::getInstance()->get($userId);
@@ -446,7 +446,7 @@ class Login extends FrontUserController
 		$this->response()->setCookie('front_id', $userId);
 		$this->response()->setCookie('front_token', $token);
 		$this->response()->setCookie('front_time', $timestamp);
-		return $this->writeJson(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $userInfo);
+		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $userInfo);
 	}
 	
 	/**
@@ -458,18 +458,18 @@ class Login extends FrontUserController
 		// 参数校验
 		$params = $this->params;
 		if (empty($params['code']) || empty($params['mobile'])) {
-			return $this->writeJson(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
+			$this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 		}
 		// 获取验证码信息
 		$tmp = AdminUserPhonecode::getInstance()->getLastCodeByMobile($params['mobile']);
 		if (empty($tmp['status']) || $tmp['code'] != $params['code']) {
-			return $this->writeJson(StatusMapper::CODE_W_PHONE_CODE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE_CODE]);
+			$this->output(StatusMapper::CODE_W_PHONE_CODE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE_CODE]);
 		}
 		// 手机号用户已存在
 		if (AdminUser::getInstance()->where('mobile', $params['mobile'])->get()) {
-			return $this->writeJson(StatusMapper::CODE_PHONE_EXIST, StatusMapper::$msg[StatusMapper::CODE_PHONE_EXIST]);
+			$this->output(StatusMapper::CODE_PHONE_EXIST, StatusMapper::$msg[StatusMapper::CODE_PHONE_EXIST]);
 		}
-		return $this->writeJson(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK]);
+		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK]);
 	}
 	
 	/**
@@ -487,30 +487,30 @@ class Login extends FrontUserController
 		$validator->addColumn('mobile', '手机号码')
 			->required('手机号不能为空')->regex('/^1[3456789]\d{9}$/', '手机号格式不正确');
 		if (!$validator->validate($this->params)) {
-			return $this->writeJson(StatusMapper::CODE_W_PARAM, $validator->getError()->__toString());
+			$this->output(StatusMapper::CODE_W_PARAM, $validator->getError()->__toString());
 		}
 		$params = $this->params;
 		// 获取用户信息
 		$mobile = $params['mobile'];
 		$user = AdminUser::getInstance()->where('mobile', $mobile)->get();
 		if (empty($user)) {
-			return $this->writeJson(StatusMapper::CODE_USER_NOT_EXIST, StatusMapper::$msg[StatusMapper::CODE_USER_NOT_EXIST]);
+			$this->output(StatusMapper::CODE_USER_NOT_EXIST, StatusMapper::$msg[StatusMapper::CODE_USER_NOT_EXIST]);
 		}
 		// 验证码校验
 		$code = $params['phone_code'];
 		$tmp = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
 		if (empty($tmp['status']) || $tmp['code'] != $code) {
-			return $this->writeJson(StatusMapper::CODE_W_PHONE_CODE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE_CODE]);
+			$this->output(StatusMapper::CODE_W_PHONE_CODE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE_CODE]);
 		}
 		// 密码校验
 		$password = $params['password'];
 		if (!preg_match('/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/', $password)) {
-			return $this->writeJson(StatusMapper::CODE_W_FORMAT_PASS, StatusMapper::$msg[StatusMapper::CODE_W_FORMAT_PASS]);
+			$this->output(StatusMapper::CODE_W_FORMAT_PASS, StatusMapper::$msg[StatusMapper::CODE_W_FORMAT_PASS]);
 		}
 		// 密码更新
 		$password = PasswordTool::getInstance()->generatePassword($password);
 		$user->password_hash = $password;
 		$user->update();
-		return $this->writeJson(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK]);
+		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK]);
 	}
 }

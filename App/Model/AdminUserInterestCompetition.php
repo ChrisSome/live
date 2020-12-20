@@ -6,5 +6,5 @@ use App\Base\BaseModel;
 
 class AdminUserInterestCompetition extends BaseModel
 {
-    protected $tableName = 'admin_user_interest_competition';
+	protected $tableName = 'admin_user_interest_competition';
 }

@@ -28,25 +28,18 @@ class FrontUserController extends BaseController
 	 * 加密或者验签
 	 * @param $params
 	 * @return bool
+	 * @throws
 	 */
 	private function checkSign($params): bool
 	{
-		if (!isset($params[$this->signKey])) {
-			$this->writeJson(403, '验签不通过');
-			return false;
-		}
+		if (!isset($params[$this->signKey])) $this->output(403, '验签不通过');
 		ksort($params); // Ascii升序
 		$string = ''; // 加密字符串
 		foreach ($params as $k => $v) {
-			if ($k != $this->signKey && !in_array($k, $this->noNeedSignKeys)) {
-				$string .= $k . '=' . $v . '&';
-			}
+			if ($k != $this->signKey && !in_array($k, $this->noNeedSignKeys)) $string .= $k . '=' . $v . '&';
 		}
 		$string = md5(rtrim($string, '&'));
-		if ($string != $params[$this->signKey]) {
-			$this->writeJson(403, '验签不通过');
-			return false;
-		}
+		if ($string != $params[$this->signKey]) $this->output(403, '验签不通过');
 		return true;
 	}
 	
@@ -66,7 +59,7 @@ class FrontUserController extends BaseController
 		$timestamp = $request->getCookieParams('front_time');
 		$token = md5($authId . Config::getInstance()->getConf('app.token') . $timestamp);
 		if ($request->getCookieParams('front_token') == $token) {
-			$this->auth = AdminUser::getInstance()->find($authId);
+			$this->auth = AdminUser::getInstance()->findOne($authId);
 			return true;
 		}
 		$token = $request->getHeaderLine('authorization');
@@ -83,7 +76,7 @@ class FrontUserController extends BaseController
 	 * 操作记录
 	 * @throws
 	 */
-	protected function Record(): bool
+	protected function Record()
 	{
 		$request = $this->request();
 		$data = [
@@ -92,13 +85,13 @@ class FrontUserController extends BaseController
 			'data' => json_encode($request->getParsedBody()),
 		];
 		LogModel::getInstance()->insert($data);
-		return true;
 	}
 	
 	/**
 	 * 请求前执行
 	 * @param string|null $action
-	 * @return bool|null
+	 * @return mixed
+	 * @throws
 	 */
 	public function onRequest(?string $action): ?bool
 	{
@@ -107,8 +100,7 @@ class FrontUserController extends BaseController
 		$this->params = empty($params) ? [] : $params;
 		$isOk = $this->checkToken();
 		if ($this->needCheckToken && !$this->checkToken() && !$isOk) {
-			$this->writeJson(Status::CODE_VERIFY_ERR, '登录令牌缺失或者已过期');
-			return false;
+			$this->output(Status::CODE_VERIFY_ERR, '登录令牌缺失或者已过期');
 		}
 		$route = $request->getUri()->getPath();
 		if ($this->isCheckSign && !in_array($route, $this->ignoreCheckRoutes) && !empty($params)) {

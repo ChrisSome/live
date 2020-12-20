@@ -1,15 +1,10 @@
 <?php
 
 namespace App\Model;
+
 use App\Base\BaseModel;
 
-class AdminMatchTlive  extends BaseModel
+class AdminMatchTlive extends BaseModel
 {
-    protected $tableName = "admin_match_tlive";
-
-
-
-
-
-
+	protected $tableName = 'admin_match_tlive';
 }

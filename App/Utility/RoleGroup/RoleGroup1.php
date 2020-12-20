@@ -4,7 +4,7 @@ namespace App\Utility\RoleGroup;
 
 class RoleGroup1  extends RoleGroup
 {
-	public function __construct($role_id)
+	public function __construct($roleId)
 	{
 		return ;
 	}

@@ -67,7 +67,7 @@ class SerialPointTask implements TaskInterface
         $bool = AdminUserSerialPoint::getInstance()->insert($data);
         Log::getInstance()->info('bbb');
 
-        $user = AdminUser::getInstance()->find($this->taskData['user_id']);
+        $user = AdminUser::getInstance()->findOne($this->taskData['user_id']);
         $user->point += $user_task['points_per_time'];
         $level = AppFunc::getUserLvByPoint($user->point);
         $user->level = $level;

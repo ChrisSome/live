@@ -7,6 +7,7 @@
   },
   "require": {
     "ext-json": "*",
+    "ext-mbstring": "*",
     "easyswoole/easyswoole": "3.4.1",
     "easyswoole/mysqli": "^2.0",
     "easyswoole/cache": "^1.1",

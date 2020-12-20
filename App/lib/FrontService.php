@@ -234,7 +234,7 @@ class  FrontService
 	 */
 	public static function myPostsCount($uid)
 	{
-		return AdminUserPost::getInstance()->where('user_id', $uid)->where('status', AdminUserPost::STATUS_EXAMINE_SUCC)->count();
+		return AdminUserPost::getInstance()->where('user_id', $uid)->where('status', AdminUserPost::STATUS_EXAMINE_SUCCESS)->count();
 	}
 	
 	public static function ifFabolus($uid, $cid)

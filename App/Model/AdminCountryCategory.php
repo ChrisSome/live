@@ -6,7 +6,5 @@ use App\Base\BaseModel;
 
 class AdminCountryCategory extends BaseModel
 {
-    protected $tableName = "admin_country_category";
-
-
+	protected $tableName = 'admin_country_category';
 }
