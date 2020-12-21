@@ -431,10 +431,10 @@ class FootballApi extends FrontUserController
             $decode = json_decode($res->tables, true);
             $promotions = json_decode($res->promotions, true);
             if ($promotions) {
-                $rows = $decode[0]['rows'];
+                $rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
 
             } else {
-                $rows = $decode['rows'];
+                $rows =isset($decode['rows']) ? $decode['rows'] : [];
             }
 
             if ($rows) {
@@ -522,22 +522,18 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
 
         }
-        $formatMatch = FrontService::formatMatchTwo([$match], $this->auth['id']);
+
+        $formatMatch = FrontService::formatMatchThree([$match], $this->auth['id'], []);
         if (!$return = $formatMatch[0]) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 
         }
         $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
         $competition_id = $return['competition_id'];
-        $type = DbManager::getInstance()->invoke(function ($client) use ($competition_id) {
-            $data = 0;
-            if ($competition = AdminCompetition::invoke($client)->where('competition_id', $competition_id)->get()) {
-                $data = $competition->type;
-            }
-
-
-            return $data;
-        });
+        $type = 0;
+        if ($competition = AdminCompetition::create()->where('competition_id', $competition_id)->get()) {
+            $type = $competition->type;
+        }
         if ($competition = AdminCompetition::getInstance()->field(['id', 'competition_id', 'type'])->where('competition_id', $return['competition_id'])->get()) {
             $return['competition_type'] = $type;
         }
