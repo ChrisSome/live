@@ -29,7 +29,7 @@ class Status
     const CODE_W_FORMAT_PASS = 310;   //密码格式错误
     const CODE_W_STATUS = 311;   //用户禁用
     const CODE_W_FORMAT_NICKNAME = 312;   //用户名不合规
-    const CODE_W_PHONE_CODE = 313;   //用户名不合规
+    const CODE_W_PHONE_CODE = 313;   //验证码错误
     const CODE_PHONE_EXIST = 314;   //手机号存在
     const CODE_FAIL_LOGON = 315;   //注册失败
     const CODE_USER_NOT_EXIST = 316;   //注册失败
@@ -46,6 +46,8 @@ class Status
 
 
     const CODE_WRONG_MATCH = 326;      //没有相关比赛
+    const CODE_PHONE_NOT_EXISTS = 327;      //被禁言
+
 
 
     //系统错误
@@ -97,6 +99,7 @@ class Status
         self::CODE_USER_STATUS_CANCLE => '该账户已被注销',
         self::CODE_STATUS_FORBIDDEN => '用户已被禁言',
         self::CODE_WRONG_MATCH => '暂无此场比赛资料',
+        self::CODE_PHONE_NOT_EXISTS => '手机号不存在',
 
 
 

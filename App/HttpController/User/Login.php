@@ -54,16 +54,15 @@ class Login extends FrontUserController
         }
         $mobile = $this->params['mobile'];
         if ($type == 1) {//手机号登录
-//            if (!$this->params['code'] || !$mobile_code = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile)) {
-//                return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
-//
-//            }
-//            if ($mobile_code['code'] != $this->params['code']) {
-//                return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
-//            }
+            if (!$this->params['code'] || !$mobile_code = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile)) {
+                return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
+            }
+            if ($mobile_code['code'] != $this->params['code']) {
+                return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
+            }
 
             if (!$user = AdminUser::getInstance()->where('mobile', $mobile)->get()) {
-                return $this->writeJson(Statuses::CODE_W_PHONE, Statuses::$msg[Statuses::CODE_W_PHONE]);
+                return $this->writeJson(Statuses::CODE_PHONE_NOT_EXISTS, Statuses::$msg[Statuses::CODE_PHONE_NOT_EXISTS]);
             } else if ($user->status == AdminUser::STATUS_BAN) {
                 return $this->writeJson(Statuses::CODE_USER_STATUS_BAN, Statuses::$msg[Statuses::CODE_USER_STATUS_BAN]);
 

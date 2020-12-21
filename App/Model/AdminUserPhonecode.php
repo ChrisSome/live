@@ -31,6 +31,7 @@ class AdminUserPhonecode extends BaseModel
     //获取用户验证码
     public function getLastCodeByMobile($mobile)
     {
-        return $this->where('mobile', $mobile)->where('status', self::STATUS_UNUSED)->where('created_at', time()-10*60, '>')->order('created_at', 'DESC')->limit(1)->get();
+        return $this->where('mobile', $mobile)->where('status', self::STATUS_UNUSED)
+            ->where('created_at', time()-15*60, '>')->order('created_at', 'DESC')->limit(1)->get();
     }
 }

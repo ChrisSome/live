@@ -6,6 +6,6 @@ vendor
 .dev.php
 App/Config/Database.php
 /mysql/data
-/.idea/*
+/.idea
 /.metadata
 /RemoteSystemsTempFiles
