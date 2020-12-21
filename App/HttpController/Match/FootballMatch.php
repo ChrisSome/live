@@ -260,7 +260,6 @@ class FootBallMatch extends FrontUserController
 
             }
 
-
             //更新赛季比赛列表 （有新赛季或者新阶段的时候新增）
             if ($signal_season_match = SeasonMatchList::getInstance()->where('match_id', $data['id'])->get()) {
                 $signal_season_match->home_scores = json_encode($data['home_scores']);
@@ -317,9 +316,7 @@ class FootBallMatch extends FrontUserController
 
         } else {
             Log::getInstance()->info(date('Y-d-d H:i:s') . ' 当天比赛更新完成');
-
         }
-
     }
 
 
@@ -476,7 +473,7 @@ class FootBallMatch extends FrontUserController
     /**
      * one day / time 赛事列表
      */
-    function competitionList()
+    function getCompetitiones()
     {
         $max_updated_at = AdminCompetition::getInstance()->max('updated_at');
         $url = sprintf($this->url . $this->uriCompetition, $this->user, $this->secret, $max_updated_at + 1);
@@ -526,7 +523,7 @@ class FootBallMatch extends FrontUserController
     /**
      * 直播地址  10min/次
      */
-    public function steamList()
+    public function getSteam()
     {
         $url = sprintf($this->url . $this->uriSteam, $this->user, $this->secret);
         $res = Tool::getInstance()->postApi($url);
@@ -591,9 +588,11 @@ class FootBallMatch extends FrontUserController
 
     /**
      * 更新球员列表  one day / time
-     * @return bool
+     * @throws \EasySwoole\Mysqli\Exception\Exception
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
      */
-    public function getPlayers()
+    public function players()
     {
         while (true) {
             $max_updated_at = AdminPlayer::getInstance()->max('updated_at');
@@ -644,6 +643,7 @@ class FootBallMatch extends FrontUserController
     }
 
     /**
+     * 赛季同赔信息
      * 每天凌晨十二点半一次
      */
     public function clashHistory()

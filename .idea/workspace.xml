@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="df0fffef-12d4-4b36-8138-d6a5507b5fee" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/App/Base/BaseModel.php" beforeDir="false" afterPath="$PROJECT_DIR$/App/Base/BaseModel.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/App/HttpController/Match/FootballMatch.php" beforeDir="false" afterPath="$PROJECT_DIR$/App/HttpController/Match/FootballMatch.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/App/HttpController/User/UserCenter.php" beforeDir="false" afterPath="$PROJECT_DIR$/App/HttpController/User/UserCenter.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/App/HttpController/Router.php" beforeDir="false" afterPath="$PROJECT_DIR$/App/HttpController/Router.php" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -21,20 +19,29 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/App/HttpController/Match/FootballMatch.php">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="118">
-              <caret line="130" column="7" lean-forward="true" selection-start-line="130" selection-start-column="7" selection-end-line="130" selection-end-column="7" />
+            <state relative-caret-position="1367">
+              <caret line="800" lean-forward="true" selection-start-line="800" selection-end-line="800" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/App/Model/AdminUserPost.php">
+        <entry file="file://$PROJECT_DIR$/App/HttpController/User/User.php">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="125">
+              <caret line="93" column="24" selection-start-line="93" selection-start-column="24" selection-end-line="93" selection-end-column="24" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/App/Model/AdminUser.php">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="102">
-              <caret line="9" column="6" selection-start-line="9" selection-start-column="6" selection-end-line="9" selection-end-column="6" />
+              <caret line="8" column="31" selection-start-line="8" selection-start-column="31" selection-end-line="8" selection-end-column="31" />
             </state>
           </provider>
         </entry>
@@ -63,11 +70,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/App/HttpController/Router.php">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1768">
-              <caret line="108" column="114" selection-start-line="108" selection-start-column="92" selection-end-line="108" selection-end-column="114" />
+            <state relative-caret-position="153">
+              <caret line="84" column="61" selection-start-line="84" selection-start-column="45" selection-end-line="84" selection-end-column="61" />
             </state>
           </provider>
         </entry>
@@ -75,8 +82,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/App/Base/BaseModel.php">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="272">
-              <caret line="69" column="28" lean-forward="true" selection-start-line="69" selection-start-column="28" selection-end-line="69" selection-end-column="28" />
+            <state relative-caret-position="443">
+              <caret line="29" column="19" lean-forward="true" selection-start-line="29" selection-start-column="19" selection-end-line="29" selection-end-column="19" />
               <folding>
                 <element signature="e#28#59#0#PHP" expanded="true" />
               </folding>
@@ -118,23 +125,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>where</find>
-      <find>getConfig(</find>
-      <find>conf</find>
-      <find>connections</find>
-      <find>row</find>
-      <find>raw</find>
-      <find>join</find>
-      <find>sql</find>
-      <find>join(</find>
-      <find>matchList</find>
-      <find>Today</find>
-      <find>update(</find>
-      <find>getTodayMatches</find>
-      <find>updateYesM</find>
-      <find>fixMa</find>
-      <find>fixM</find>
-      <find>test(</find>
       <find>getToday</find>
       <find>information</find>
       <find>informationComment</find>
@@ -148,6 +138,23 @@
       <find>test</find>
       <find>updateSeasonTeamPlayer</find>
       <find>fix</find>
+      <find>getTeamList</find>
+      <find>updateYesterdayMatch</find>
+      <find>getWeekMatches</find>
+      <find>competitionList</find>
+      <find>getCompetitiones</find>
+      <find>steamList</find>
+      <find>getLineUp</find>
+      <find>players</find>
+      <find>clashHistory</find>
+      <find>deleteMatch</find>
+      <find>updateAlphaMatch</find>
+      <find>updateSeason</find>
+      <find>updatePlayerStat</find>
+      <find>playerChangeClubHistory</find>
+      <find>honorList</find>
+      <find>managerList</find>
+      <find>getSteam</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -198,8 +205,9 @@
         <option value="$PROJECT_DIR$/App/lib/FrontService.php" />
         <option value="$PROJECT_DIR$/App/HttpController/Match/InformationApi.php" />
         <option value="$PROJECT_DIR$/App/HttpController/User/UserCenter.php" />
-        <option value="$PROJECT_DIR$/App/HttpController/Match/FootballMatch.php" />
         <option value="$PROJECT_DIR$/App/Base/BaseModel.php" />
+        <option value="$PROJECT_DIR$/App/HttpController/Router.php" />
+        <option value="$PROJECT_DIR$/App/HttpController/Match/FootballMatch.php" />
       </list>
     </option>
   </component>
@@ -368,7 +376,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
-    <property name="settings.editor.selected.configurable" value="reference.webide.settings.project.settings.php" />
+    <property name="settings.editor.selected.configurable" value="reference.settingsdialog.IDE.editor.colors.PHP" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -395,12 +403,12 @@
       <workItem from="1608261399803" duration="27168000" />
       <workItem from="1608474475068" duration="10259000" />
       <workItem from="1608531120644" duration="599000" />
-      <workItem from="1608531904218" duration="925000" />
+      <workItem from="1608531904218" duration="2845000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="77871000" />
+    <option name="totallyTimeSpent" value="79791000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -415,7 +423,7 @@
     <frame x="0" y="23" width="1440" height="804" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.0937053" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.16881259" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -427,9 +435,9 @@
       <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49928468" weight="0.3286517" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" />
-      <window_info anchor="bottom" id="File Transfer" order="9" sideWeight="0.4985694" visible="true" weight="0.26544943" />
+      <window_info anchor="bottom" id="File Transfer" order="9" sideWeight="0.4985694" weight="0.26544943" />
       <window_info anchor="bottom" id="Database Changes" order="10" />
-      <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.47639486" weight="0.17134832" />
+      <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.47639486" visible="true" weight="0.2485955" />
       <window_info anchor="bottom" id="Event Log" order="12" sideWeight="0.52360517" side_tool="true" weight="0.16480447" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -441,14 +449,6 @@
     <option name="version" value="1" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/App/Task/TestTask.php" />
-    <entry file="file://$PROJECT_DIR$/App/HttpController/User/Login.php">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="178" column="59" selection-start-line="178" selection-start-column="59" selection-end-line="178" selection-end-column="59" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/App/Task/PhoneTask.php">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-1">
@@ -766,13 +766,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/App/HttpController/Router.php">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1768">
-          <caret line="108" column="114" selection-start-line="108" selection-start-column="92" selection-end-line="108" selection-end-column="114" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/vendor/easyswoole/component/src/CoroutineSingleTon.php">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="255">
@@ -814,20 +807,41 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/App/HttpController/Match/FootballMatch.php">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1367">
+          <caret line="800" lean-forward="true" selection-start-line="800" selection-end-line="800" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/App/HttpController/User/User.php">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="125">
+          <caret line="93" column="24" selection-start-line="93" selection-start-column="24" selection-end-line="93" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/App/Model/AdminUser.php">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="8" column="31" selection-start-line="8" selection-start-column="31" selection-end-line="8" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/App/Base/BaseModel.php">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="69" column="28" lean-forward="true" selection-start-line="69" selection-start-column="28" selection-end-line="69" selection-end-column="28" />
+        <state relative-caret-position="443">
+          <caret line="29" column="19" lean-forward="true" selection-start-line="29" selection-start-column="19" selection-end-line="29" selection-end-column="19" />
           <folding>
             <element signature="e#28#59#0#PHP" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/App/HttpController/Match/FootballMatch.php">
+    <entry file="file://$PROJECT_DIR$/App/HttpController/Router.php">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="118">
-          <caret line="130" column="7" lean-forward="true" selection-start-line="130" selection-start-column="7" selection-end-line="130" selection-end-column="7" />
+        <state relative-caret-position="153">
+          <caret line="84" column="61" selection-start-line="84" selection-start-column="45" selection-end-line="84" selection-end-column="61" />
         </state>
       </provider>
     </entry>
