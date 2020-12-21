@@ -179,7 +179,8 @@ class UserCenter   extends FrontUserController{
 
         $list = $model->all(null);
         $count = $model->lastQueryResult()->getTotalCount();
-        $returnData = ['data' => $list, 'count' => $count];
+        $format = FrontService::handPosts($list, $this->auth['id']);
+        $returnData = ['data' => $format, 'count' => $count];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
     }
 

@@ -79,7 +79,7 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/community/normalProblemList', '/User/Community/normalProblemList');   //常见问题
 
             //数据脚本
-            $r->addRoute(['GET'], '/footBall/getTeamList', '/Match/FootballMatch/teamList');   //球队列表
+            $r->addRoute(['GET'], '/footBall/getTeamList', '/Match/FootballMatch/getTeamList');   //球队列表
             $r->addRoute(['GET'], '/footBall/getTodayMatches', '/Match/FootballMatch/getTodayMatches');   //今日比赛
             $r->addRoute(['GET'], '/footBall/getWeekMatches', '/Match/FootballMatch/getWeekMatches');   //未来一周比赛
             $r->addRoute(['GET'], '/footBall/getCompetitiones', '/Match/FootballMatch/competitionList');   //赛事列表

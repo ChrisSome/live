@@ -15,11 +15,12 @@ abstract class BaseModel extends AbstractModel
 
     static function getInstance(...$args)
     {
-        $obj_name = static::class;
-        if(!isset(self::$instance[$obj_name])){
-            self::$instance[$obj_name] = new static(...$args);
-        }
-        return self::$instance[$obj_name];
+//        $obj_name = static::class;
+//        if(!isset(self::$instance[$obj_name])){
+//            self::$instance[$obj_name] = new static(...$args);
+//        }
+//        return self::$instance[$obj_name];
+        return self::create();
     }
 
     /**
@@ -60,7 +61,7 @@ abstract class BaseModel extends AbstractModel
         if (!is_array($options)) {
             $options = ['id' => $options];
         }
-        return self::create()->where($options)->get();
+        return $this->where($options)->get();
     }
 
     /**
