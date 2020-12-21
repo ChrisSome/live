@@ -69,9 +69,9 @@ class EasySwooleEvent implements Event
         $config->setMaxObjectNum(100); //设置最大连接池存在连接对象数量
         $config->setAutoPing(5); //设置自动ping客户端链接的间隔
 
-        $connection = new \EasySwoole\ORM\Db\Connection($config);
-        \EasySwoole\ORM\DbManager::getInstance()->addConnection($connection);
-//        DbManager::getInstance()->addConnection(new Connection($config));
+//        $connection = new \EasySwoole\ORM\Db\Connection($config);
+//        \EasySwoole\ORM\DbManager::getInstance()->addConnection($connection);
+        DbManager::getInstance()->addConnection(new Connection($config));
     }
 
     public static function loadConf()

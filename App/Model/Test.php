@@ -3,16 +3,11 @@
 namespace App\Model;
 
 use App\Base\BaseModel;
-class Test extends BaseModel {
+use App\Base\FatherModel;
+use EasySwoole\ORM\AbstractModel;
+
+class Test extends FatherModel {
     public $tableName = "admin_match_list";
-
-
-    public function getLimit($page, $limit)
-    {
-        return $this->order('match_time', 'DESC')
-            ->limit(($page - 1) * $limit, $limit)
-            ->withTotalCount();
-    }
 
     /**
      * 获取主队名称

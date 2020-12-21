@@ -10,9 +10,17 @@ use App\Model\AdminClashHistory;
 use App\Model\AdminCompetition;
 use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
+use App\Model\AdminInterestMatches;
+use App\Model\AdminInterestMatchesBak;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
+use App\Model\AdminMatchBak;
+use App\Model\AdminSysSettings;
+use App\Model\AdminSysSettingsBak;
+use App\Model\AdminUserInterestCompetition;
+use App\Model\AdminUserInterestCompetitionBak;
 use App\Model\SeasonMatchListOne;
+use App\Model\Test;
 use App\Task\TestTask;
 use EasySwoole\Component\Process\Manager;
 use App\Model\SeasonAllTableDetail;
@@ -47,6 +55,29 @@ use EasySwoole\ORM\DbManager;
 use EasySwoole\Redis\Redis as Redis;
 use EasySwoole\RedisPool\Redis as RedisPool;
 use EasySwoole\EasySwoole\Config;
+
+/**
+ *                             _ooOoo_
+ *                            o8888888o
+ *                            88" . "88
+ *                            (| -_- |)
+ *                            O\  =  /O
+ *                         ____/`---'\____
+ *                       .'  \\|     |//  `.
+ *                      /  \\|||  :  |||//  \
+ *                     /  _||||| -:- |||||-  \
+ *                     |   | \\\  -  /// |   |
+ *                     | \_|  ''\---/''  |   |
+ *                     \  .-\__  `-`  ___/-. /
+ *                   ___`. .'  /--.--\  `. . __
+ *                ."" '<  `.___\_<|>_/___.'  >'"".
+ *               | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+ *               \  \ `-.   \_ __\ /__ _/   .-` /  /
+ *          ======`-.____`-.___\_____/___.-`____.-'======
+ *                             `=---='
+ *          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ *                     佛祖保佑        永无BUG
+ */
 class FootBallMatch extends FrontUserController
 {
     const STATUS_SUCCESS = 0; //请求成功
@@ -212,6 +243,12 @@ class FootBallMatch extends FrontUserController
         }
 
         foreach ($decodeDatas as $data) {
+            $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+            $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+            if (!$home_team || !$away_team) continue;
+            $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+
+
 
             if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
                 $signal->home_scores = json_encode($data['home_scores']);
@@ -223,11 +260,61 @@ class FootBallMatch extends FrontUserController
                 $signal->updated_at = $data['updated_at'];
                 $signal->match_time = $data['match_time'];
                 $signal->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
-                $signal->referee_id = isset($data['referee_id']) ? json_encode($data['referee_id']) : 0;
+                $signal->referee_id = isset($data['referee_id']) ? intval($data['referee_id']) : 0;
                 $signal->round = isset($data['round']) ? json_encode($data['round']) : '';
                 $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
                 $signal->update();
 
+            } else {
+
+                $insertData = [
+                    'match_id' => $data['id'],
+                    'competition_id' => $data['competition_id'],
+                    'home_team_id' => $data['home_team_id'],
+                    'away_team_id' => $data['away_team_id'],
+                    'match_time' => $data['match_time'],
+                    'neutral' => $data['neutral'],
+                    'note' => $data['note'],
+                    'season_id' => $data['season_id'],
+                    'home_scores' => json_encode($data['home_scores']),
+                    'away_scores' => json_encode($data['away_scores']),
+                    'home_position' => $data['home_position'],
+                    'away_position' => $data['away_position'],
+                    'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                    'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                    'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                    'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                    'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                    'status_id' => $data['status_id'],
+                    'updated_at' => $data['updated_at'],
+                    'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                    'home_team_logo' => $home_team->logo,
+                    'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                    'away_team_logo' => $away_team->logo,
+                    'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
+                    'competition_color' => $competition->primary_color
+                ];
+
+                AdminMatch::getInstance()->insert($insertData);
+
+            }
+
+
+            //更新赛季比赛列表 （有新赛季或者新阶段的时候新增）
+            if ($signal_season_match = SeasonMatchList::getInstance()->where('match_id', $data['id'])->get()) {
+                $signal_season_match->home_scores = json_encode($data['home_scores']);
+                $signal_season_match->away_scores = json_encode($data['away_scores']);
+                $signal_season_match->home_position = $data['home_position'];
+                $signal_season_match->away_position = $data['away_position'];
+                $signal_season_match->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                $signal_season_match->status_id = $data['status_id'];
+                $signal_season_match->updated_at = $data['updated_at'];
+                $signal_season_match->match_time = $data['match_time'];
+                $signal_season_match->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
+                $signal_season_match->referee_id = isset($data['referee_id']) ? intval($data['referee_id']) : 0;
+                $signal_season_match->round = isset($data['round']) ? json_encode($data['round']) : '';
+                $signal_season_match->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                $signal_season_match->update();
             } else {
                 $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
                 $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
@@ -261,9 +348,7 @@ class FootBallMatch extends FrontUserController
                     'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
                     'competition_color' => $competition->primary_color
                 ];
-                AdminMatch::create()->data($insertData, false)->save();
-
-                Log::getInstance()->info('insert_match_id-1-' . $data['id']);
+                SeasonMatchList::getInstance()->insert($insertData);
             }
         }
         if ($isUpdateYes) {
@@ -1602,8 +1687,161 @@ class FootBallMatch extends FrontUserController
 
     }
 
+    public function test2()
+    {
+//// 你是 压测这个接口？是的 压测
+        $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
+        //默认的赛事id
+        $default = DbManager::getInstance()->invoke(function ($client) use ($uid) {
+            $recommandCompetitionId = AdminSysSettingsBak::invoke($client)->where('sys_key', AdminSysSettingsBak::COMPETITION_ARR)->get();
+            return json_decode($recommandCompetitionId->sys_value, true);
+        });
 
-    public function test()
+
+
+
+        $res = DbManager::getInstance()->invoke(function ($client) use($uid) {
+            return AdminUserInterestCompetitionBak::invoke($client)->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')
+                ->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
+        });
+
+        $userInterestCompetition = json_decode($res->competition_ids, true);
+        $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
+        if ($userInterestCompetition) {
+            $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
+        } else {
+            $selectCompetitionIdArr = $default;
+        }
+
+        //进行中的比赛
+        // 还是这里报错吗？是的定位的到了是吧 是的  我改完之后就压测了一波  效果不太好，但是好像没报错，我把其中的两个查询改成了join，就出错了
+        //不知道是不是上一次美报错的是我没注意到还是什么
+
+        $playingMatch = DbManager::getInstance()->invoke(function ($client) use($selectCompetitionIdArr) {
+            return AdminMatchBak::invoke($client)->where('is_delete', 0)
+                ->where('competition_id', $selectCompetitionIdArr, 'in')
+                ->limit(50)->all();
+        });
+        $formatMatch = FrontService::formatMatchThree($playingMatch, $uid, $interestMatchArr);
+
+
+        $return = ['list' => $formatMatch, 'user_interest_count' => count($interestMatchArr)];
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
+    }
+
+
+
+    function test($isUpdateYes = 0)
+    {
+
+
+        if (!empty($isUpdateYes)) {
+            $time = date("Ymd", strtotime("-1 day"));
+        } else {
+            $time = date('Ymd');
+        }
+        $url = sprintf($this->uriM, $this->user, $this->secret, $time);
+
+        $res = Tool::getInstance()->postApi($url);
+        $teams = json_decode($res, true);
+
+        $decodeDatas = $teams['results'];
+
+        if (!$decodeDatas) {
+            Log::getInstance()->info(date('Y-d-d H:i:s') . ' 更新无数据');
+            return;
+        }
+
+        foreach ($decodeDatas as $data) {
+
+            if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
+                if ($signal->status_id == 8) continue;
+                $signal->home_scores = json_encode($data['home_scores']);
+                $signal->away_scores = json_encode($data['away_scores']);
+                $signal->home_position = $data['home_position'];
+                $signal->away_position = $data['away_position'];
+                $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                $signal->status_id = $data['status_id'];
+                $signal->updated_at = $data['updated_at'];
+                $signal->match_time = $data['match_time'];
+                $signal->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
+                $signal->referee_id = isset($data['referee_id']) ? intval($data['referee_id']) : 0;
+                $signal->round = isset($data['round']) ? json_encode($data['round']) : '';
+                $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                $res = $signal->update();
+
+                //更新赛季比赛列表 （有新赛季或者新阶段的时候新增）
+                if ($signal_season_match = SeasonMatchList::getInstance()->where('match_id', $data['id'])->get()) {
+                    $signal_season_match->home_scores = json_encode($data['home_scores']);
+                    $signal_season_match->away_scores = json_encode($data['away_scores']);
+                    $signal_season_match->home_position = $data['home_position'];
+                    $signal_season_match->away_position = $data['away_position'];
+                    $signal_season_match->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                    $signal_season_match->status_id = $data['status_id'];
+                    $signal_season_match->updated_at = $data['updated_at'];
+                    $signal_season_match->match_time = $data['match_time'];
+                    $signal_season_match->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
+                    $signal_season_match->referee_id = isset($data['referee_id']) ? intval($data['referee_id']) : 0;
+                    $signal_season_match->round = isset($data['round']) ? json_encode($data['round']) : '';
+                    $signal_season_match->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                    $signal_season_match->update();
+                }
+
+
+
+            } else {
+                $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+                $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                if (!$home_team || !$away_team) continue;
+                $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+
+                $insertData = [
+                    'match_id' => $data['id'],
+                    'competition_id' => $data['competition_id'],
+                    'home_team_id' => $data['home_team_id'],
+                    'away_team_id' => $data['away_team_id'],
+                    'match_time' => $data['match_time'],
+                    'neutral' => $data['neutral'],
+                    'note' => $data['note'],
+                    'season_id' => $data['season_id'],
+                    'home_scores' => json_encode($data['home_scores']),
+                    'away_scores' => json_encode($data['away_scores']),
+                    'home_position' => $data['home_position'],
+                    'away_position' => $data['away_position'],
+                    'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                    'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                    'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                    'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                    'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                    'status_id' => $data['status_id'],
+                    'updated_at' => $data['updated_at'],
+                    'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                    'home_team_logo' => $home_team->logo,
+                    'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                    'away_team_logo' => $away_team->logo,
+                    'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
+                    'competition_color' => $competition->primary_color
+                ];
+
+//                AdminMatch::getInstance()->insert($insertData);
+
+                Log::getInstance()->info('insert_match_id-2-' . $data['id']);
+            }
+        }
+        if ($isUpdateYes) {
+            Log::getInstance()->info(date('Y-d-d H:i:s') . ' 昨日比赛更新完成');
+
+        } else {
+            Log::getInstance()->info(date('Y-d-d H:i:s') . ' 当天比赛更新完成');
+
+        }
+
+
+
+    }
+    public function test1()
     {
         ini_set("max_execution_time", 1000);
 //        $season_id = Cache::get('season_match_list_seasonId-');
@@ -1664,17 +1902,6 @@ class FootBallMatch extends FrontUserController
 return ;
 
 
-
-//        $code = Tool::getInstance()->generateCode();
-//        //异步task
-//
-//        $res = TaskManager::getInstance()->async(new TestTask([
-//            'code' => $code,
-//            'mobile' => '15670660962',
-//            'name' => '短信验证码'
-//        ]));
-//
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
 
 
     }

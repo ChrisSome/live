@@ -6,9 +6,9 @@ use App\Base\FatherModel;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\ORM\AbstractModel;
 
-class SeasonMatchList  extends BaseModel
+class AdminMatchBak  extends AbstractModel
 {
-    protected $tableName = "match_season_list";
+    protected $tableName = "admin_match_list";
 
 
     public function getLimit($page, $limit)
@@ -23,9 +23,9 @@ class SeasonMatchList  extends BaseModel
      * @return string
      * @throws \Throwable
      */
-    public function homeTeam()
+    public function homeTeamName()
     {
-        return $this->hasOne(AdminTeam::class, null, 'home_team_id', 'team_id')->field(['team_id', 'name_zh']);
+        return $this->hasOne(AdminTeam::class, null, 'home_team_id', 'team_id');
 
 
     }
@@ -35,7 +35,7 @@ class SeasonMatchList  extends BaseModel
      * @return string
      * @throws \Throwable
      */
-    public function awayTeam()
+    public function awayTeamName()
     {
         return $this->hasOne(AdminTeam::class, null, 'away_team_id', 'team_id');
 
@@ -49,7 +49,7 @@ class SeasonMatchList  extends BaseModel
      */
     public function competitionName()
     {
-        return $this->hasOne(AdminCompetition::class, null, 'competition_id', 'competition_id')->field(['competition_id', 'short_name_zh']);
+        return $this->hasOne(AdminCompetition::class, null, 'competition_id', 'competition_id');
 
     }
 

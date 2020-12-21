@@ -12,6 +12,7 @@ use App\Model\AdminPlayer;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserInterestCompetition;
 use App\Model\ChatHistory;
+use App\Model\SeasonAllTableDetail;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
@@ -136,18 +137,6 @@ class FootballApi extends FrontUserController
         ],
     ];
 
-    public function getAll()
-    {
-        $time = strtotime(date('Y-m-d',time()));
-
-        $match = AdminMatch::getInstance()->where('match_time', $time, '>')->all();
-
-        return $this->writeJson(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN], $match);
-
-    }
-
-
-
     public function getCompetition()
     {
         $recommend = [];
@@ -201,11 +190,47 @@ class FootballApi extends FrontUserController
      * 正在进行中的比赛列表
      * @return bool
      */
-    public function matchListPlaying()
+    public function matchListPlayingBak()
     {
+        $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
+        $selectCompetitionIdArr = DbManager::getInstance()->invoke(function ($client) use ($uid) {
+            $userInterestCompetitiones = $recommand_competition_id_arr = [];
+            if ($uid) {
+                $competitiones = AdminUserInterestCompetition::invoke($client)->get(['user_id' => $uid]);
+                $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
+            }
+            $recommand_competition_id_arr = AdminSysSettings::invoke($client)->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
+            $in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
+            return array_intersect($userInterestCompetitiones, $in_competition_arr);
+        });
+
+        if (!$selectCompetitionIdArr) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
+        $match = DbManager::getInstance()->invoke(function ($client) use($selectCompetitionIdArr) {
+                return AdminMatch::invoke($client)->where('is_delete', 0)
+                    ->where('competition_id', $selectCompetitionIdArr, 'in')
+                    ->where('status_id', self::STATUS_PLAYING, 'in')->all();
+        });
+        $formatMatch = FrontService::formatMatchTwo($match, $uid);
+
+        //用户关注比赛数量
+        $userInterestMatchCount = DbManager::getInstance()->invoke(function ($client) use($uid) {
+            return AdminInterestMatches::invoke($client)->find(['uid' => $uid]);
+        });
+        $count = 0;
+        if ($userInterestMatchCount) {
+            $count = count(json_decode($userInterestMatchCount->match_ids));
+        }
+
+        $return = ['list' => $formatMatch, 'user_interest_count' => $count, 'count' => count($formatMatch)];
 
 
-        $uid = $this->auth['id'];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
+
+
+
+
+
         $userInterestCompetitiones = [];
         if ($uid && $competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
             $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
@@ -256,6 +281,46 @@ class FootballApi extends FrontUserController
 
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
+
+    }
+
+    public function matchListPlaying()
+    {
+        $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
+        $selectCompetitionIdArr = DbManager::getInstance()->invoke(function ($client) use ($uid) {
+            $userInterestCompetitiones = $recommand_competition_id_arr = [];
+            if ($uid) {
+                $competitiones = AdminUserInterestCompetition::invoke($client)->get(['user_id' => $uid]);
+                $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
+            }
+            $recommand_competition_id_arr = AdminSysSettings::invoke($client)->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
+            $in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
+
+            return array_intersect($userInterestCompetitiones, $in_competition_arr);
+        });
+
+
+
+        if (!$selectCompetitionIdArr) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
+        $match = DbManager::getInstance()->invoke(function ($client) use($selectCompetitionIdArr) {
+            return AdminMatch::invoke($client)->where('is_delete', 0)
+                ->where('competition_id', $selectCompetitionIdArr, 'in')
+                ->where('status_id', self::STATUS_PLAYING, 'in')->all();
+        });
+        $formatMatch = FrontService::formatMatchTwo($match, $uid);
+        //用户关注比赛数量
+        $userInterestMatchCount = DbManager::getInstance()->invoke(function ($client) use($uid) {
+            return AdminInterestMatches::invoke($client)->get(['uid' => $uid]);
+        });
+        $count = 0;
+        if ($userInterestMatchCount) {
+            $count = count(json_decode($userInterestMatchCount->match_ids));
+        }
+        $return = ['list' => $formatMatch, 'user_interest_count' => $count, 'count' => count($formatMatch)];
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
 
 
     }
@@ -514,8 +579,6 @@ class FootballApi extends FrontUserController
 
         }
 
-
-
     }
 
 
@@ -541,30 +604,29 @@ class FootballApi extends FrontUserController
         if (!$currentSeasonId) {
             $intvalRank = [];
         } else {
-            $res = Tool::getInstance()->postApi(sprintf($this->urlIntvalRank, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $currentSeasonId));
-            $decode = json_decode($res, true);
-            if ($decode['code'] == 0) {
-                if (!isset($decode['results']['tables'][0]['rows'])) {
-                    $intvalRank = [];
-                } else {
-                    $rows = $decode['results']['tables'][0]['rows'];
-                    if ($rows) {
-                        $intvalRank = [];
-                        foreach ($rows as $row) {
-                            if ($row['team_id'] == $matchInfo->home_team_id) {
-                                $intvalRank['homeIntvalRank'] = $row;
-                            }
+            $res = SeasonAllTableDetail::getInstance()->where('season_id', $currentSeasonId)->get();
+            $decode = json_decode($res->tables, true);
+            $promotions = json_decode($res->promotions, true);
+            if ($promotions) {
+                $rows = $decode[0]['rows'];
 
-                            if ($row['team_id'] == $matchInfo->away_team_id) {
-                                $intvalRank['awayIntvalRank'] = $row;
+            } else {
+                $rows = $decode['rows'];
+            }
 
-                            }
-                        }
-                    } else {
-                        $intvalRank = [];
+            if ($rows) {
+                $intvalRank = [];
+                foreach ($rows as $row) {
+
+                    if ($row['team_id'] == $matchInfo->home_team_id) {
+                        $intvalRank['homeIntvalRank'] = $row;
+                    }
+
+                    if ($row['team_id'] == $matchInfo->away_team_id) {
+                        $intvalRank['awayIntvalRank'] = $row;
+
                     }
                 }
-
             } else {
                 $intvalRank = [];
             }

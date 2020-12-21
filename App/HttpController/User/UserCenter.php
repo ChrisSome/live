@@ -257,11 +257,10 @@ class UserCenter   extends FrontUserController{
         }
 
         if (AdminUser::getInstance()->update($update_data, ['id' => $uid])) {
-            if ($code = AdminUserPhonecode::getInstance()->where('mobile', $this->params['mobile'])->where('code', $this->params['code'])->get()) {
-                $code->status = AdminUserPhonecode::STATUS_USED;
-                $code->update();
-            }
-
+//            if ($code = AdminUserPhonecode::getInstance()->where('mobile', $this->params['mobile'])->where('code', $this->params['code'])->get()) {
+//                $code->status = AdminUserPhonecode::STATUS_USED;
+//                $code->update();
+//            }
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 
         } else {

@@ -470,7 +470,7 @@ class Client
      *
      * @return bool | string
      */
-    public function proc(bool $loop = true)
+    public function proc($loop = true)
     {
         if (feof($this->socket)) {
             $this->_debugMessage('eof receive going to reconnect for good measure');
