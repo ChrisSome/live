@@ -262,7 +262,7 @@ class  FrontService {
         $time = $time != '' ? $time : time();
         //组合数据
         $date = [];
-        for ($i=1; $i<=7; $i++){
+        for ($i=1; $i<=30; $i++){
             $date[$i] = date($format ,strtotime( '+' . $i .' days', $time));
         }
         return $date;
@@ -564,11 +564,6 @@ class  FrontService {
 
         //用户关注比赛
 
-        $userInterestMatchIds = [];
-//
-//        if ($userInterestMatchRes = AdminInterestMatchesBak::getInstance()->where('uid', $uid)->get()) {
-//            $userInterestMatchIds = json_decode($userInterestMatchRes->match_ids, true);
-//        }
         $userInterestMatchIds = $interestMatchArr;
         foreach ($matches as $match) {
 

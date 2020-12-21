@@ -10,6 +10,7 @@ use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminPlayer;
 use App\Model\AdminSysSettings;
+use App\Model\AdminUser;
 use App\Model\AdminUserInterestCompetition;
 use App\Model\ChatHistory;
 use App\Model\SeasonAllTableDetail;
@@ -163,228 +164,69 @@ class FootballApi extends FrontUserController
 
     }
 
-    public function frontMatchList()
-    {
-
-        $todayTime = strtotime(date('Y-m-d', time()));
-        $tomorrowTime = strtotime(date('Y-m-d',strtotime('+1 day')));
-        $afterTomorrowTime = strtotime(date('Y-m-d',strtotime('+2 day')));
-        $hotCompetition = FrontService::getHotCompetitionIds();
-        $playingMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')->where('match_time', time(), '<')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-
-        $todayMatch = AdminMatch::getInstance()->where('match_time', $todayTime, '>')->where('status_id', self::STATUS_PLAYING, 'not in')->where('match_time', $tomorrowTime, '<')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-        $tomorrowMatch = AdminMatch::getInstance()->where('match_time', $tomorrowTime, '>')->where('match_time', $afterTomorrowTime, '<')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-        $playing = FrontService::handMatch($playingMatch, isset($this->auth['id']) ? $this->auth['id'] : 0);
-        $today = FrontService::handMatch($todayMatch, isset($this->auth['id']) ? $this->auth['id'] : 0);
-        $tomorrow = FrontService::handMatch($tomorrowMatch, isset($this->auth['id']) ? $this->auth['id'] : 0);
-        $resp = [
-            'playing' => $playing,
-            'today' => $today,
-            'tomorrow' => $tomorrow
-        ];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $resp);
-
-    }
-
     /**
-     * 正在进行中的比赛列表
      * @return bool
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
      */
-    public function matchListPlayingBak()
-    {
-        $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
-        $selectCompetitionIdArr = DbManager::getInstance()->invoke(function ($client) use ($uid) {
-            $userInterestCompetitiones = $recommand_competition_id_arr = [];
-            if ($uid) {
-                $competitiones = AdminUserInterestCompetition::invoke($client)->get(['user_id' => $uid]);
-                $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-            }
-            $recommand_competition_id_arr = AdminSysSettings::invoke($client)->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
-            $in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
-            return array_intersect($userInterestCompetitiones, $in_competition_arr);
-        });
-
-        if (!$selectCompetitionIdArr) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-        $match = DbManager::getInstance()->invoke(function ($client) use($selectCompetitionIdArr) {
-                return AdminMatch::invoke($client)->where('is_delete', 0)
-                    ->where('competition_id', $selectCompetitionIdArr, 'in')
-                    ->where('status_id', self::STATUS_PLAYING, 'in')->all();
-        });
-        $formatMatch = FrontService::formatMatchTwo($match, $uid);
-
-        //用户关注比赛数量
-        $userInterestMatchCount = DbManager::getInstance()->invoke(function ($client) use($uid) {
-            return AdminInterestMatches::invoke($client)->find(['uid' => $uid]);
-        });
-        $count = 0;
-        if ($userInterestMatchCount) {
-            $count = count(json_decode($userInterestMatchCount->match_ids));
-        }
-
-        $return = ['list' => $formatMatch, 'user_interest_count' => $count, 'count' => count($formatMatch)];
-
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
-
-
-
-
-
-
-        $userInterestCompetitiones = [];
-        if ($uid && $competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
-            $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-
-        }
-
-        //后台推荐赛事
-        $in_competition_arr = [];
-
-        if ($recommand_competition_id_arr = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get()) {
-            $in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
-        }
-
-        if ($userInterestCompetitiones) {
-            $selectCompetition = array_intersect($in_competition_arr, $userInterestCompetitiones);
-        } else {
-            $selectCompetition = $in_competition_arr;
-        }
-        if (!$selectCompetition) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-
-        $playMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')
-            ->where('competition_id', $selectCompetition, 'in')
-            ->where('is_delete', 0)->order('match_time', 'ASC')
-            ->withTotalCount();
-        $list = $playMatch->all(null);
-
-
-        $playingCount = $playMatch->lastQueryResult()->getTotalCount();
-
-        $formatMatch = FrontService::formatMatchTwo($list, $this->auth['id']);
-        if ($uid) {
-            if ($userInterestMatch = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->get()) {
-                $match = json_decode($userInterestMatch->match_ids);
-                $count = count($match);
-            } else {
-                $count = 0;
-            }
-
-
-        } else {
-            $count = 0;
-        }
-        $return = [
-            'user_interest_count' => $count, //关注的比赛数
-            'list' => $formatMatch,
-            'count' => $playingCount
-        ];
-
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
-
-
-    }
-
     public function matchListPlaying()
     {
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
-        $selectCompetitionIdArr = DbManager::getInstance()->invoke(function ($client) use ($uid) {
-            $userInterestCompetitiones = $recommand_competition_id_arr = [];
-            if ($uid) {
-                $competitiones = AdminUserInterestCompetition::invoke($client)->get(['user_id' => $uid]);
-                $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-            }
-            $recommand_competition_id_arr = AdminSysSettings::invoke($client)->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
-            $in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
+//        //默认赛事
+//        $recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
+//        $default = json_decode($recommandCompetitionId->sys_value, true);
+//        //用户关注赛事 与 比赛
+//        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
+//        $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
+//
+//        $userInterestCompetition = json_decode($res->competition_ids, true);
+//        if ($userInterestCompetition) {
+//            $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
+//        } else {
+//            $selectCompetitionIdArr = $default;
+//        }
+        list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
+        $playingMatch = AdminMatch::create()->where('is_delete', 0)
+            ->where('competition_id', $selectCompetitionIdArr, 'in')
+            ->where('status_id', self::STATUS_PLAYING, 'in')
+            ->all();
 
-            return array_intersect($userInterestCompetitiones, $in_competition_arr);
-        });
+        $formatMatch = FrontService::formatMatchThree($playingMatch, $uid, $interestMatchArr);
 
-
-
-        if (!$selectCompetitionIdArr) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-        $match = DbManager::getInstance()->invoke(function ($client) use($selectCompetitionIdArr) {
-            return AdminMatch::invoke($client)->where('is_delete', 0)
-                ->where('competition_id', $selectCompetitionIdArr, 'in')
-                ->where('status_id', self::STATUS_PLAYING, 'in')->all();
-        });
-        $formatMatch = FrontService::formatMatchTwo($match, $uid);
-        //用户关注比赛数量
-        $userInterestMatchCount = DbManager::getInstance()->invoke(function ($client) use($uid) {
-            return AdminInterestMatches::invoke($client)->get(['uid' => $uid]);
-        });
-        $count = 0;
-        if ($userInterestMatchCount) {
-            $count = count(json_decode($userInterestMatchCount->match_ids));
-        }
-        $return = ['list' => $formatMatch, 'user_interest_count' => $count, 'count' => count($formatMatch)];
+        $return = ['list' => $formatMatch, 'user_interest_count' => count($interestMatchArr)];
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
-
-
-
     }
 
-    /**
-     * time 2020-08-19
-     * 赛程列表
-     */
     public function matchSchedule()
     {
-        if (!isset($this->params['time'])) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+        $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
+        //需要展示的赛事id 以及用户关注的比赛
+        list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
 
-        }
-        $uid = isset($this->auth['id']) ? $this->auth['id'] : 0;
-        $page = isset($this->params['page']) ? $this->params['page'] : 1;
-        $limit = isset($this->params['size']) ? $this->params['size'] : 20;
+        $page = isset($this->params['page']) ? (int)$this->params['page'] : 1;
+        $limit = isset($this->params['size']) ? (int)$this->params['size'] : 20;
         if ($this->params['time'] == date('Y-m-d')) {
             $is_today = true;
         } else {
             $is_today = false;
         }
         $start = strtotime($this->params['time']);
-
         $end = $start + 60 * 60 * 24;
-
-
-
-        $userInterestCompetitiones = [];
-
-        if ($uid && $competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
-            $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-
-        }
-
-        //后台推荐赛事
-        $in_competition_arr = [];
-
-        if ($recommand_competition_id_arr = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get()) {
-            $in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
-        }
-
-        if ($userInterestCompetitiones) {
-            $selectCompetition = array_intersect($in_competition_arr, $userInterestCompetitiones);
-        } else {
-            $selectCompetition = $in_competition_arr;
-        }
-        $selectCompetition = array_values($selectCompetition);
-        if (!$selectCompetition) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-
         $model = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
             ->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')
             ->where('is_delete', 0)
-            ->where('competition_id', $selectCompetition, 'in')
+            ->where('competition_id', $selectCompetitionIdArr, 'in')
             ->order('match_time', 'ASC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
         $list = $model->all(null);
-
         $total = $model->lastQueryResult()->getTotalCount();
-
-        $formatMatch = FrontService::formatMatchTwo($list, $uid);
+        $formatMatch = FrontService::formatMatchThree($list, $uid, $interestMatchArr);
         $return = ['list' => $formatMatch, 'count' => $total];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
+
     }
+
 
     /**
      * time 2020-08-19
@@ -395,49 +237,27 @@ class FootballApi extends FrontUserController
     {
         if (!isset($this->params['time'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
         }
-        $uid = $this->auth['id'];
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 20;
+        $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
+        //需要展示的赛事id 以及用户关注的比赛
+        list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
+        $page = isset($this->params['page']) ? (int)$this->params['page'] : 1;
+        $size = isset($this->params['size']) ? (int)$this->params['size'] : 20;
         $start = strtotime($this->params['time']);
         $end = $start + 60 * 60 * 24;
-
-        $userInterestCompetitiones = [];
-
-        if ($uid && $competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
-            $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-
-        }
-
-        //后台推荐赛事
-        $in_competition_arr = [];
-
-        if ($recommand_competition_id_arr = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get()) {
-            $in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
-        }
-
-        if ($userInterestCompetitiones) {
-            $selectCompetition = array_intersect($in_competition_arr, $userInterestCompetitiones);
-        } else {
-            $selectCompetition = $in_competition_arr;
-        }
-        if (!$selectCompetition) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-
         $matches = AdminMatch::getInstance()
             ->where('match_time', $start, '>=')
             ->where('match_time', $end, '<')
             ->where('status_id', self::STATUS_RESULT, 'in')
-            ->where('competition_id', $selectCompetition, 'in')
+            ->where('competition_id', $selectCompetitionIdArr, 'in')
             ->where('is_delete', 0)
             ->order('match_time', 'DESC')->getLimit($page, $size);
-        $list = $matches->all(null);
-
         $total = $matches->lastQueryResult()->getTotalCount();
-
-        $formatMatch = FrontService::formatMatchTwo($list, $this->auth['id']);
+        $formatMatch = FrontService::formatMatchThree($matches, $uid, $interestMatchArr);
         $return = ['list' => $formatMatch, 'count' => $total];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
+
     }
 
 

@@ -1,4 +1,8 @@
 <?php
 
-$a = array_intersect([], [1,2,3]);
-var_dump($a);
+$a = [
+    '0' => 123,
+    '1' => 342,
+    '2' => 432
+];
+var_dump(array_values($a));
