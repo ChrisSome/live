@@ -6,6 +6,7 @@ use App\Common\AppFunc;
 use App\HttpController\Match\FootballApi;
 use App\Model\AdminInformation;
 use App\Model\AdminInterestMatches;
+use App\Model\AdminInterestMatchesBak;
 use App\Model\AdminPlayer;
 use App\Model\AdminPostComment;
 use App\Model\AdminPostOperate;
@@ -375,6 +376,77 @@ class  FrontService
 	{
 		if (!$matches) return [];
 		$data = [];
+		foreach ($matches as $match) {
+			//用户关注比赛
+			$is_interest = false;
+			if ($matches && $uid && in_array($match->match_id, $matches)) {
+				$is_interest = true;
+			}
+			$is_start = false;
+			if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
+				$is_start = false;
+			} else if (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
+				$is_start = true;
+			} else if (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
+				$is_start = false;
+			}
+			$has_living = 0;
+			$living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
+			
+			$match_data_info = Cache::get('match_data_info' . $match->match_id);
+			$round = json_decode($match->round, true);
+			$item['home_team_name'] = $match->home_team_name;
+			$item['home_team_logo'] = $match->home_team_logo;
+			$item['away_team_name'] = $match->away_team_name;
+			$item['away_team_logo'] = $match->away_team_logo;
+			$item['group_num'] = $round['group_num']; //第几组
+			$item['round_num'] = $round['round_num']; //第几轮
+			$item['competition_id'] = $match->competition_id;
+			$item['competition_name'] = $match->competition_name;
+			$item['competition_color'] = $match->competition_color;
+			$item['match_time'] = date('H:i', $match['match_time']);
+			$item['format_match_time'] = date('Y-m-d H:i', $match['match_time']); //开赛时间
+			$item['user_num'] = mt_rand(20, 150);
+			$item['match_id'] = $match->match_id;
+			$item['is_start'] = $is_start;
+			$item['status_id'] = $match->status_id;
+			$item['is_interest'] = $is_interest;
+			$item['neutral'] = $match->neutral;  //1中立 0否
+			$item['matching_time'] = AppFunc::getPlayingTime($match->match_id);  //比赛进行时间
+			$item['matching_info'] = json_decode($match_data_info, true);
+			$item['has_living'] = $has_living;
+			$item['living_url'] = $living_url;
+			$item['note'] = $match->note;  //备注   欧青连八分之一决赛
+			$item['home_scores'] = $match->home_scores;  //主队比分
+			$item['away_scores'] = $match->away_scores;  //主队比分
+			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '' ;  //直播地址
+			$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
+			$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
+			
+			$data[] = $item;
+			
+			unset($item);
+		}
+		return $data;
+	}
+	
+	
+	
+	
+	
+	static function formatMatchThree($matches, $uid, $interestMatchArr)
+	{
+		if (!$matches) return [];
+		$data = [];
+		
+		//用户关注比赛
+		
+		$userInterestMatchIds = [];
+		//
+		//        if ($userInterestMatchRes = AdminInterestMatchesBak::getInstance()->where('uid', $uid)->get()) {
+		//            $userInterestMatchIds = json_decode($userInterestMatchRes->match_ids, true);
+		//        }
+		$userInterestMatchIds = $interestMatchArr;
 		foreach ($matches as $match) {
 			if (!AppFunc::isInHotCompetition($match->competition_id)) {
 				continue;

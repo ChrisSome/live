@@ -49,16 +49,38 @@ use EasySwoole\Redis\Redis as Redis;
 use EasySwoole\RedisPool\Redis as RedisPool;
 use EasySwoole\EasySwoole\Config;
 
+/**
+ *                             _ooOoo_
+ *                            o8888888o
+ *                            88" . "88
+ *                            (| -_- |)
+ *                            O\  =  /O
+ *                         ____/`---'\____
+ *                       .'  \\|     |//  `.
+ *                      /  \\|||  :  |||//  \
+ *                     /  _||||| -:- |||||-  \
+ *                     |   | \\\  -  /// |   |
+ *                     | \_|  ''\---/''  |   |
+ *                     \  .-\__  `-`  ___/-. /
+ *                   ___`. .'  /--.--\  `. . __
+ *                ."" '<  `.___\_<|>_/___.'  >'"".
+ *               | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+ *               \  \ `-.   \_ __\ /__ _/   .-` /  /
+ *          ======`-.____`-.___\_____/___.-`____.-'======
+ *                             `=---='
+ *          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ *                     佛祖保佑        永无BUG
+ */
 class FootBallMatch extends FrontUserController
 {
 	protected $isCheckSign = false;
 	protected $needCheckToken = false;
 	const STATUS_SUCCESS = 0; //请求成功
 	public $start_id = 0;
-	public $start_time = 0;
 	public $taskData = [];
-	protected $user = 'mark9527';
-	protected $secret = 'dbfe8d40baa7374d54596ea513d8da96';
+	public $start_time = 0;
+	private $user = 'mark9527';
+	private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
 	protected $url = 'https://open.sportnanoapi.com';
 	protected $uriTeamList = '/api/v4/football/team/list?user=%s&secret=%s&time=%s';  //球队列表
 	protected $uriTeamList1 = '/api/v4/football/team/list?user=%s&secret=%s&id=%s';  //球队列表
@@ -85,9 +107,9 @@ class FootBallMatch extends FrontUserController
 	protected $history = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s'; //历史比赛数据
 	protected $season_all_table_detail = 'https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s'; //获取赛季积分榜数据-全量
 	protected $uriPlayerOne = '/api/v4/football/player/list?user=%s&secret=%s&id=%s';  //球员
-	
+
 	/**
-	 * 更新球队列表 one day / time
+	 * 更新球队列表 1day/次
 	 * @throws
 	 */
 	function teamList()
@@ -97,13 +119,12 @@ class FootBallMatch extends FrontUserController
 			$url = sprintf($this->url . $this->uriTeamList, $this->user, $this->secret, $timestamp + 1);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
-			if (empty($tmp) || $tmp['query']['total'] == 0) break;
-			foreach ($tmp['results'] as $v) {
+			$list = empty($tmp['results']) ? null : $tmp['results'];
+			if (empty($list)) break;
+			foreach ($list as $v) {
 				$id = intval($v['id']);
 				$data = [
 					'team_id' => $id,
-					'competition_id' => $v['competition_id'],
-					'country_id' => empty($v['country_id']) ? 0 : $v['country_id'],
 					'name_zh' => $v['name_zh'],
 					'name_en' => $v['name_en'],
 					'national' => $v['national'],
@@ -111,9 +132,11 @@ class FootBallMatch extends FrontUserController
 					'manager_id' => $v['manager_id'],
 					'short_name_zh' => $v['short_name_zh'],
 					'short_name_en' => $v['short_name_en'],
+					'competition_id' => $v['competition_id'],
 					'foundation_time' => $v['foundation_time'],
 					'logo' => empty($v['logo']) ? '' : $v['logo'],
 					'website' => empty($v['website']) ? '' : $v['website'],
+					'country_id' => empty($v['country_id']) ? 0 : $v['country_id'],
 					'venue_id' => empty($v['venue_id']) ? 0 : intval($v['venue_id']),
 					'market_value' => empty($v['market_value']) ? '' : $v['market_value'],
 					'country_logo' => empty($v['country_logo']) ? '' : $v['country_logo'],
@@ -134,7 +157,7 @@ class FootBallMatch extends FrontUserController
 	}
 	
 	/**
-	 * 当天比赛 十分钟一次
+	 * 当天比赛 十分钟/次
 	 * @param int $updateYesterday
 	 * @throws
 	 */
@@ -152,6 +175,7 @@ class FootBallMatch extends FrontUserController
 		}
 		foreach ($list as $v) {
 			$id = intval($v['id']);
+			$competitionId = intval($v['competition_id']);
 			$match = $id > 0 ? AdminMatch::getInstance()->findOne(['match_id' => $id]) : null;
 			if (!empty($match)) {
 				AdminMatch::getInstance()->saveDataById($id, [
@@ -171,7 +195,7 @@ class FootBallMatch extends FrontUserController
 				$homeTeam = empty($v['home_team_id']) ? null : AdminTeam::getInstance()->findOne(['team_id' => $v['home_team_id']]);
 				$awayTeam = empty($v['away_team_id']) ? null : AdminTeam::getInstance()->findOne(['team_id' => $v['away_team_id']]);
 				if (empty($homeTeam) || empty($awayTeam)) continue;
-				$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $v['competition_id']]);
+				$competition = $competitionId < 1 ? null : AdminCompetition::getInstance()->findOne(['competition_id' => $v['competition_id']]);
 				AdminMatch::getInstance()->insert([
 					'match_id' => $id,
 					'note' => $v['note'],
@@ -182,14 +206,14 @@ class FootBallMatch extends FrontUserController
 					'match_time' => $v['match_time'],
 					'home_team_id' => $v['home_team_id'],
 					'away_team_id' => $v['away_team_id'],
-					'competition_id' => $v['competition_id'],
 					'home_position' => $v['home_position'],
 					'away_position' => $v['away_position'],
+					'competition_id' => $v['competition_id'],
 					'home_scores' => json_encode($v['home_scores']),
 					'away_scores' => json_encode($v['away_scores']),
 					'venue_id' => isset($v['venue_id']) ? $v['venue_id'] : 0,
 					'round' => isset($v['round']) ? json_encode($v['round']) : '',
-					'referee_id' => isset($v['referee_id']) ? $v['referee_id'] : 0,
+					'referee_id' => isset($v['referee_id']) ? intval($v['referee_id']) : 0,
 					'home_team_logo' => empty($homeTeam['logo']) ? '' : $homeTeam['logo'],
 					'away_team_logo' => empty($awayTeam['logo']) ? '' : $awayTeam['logo'],
 					'coverage' => isset($v['coverage']) ? json_encode($v['coverage']) : '',
@@ -1276,7 +1300,7 @@ class FootBallMatch extends FrontUserController
 	 */
 	public function updateMatchSeason1()
 	{
-		//        $season_id = Cache::get('update_season_id');
+		// $season_id = Cache::get('update_season_id');
 		$season_id = SeasonMatchList::getInstance()->max('season_id');
 		$select_season_id = isset($season_id) ? $season_id : 0;
 		$season = AdminSeason::getInstance()->field(['season_id'])->where('season_id', $select_season_id, '>')->limit(2000)->all();
@@ -1410,9 +1434,9 @@ class FootBallMatch extends FrontUserController
 					'home_scores' => json_encode($vv['home_scores']),
 					'away_scores' => json_encode($vv['away_scores']),
 					'competition_color' => $competition->primary_color,
-					'venue_id' => isset($vv['venue_id']) ? $vv['venue_id'] : 0,
 					'round' => isset($vv['round']) ? json_encode($vv['round']) : '',
-					'referee_id' => isset($vv['referee_id']) ? $vv['referee_id'] : 0,
+					'venue_id' => isset($vv['venue_id']) ? intval($vv['venue_id']) : 0,
+					'referee_id' => isset($vv['referee_id']) ? intval($vv['referee_id']) : 0,
 					'coverage' => isset($vv['coverage']) ? json_encode($vv['coverage']) : '',
 					'environment' => isset($vv['environment']) ? json_encode($vv['environment']) : '',
 					'home_team_name' => $homeTeam->short_name_zh ? $homeTeam->short_name_zh : $homeTeam->name_zh,
