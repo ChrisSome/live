@@ -530,12 +530,9 @@ class FootballApi extends FrontUserController
         }
         $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
         $competition_id = $return['competition_id'];
-        $type = 0;
+        $return['competition_type'] = 0;
         if ($competition = AdminCompetition::create()->where('competition_id', $competition_id)->get()) {
-            $type = $competition->type;
-        }
-        if ($competition = AdminCompetition::getInstance()->field(['id', 'competition_id', 'type'])->where('competition_id', $return['competition_id'])->get()) {
-            $return['competition_type'] = $type;
+            $return['competition_type'] = $competition->type;
         }
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
