@@ -219,7 +219,7 @@ class  FrontService {
                 'id' => $id,
                 'information_id' => $informationId,
                 'information_title' => empty($information['title']) ? '' : $information['title'],
-                'content' => base64_decode($v['content']),
+                'content' => $v['content'],
                 'parent_id' => $v['parent_id'],
                 'created_at' => $v['created_at'],
                 'respon_number' => $v['respon_number'],

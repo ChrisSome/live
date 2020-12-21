@@ -421,7 +421,6 @@ class InformationApi extends FrontUserController
         Cache::set('user_comment_information_' . $this->auth['id'], 1, 5);
         $data['id'] = $rs;
 
-
         if ($parent_id) {
             $message_data = [
                 'status' => AdminMessage::STATUS_UNREAD,
