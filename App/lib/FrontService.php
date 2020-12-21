@@ -604,7 +604,8 @@ class  FrontService {
             $item['is_interest'] = $is_interest;
             $item['neutral'] = $match->neutral;  //1中立 0否
             $item['matching_time'] = AppFunc::getPlayingTime($match->match_id);  //比赛进行时间
-            $item['matching_info'] = json_decode($match_data_info, true);
+//            $item['matching_info'] = $match_data_info ? json_decode($match_data_info, true) : [];
+            $item['matching_info'] = [];
             $item['has_living'] = $has_living;
             $item['living_url'] = $living_url;
             $item['note'] = $match->note;  //备注   欧青连八分之一决赛

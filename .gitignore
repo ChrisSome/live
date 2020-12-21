@@ -2,7 +2,7 @@
 
 vendor
 /Log
-
+/test.php
 /dev.php
 App/Config/Database.php
 /mysql/data
