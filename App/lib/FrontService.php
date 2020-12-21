@@ -584,7 +584,6 @@ class  FrontService {
             $has_living = 0;
             $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
 
-            $match_data_info = Cache::get('match_data_info' . $match->match_id);
             $round = json_decode($match->round, true);
             $item['home_team_name'] = $match->home_team_name;
             $item['home_team_logo'] = $match->home_team_logo;
@@ -604,8 +603,7 @@ class  FrontService {
             $item['is_interest'] = $is_interest;
             $item['neutral'] = $match->neutral;  //1中立 0否
             $item['matching_time'] = AppFunc::getPlayingTime($match->match_id);  //比赛进行时间
-//            $item['matching_info'] = $match_data_info ? json_decode($match_data_info, true) : [];
-            $item['matching_info'] = null;
+            $item['matching_info'] = Cache::get('match_data_info' . $match->match_id);
             $item['has_living'] = $has_living;
             $item['living_url'] = $living_url;
             $item['note'] = $match->note;  //备注   欧青连八分之一决赛
