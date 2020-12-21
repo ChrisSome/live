@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\HttpController\Match;
 
 use App\Base\FrontUserController;
@@ -107,12 +108,12 @@ class FootBallMatch extends FrontUserController
 	protected $history = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s'; //历史比赛数据
 	protected $season_all_table_detail = 'https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s'; //获取赛季积分榜数据-全量
 	protected $uriPlayerOne = '/api/v4/football/player/list?user=%s&secret=%s&id=%s';  //球员
-
+	
 	/**
 	 * 更新球队列表 1day/次
 	 * @throws
 	 */
-	function teamList()
+	function getTeamList()
 	{
 		while (true) {
 			$timestamp = AdminTeam::getInstance()->max('updated_at');
@@ -543,7 +544,7 @@ class FootBallMatch extends FrontUserController
 	}
 	
 	/**
-	 * 推送
+	 * 定时推送脚本 30秒/次  需要重点维护
 	 * @throws
 	 */
 	public function matchTlive()
@@ -923,7 +924,9 @@ class FootBallMatch extends FrontUserController
 	}
 	
 	/**
-	 * 更新阶段列表  1day/次
+	 * 阶段列表 1day/次
+	 * 注意：新增赛季跟新增阶段的时候 都需要同步赛季比赛列表
+	 * 因为赛季中比赛并非事先完全确定 比如1/8决赛，需要临时更新
 	 * @throws
 	 */
 	public function stageList()
@@ -937,14 +940,15 @@ class FootBallMatch extends FrontUserController
 			if (empty($list)) break;
 			foreach ($list as $v) {
 				$id = intval($v['id']);
+				$seasonId = intval($v['season_id']);
 				$data = [
 					'stage_id' => $id,
 					'mode' => $v['mode'],
 					'order' => $v['order'],
+					'season_id' => $seasonId,
 					'name_zh' => $v['name_zh'],
 					'name_en' => $v['name_en'],
 					'name_zht' => $v['name_zht'],
-					'season_id' => $v['season_id'],
 					'updated_at' => $v['updated_at'],
 					'group_count' => $v['group_count'],
 					'round_count' => $v['round_count'],
@@ -952,6 +956,54 @@ class FootBallMatch extends FrontUserController
 				$tmp = $id < 1 ? null : AdminStageList::getInstance()->findOne(['stage_id' => $id]);
 				if (empty($tmp)) {
 					AdminStageList::getInstance()->insert($data);
+					
+					//新增赛季比赛
+					$url = sprintf('https://open.sportnanoapi.com/api/v4/football/match/season?user=%s&secret=%s&id=%s', $this->user, $this->secret, $seasonId);
+					$tmp = Tool::getInstance()->postApi($url);
+					$tmp = empty($tmp) ? null : json_decode($tmp, true);
+					$items = empty($tmp['results']) ? null : $tmp['results'];
+					if (empty($items)) continue;
+					foreach ($items as $vv) {
+						$id = intval($vv['id']);
+						$tmp = $id < 1 ? null : SeasonMatchList::getInstance()->findOne(['match_id' => $id]);
+						if (!empty($tmp)) continue;
+						$homeTeamId = intval($vv['home_team_id']);
+						$awayTeamId = intval($vv['away_team_id']);
+						$competitionId = intval($vv['competition_id']);
+						$homeTeam = AdminTeam::getInstance()->findOne(['team_id', $homeTeamId]);
+						$homeTeamName = empty($homeTeam) ? '' : (empty($homeTeam['short_name_zh']) ? $homeTeam['name_zh'] : $homeTeam['short_name_zh']);
+						$awayTeam = AdminTeam::getInstance()->findOne(['team_id' => $awayTeamId]);
+						$awayTeamName = empty($awayTeam) ? '' : (empty($awayTeam['short_name_zh']) ? $awayTeam['name_zh'] : $awayTeam['short_name_zh']);
+						$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $competitionId]);
+						$competitionName = empty($competition) ? '' : (empty($competition['short_name_zh']) ? $competition['name_zh'] : $competition['short_name_zh']);
+						SeasonMatchList::getInstance()->insert([
+							'match_id' => $id,
+							'note' => $vv['note'],
+							'neutral' => $vv['neutral'],
+							'home_team_id' => $homeTeamId,
+							'away_team_id' => $awayTeamId,
+							'season_id' => $vv['season_id'],
+							'status_id' => $vv['status_id'],
+							'match_time' => $vv['match_time'],
+							'updated_at' => $vv['updated_at'],
+							'home_team_name' => $homeTeamName,
+							'away_team_name' => $awayTeamName,
+							'competition_id' => $competitionId,
+							'competition_name' => $competitionName,
+							'home_position' => $vv['home_position'],
+							'away_position' => $vv['away_position'],
+							'home_scores' => json_encode($vv['home_scores']),
+							'away_scores' => json_encode($vv['away_scores']),
+							'venue_id' => isset($vv['venue_id']) ? $vv['venue_id'] : 0,
+							'round' => isset($vv['round']) ? json_encode($vv['round']) : '',
+							'referee_id' => isset($vv['referee_id']) ? $vv['referee_id'] : 0,
+							'home_team_logo' => empty($homeTeam['logo']) ? '' : $homeTeam['logo'],
+							'away_team_logo' => empty($awayTeam['logo']) ? '' : $awayTeam['logo'],
+							'coverage' => isset($vv['coverage']) ? json_encode($data['coverage']) : '',
+							'environment' => isset($vv['environment']) ? json_encode($vv['environment']) : '',
+							'competition_color' => empty($competition['primary_color']) ? '' : $competition['primary_color'],
+						]);
+					}
 				} else {
 					AdminStageList::getInstance()->update($data, ['stage_id' => $id]);
 				}
@@ -1136,7 +1188,7 @@ class FootBallMatch extends FrontUserController
 	}
 	
 	/**
-	 * 更新赛季比赛列表 1day/次
+	 * 更新赛季比赛列表 1day/次 [已废]
 	 * @throws
 	 */
 	public function updateMatchSeason()
@@ -1199,7 +1251,7 @@ class FootBallMatch extends FrontUserController
 	}
 	
 	/**
-	 * 获取赛季球队球员统计详情-全量 1week/次
+	 * 获取赛季球队球员统计详情-全量 1week/次 [已废]
 	 * @throws
 	 */
 	public function updateSeasonTeamPlayer()
@@ -1296,7 +1348,7 @@ class FootBallMatch extends FrontUserController
 	}
 	
 	/**
-	 * todo ... [更新赛季比赛列表 1day/次]
+	 * todo ... [更新赛季比赛列表 1day/次] [已废]
 	 */
 	public function updateMatchSeason1()
 	{

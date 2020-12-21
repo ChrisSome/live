@@ -6,7 +6,7 @@ use EasySwoole\ORM\AbstractModel;
 
 abstract class BaseModel extends AbstractModel
 {
-	private static $instance = [];
+	// private static $instance = [];
 	
 	/**
 	 * @param mixed ...$args
@@ -15,11 +15,12 @@ abstract class BaseModel extends AbstractModel
 	 */
 	static function getInstance(...$args): BaseModel
 	{
-		$obj_name = static::class;
-		if (!isset(self::$instance[$obj_name])) {
-			self::$instance[$obj_name] = new static(...$args);
-		}
-		return self::$instance[$obj_name];
+		// $obj_name = static::class;
+		// if (!isset(self::$instance[$obj_name])) {
+		// 	self::$instance[$obj_name] = new static(...$args);
+		// }
+		// return self::$instance[$obj_name];
+		return self::create();
 	}
 	
 	/**

@@ -150,26 +150,22 @@ class UserCenter extends FrontUserController
 	
 	/**
 	 * 草稿箱列表
-	 * @return bool
+	 * @throws
 	 */
 	public function drafts()
 	{
 		$page = $this->params['page'] ?: 1;
 		$size = $this->params['size'] ?: 20;
-		
-		$model = AdminUserPost::getInstance()->where('status', AdminUserPost::NEW_STATUS_SAVE)->where('user_id', $this->auth['id'])->getLimit($page, $size);
-		
-		$list = $model->all(null);
-		$count = $model->lastQueryResult()->getTotalCount();
-		$returnData = ['data' => $list, 'count' => $count];
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
+		$authId = intval($this->auth['id']);
+		$where = ['status' => AdminUserPost::NEW_STATUS_SAVE, 'user_id' => $authId];
+		[$list, $count] = AdminUserPost::getInstance()->findAll($where, '*', 'created_at,desc', true, $page, $size);
+		$list = empty($list) ? [] : FrontService::handPosts($list, $authId);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 	}
 	
 	/**
 	 * 用户资料编辑
-	 * @return bool
-	 * @throws \EasySwoole\ORM\Exception\Exception
-	 * @throws \Throwable
+	 * @throws
 	 */
 	public function editUser()
 	{
