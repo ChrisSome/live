@@ -235,6 +235,7 @@ class FootballApi extends FrontUserController
      */
     public function matchResult()
     {
+
         if (!isset($this->params['time'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
         }
@@ -252,8 +253,10 @@ class FootballApi extends FrontUserController
             ->where('competition_id', $selectCompetitionIdArr, 'in')
             ->where('is_delete', 0)
             ->order('match_time', 'DESC')->getLimit($page, $size);
+        $list = $matches->all();
         $total = $matches->lastQueryResult()->getTotalCount();
-        $formatMatch = FrontService::formatMatchThree($matches, $uid, $interestMatchArr);
+
+        $formatMatch = FrontService::formatMatchThree($list, $uid, $interestMatchArr);
         $return = ['list' => $formatMatch, 'count' => $total];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
