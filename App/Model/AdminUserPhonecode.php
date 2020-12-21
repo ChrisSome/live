@@ -30,7 +30,7 @@ class AdminUserPhonecode extends BaseModel
 	public function getLastCodeByMobile($mobile)
 	{
 		$tmp = $this->where('mobile', $mobile)->where('status', self::STATUS_UNUSED)
-			->where('created_at', time() - 10 * 60, '>')->order('created_at', 'DESC')->get();
+			->where('created_at', time() - 10 * 60, '>')->order('created_at', 'desc')->get();
 		return empty($tmp) ? null : $tmp;
 	}
 }

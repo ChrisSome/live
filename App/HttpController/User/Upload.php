@@ -2,88 +2,73 @@
 
 namespace App\HttpController\User;
 
-use App\Base\FrontUserController;
-use App\lib\ClassArr;
 use App\lib\Utils;
-use App\Utility\Message\Status;
-use EasySwoole\EasySwoole\Config;
+use App\lib\ClassArr;
 use App\lib\OssService;
-use App\Utility\Log\Log;
+use App\Utility\Message\Status;
+use App\Base\FrontUserController;
 
 class Upload extends FrontUserController
 {
-	public $needCheckToken = true;
-	public $isCheckSign = false;
+	protected $isCheckSign = false;
+	protected $needCheckToken = true;
 	
-	function index()
+	/**
+	 * 普通上传
+	 * @throws
+	 */
+	public function index()
 	{
-		// TODO: Implement index() method.
+		// 参数校验
 		$request = $this->request();
+		// 图片文件
 		$file = $request->getUploadedFile('file');
-		$sUploadType = $request->getRequestParam('type');
-		if (!$sUploadType || !in_array($sUploadType, ['avatar', 'system', 'option', 'other'])) {
+		if (empty($file)) $this->output(Status::CODE_ERR, '上传图片为空');
+		// 上传类型
+		$uploadType = $request->getRequestParam('type');
+		if (empty($uploadType) || !in_array($uploadType, ['avatar', 'system', 'option', 'other'])) {
 			$this->output(Status::CODE_ERR, '未知的上传类型');
 		}
-		if (!$file) {
-			$this->output(Status::CODE_ERR, '上传图片为空');
-		}
+		// 文件格式校验
 		$isImage = getimagesize($file->getTempName());
-		if ($isImage) {
-			$type = 'image';
-		}
-		
-		if (empty($type)) {
-			$this->output(400, '上传文件不合法');
-		}
+		if (empty($isImage)) $this->output(400, '上传文件不合法');
 		try {
 			$classObj = new ClassArr();
 			$classStats = $classObj->uploadClassStat();
-			$uploadObj = $classObj->initClass($type, $classStats, [$request, $type]);
-			$uploadObj->upload_type = $sUploadType;
+			$uploadObj = $classObj->initClass('image', $classStats, [$request, 'image']);
+			$uploadObj->upload_type = $uploadType;
 			$file = $uploadObj->upload();
 		} catch (\Exception $e) {
 			$this->output(400, $e->getMessage(), []);
 		}
-		if (empty($file)) {
-			$this->output(400, "上传失败", []);
-		}
-		
-		$data = [
-			'url' => $file,
-		];
-		//return $this->writeJson(200, "OK", $data);
-		$data = ['code' => Status::CODE_OK, 'data' => [
-			'src' => $file,
-			'title' => '上传图片',
-		]];
-		$this->output(200, '', $data, true);
+		if (empty($file)) $this->output(400, "上传失败", []);
+		// 输出数据
+		$result = ['code' => Status::CODE_OK, 'data' => ['src' => $file, 'title' => '上传图片']];
+		$this->output(200, '', $result, true);
 	}
 	
+	/**
+	 * OSS上传
+	 * @throws
+	 */
 	public function ossUpload()
 	{
 		$request = $this->request();
+		// 图片文件
 		$file = $request->getUploadedFile('file');
-		$tempFile = $file->getTempName();
-		
-		$sUploadType = $request->getRequestParam('type');
-		if (!$sUploadType || !in_array($sUploadType, ['avatar', 'system', 'option', 'other'])) {
+		// 参数校验
+		$uploadType = $request->getRequestParam('type');
+		if (empty($uploadType) || !in_array($uploadType, ['avatar', 'system', 'option', 'other'])) {
 			$this->output(Status::CODE_ERR, '未知的上传类型');
 		}
-		
-		$fileName = $file->getClientFileName();
-		
-		$extension = pathinfo($fileName)['extension'];
-		$baseName = Utils::getFileKey($fileName) . '.' . $extension;
-		
-		$ossClient = new OssService($sUploadType);
-		$res = $ossClient->uploadFile($baseName, $tempFile);
-		
-		if ($res['status'] == Status::CODE_OK) {
-			$returnData['imgUrl'] = $res['imgUrl'];
-			
-			$this->output(Status::CODE_OK, '', $returnData);
-		} else {
-			$this->output(Status::CODE_ERR, $res['msg']);
-		}
+		$filename = $file->getClientFileName();
+		$suffix = pathinfo($filename)['extension'];
+		$baseName = Utils::getFileKey($filename) . '.' . $suffix;
+		// 上传文件
+		$client = new OssService($uploadType);
+		$res = $client->uploadFile($baseName, $file->getTempName());
+		if ($res['status'] != Status::CODE_OK) $this->output(Status::CODE_ERR, $res['msg']);
+		// 上传成功
+		$this->output(Status::CODE_OK, '', ['imgUrl' => $res['imgUrl']]);
 	}
 }

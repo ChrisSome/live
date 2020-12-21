@@ -14,6 +14,7 @@ use easySwoole\Cache\Cache;
 use App\Model\AdminUserPost;
 use App\Model\AdminSensitive;
 use App\Task\SerialPointTask;
+use App\Model\AdminPlayerStat;
 use App\Model\AdminInformation;
 use App\Model\AdminPostComment;
 use App\Model\AdminSysSettings;
@@ -34,18 +35,18 @@ class Community extends FrontUserController
 	protected $needCheckToken = false;
 	
 	/**
-	 * 社区首页
+	 * 社区首页内容 todo ...
 	 * @throws
 	 */
-	public function getContent(): bool
+	public function getContent()
 	{
 		// 参数过滤
 		$params = $this->params;
 		$categoryId = empty($params['category_id']) || intval($params['category_id']) < 1 ? 1 : intval($params['category_id']);
 		$orderType = empty($params['order_type']) || intval($params['order_type']) < 1 ? 1 : intval($params['order_type']);
 		$isRefine = empty($params['is_refine']) || intval($params['is_refine']) < 1 ? false : true;
-		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
-		$size = empty($params['size']) || intval($params['size']) < 1 ? 15 : intval($params['size']);
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 15 : $params['size'];
 		// 当前登录用户ID
 		$authId = empty($this->auth['id']) || intval($this->auth['id']) < 1 ? 0 : intval($this->auth['id']);
 		// 状态条件
@@ -100,7 +101,7 @@ class Community extends FrontUserController
 	 * 前端模糊搜索
 	 * @throws
 	 */
-	public function getContentByKeyWord(): bool
+	public function getContentByKeyWord()
 	{
 		$params = $this->params;
 		// 关键字校验
@@ -179,45 +180,34 @@ class Community extends FrontUserController
 	 * 我关注的人的帖子列表
 	 * @throws
 	 */
-	public function myFollowUserPosts(): bool
+	public function myFollowUserPosts()
 	{
-		$params = $this->params;
+		// 当前登录用户ID
 		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
-		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
-		$size = empty($params['size']) || intval($params['size']) < 1 ? 10 : intval($params['size']);
+		$params = $this->params;
+		// 分页参数
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
 		// 获取用户编号清单
 		$userIds = AppFunc::getUserFollowing($authId);
 		$userIds = empty($userIds) ? [] : array_unique(array_filter($userIds));
-		if (empty($userIds)) {
-			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => [], 'count' => 0]);
-		}
-		$userIds = array_map(function ($v) {
-			return intval($v);
-		}, $userIds);
-		$model = AdminUserPost::getInstance()
-			->field(['id', 'cat_id', 'user_id', 'title', 'imgs', 'created_at', 'hit', 'fabolus_number', 'content', 'respon_number', 'collect_number'])
-			->where('status', AdminUserPost::STATUS_EXAMINE_SUCCESS)->where('user_id', $userIds, 'in')
-			->getLimit($page, $size);
-		$list = $model->all();
-		// 输出数据
-		$result = [
-			'count' => $model->lastQueryResult()->getTotalCount(),
-			'data' => FrontService::handPosts($list, $authId),
-		];
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+		if (empty($userIds)) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => [], 'count' => 0]);
+		// 获取分页数据
+		$where = ['status' => AdminUserPost::STATUS_EXAMINE_SUCCESS, 'user_id' => [$userIds, 'in']];
+		$fields = 'id,cat_id,user_id,title,imgs,created_at,hit,fabolus_number,content,respon_number,collect_number';
+		[$list, $count] = AdminUserPost::getInstance()->findAll($where, $fields, 'created_at,desc', true, $page, $size);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 	}
 	
 	/**
 	 * 发帖
 	 * @throws
 	 */
-	public function postAdd(): bool
+	public function postAdd()
 	{
 		// 登录校验
 		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
-		if ($authId < 1) {
-			$this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
-		}
+		if ($authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 		// 是否频繁操作
 		if (Cache::get('user_publish_post_' . $authId)) {
 			$this->output(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
@@ -256,7 +246,7 @@ class Community extends FrontUserController
 			// 默认为已发布状态, 若包含敏感词,存入草稿箱
 			$data['status'] = AdminUserPost::NEW_STATUS_NORMAL;
 			// 敏感词清单
-			$words = AdminSensitive::getInstance()->where('status', AdminSensitive::STATUS_NORMAL)->field(['word'])->all();
+			$words = AdminSensitive::getInstance()->findAll(['status' => AdminSensitive::STATUS_NORMAL], 'word');
 			if (!empty($words)) {
 				foreach ($words as $v) {
 					if (empty($v['word'])) continue;
@@ -281,13 +271,11 @@ class Community extends FrontUserController
 					}
 				}
 			}
-			if ($postId > 0) AdminUserPost::getInstance()->update($data, $postId); // 更新贴子
+			if ($postId > 0) AdminUserPost::getInstance()->saveDataById($postId, $data); // 更新贴子
 			if ($postId < 1) $postId = AdminUserPost::getInstance()->insert($data); // 插入数据
-			$data['task_id'] = 2;
-			$data['user_id'] = $authId;
-			TaskManager::getInstance()->async(new SerialPointTask($data));
+			TaskManager::getInstance()->async(new SerialPointTask(['task_id' => 2, 'user_id' => $authId]));
 			// 封装帖子数据
-			$tmp = AdminUserPost::getInstance()->where('id', $postId)->all();
+			$tmp = AdminUserPost::getInstance()->findAll($postId);
 			$post = FrontService::handPosts($tmp, $authId)[0];
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $post);
 		}
@@ -297,108 +285,17 @@ class Community extends FrontUserController
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		}
 		// 更新
-		if ($postId > 0 && AdminUserPost::getInstance()->update($data, $postId)) {
+		if ($postId > 0 && AdminUserPost::getInstance()->saveDataById($postId, $data)) {
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		}
 		$this->output(Status::CODE_ADD_POST, Status::$msg[Status::CODE_ADD_POST]);
 	}
 	
 	/**
-	 * 帖子详情
-	 * @throws
-	 */
-	public function detail(): bool
-	{
-		// 参数校验
-		$params = $this->params;
-		$postId = empty($params['post_id']) || intval($params['post_id']) < 1 ? 0 : intval($params['post_id']);
-		if ($postId < 1) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		// 获取帖子信息
-		$post = AdminUserPost::getInstance()->get($postId);
-		if (empty($post)) {
-			$this->output(Status::CODE_ERR, '对应帖子不存在');
-		}
-		// 若是其他人的帖子,增加点击率
-		$authId = empty($this->auth['id']) ? 0 : $this->auth['id'];
-		if ($post['user_id'] != $authId) {
-			$post->update(['hit' => QueryBuilder::inc()], $postId);
-		}
-		// 封装帖子信息
-		$post = FrontService::handPosts([$post], $authId)[0];
-		// 获取最新评论分页数据
-		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
-		$size = empty($params['size']) || intval($params['size']) < 1 ? 10 : intval($params['size']);
-		$model = AdminPostComment::getInstance()->where('post_id', $postId)
-			->where('status', [AdminPostComment::STATUS_NORMAL, AdminPostComment::STATUS_REPORTED], 'in')
-			->where('top_comment_id', 0);
-		// 只要我的贴子
-		$onlyAuthor = empty($params['only_author']) || intval($params['only_author']) < 1 ? false : true;
-		if ($onlyAuthor) $model = $model->where('user_id', $post['user_id']);
-		// 排序类型 1热度/回复数 2最新回复 3最早回复
-		$orderType = empty($params['order_type']) || intval($params['order_type']) < 1 ? 1 : intval($params['order_type']);
-		if ($orderType > 3 || $orderType < 1) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		if ($orderType == 1) $model = $model->order('fabolus_number', 'DESC');
-		$model = $model->order('created_at', $orderType == 2 ? 'DESC' : 'ASC')
-			->limit(($page - 1) * $size, $size)->withTotalCount();
-		$list = $model->all();
-		// 输出数据
-		$result = ['count' => $model->lastQueryResult()->getTotalCount(), 'basic' => $post, 'comment' => []];
-		if (!empty($list)) {
-			$commentIdsStr = join(',', array_column($list, 'id'));
-			$userIdsStr = join(',', array_unique(array_filter(array_column($list, 'user_id'))));
-			// 用户数据映射
-			$userMapper = empty($userIdsStr) ? [] : Utils::queryHandler(AdminUser::getInstance(),
-				'id in(' . $userIdsStr . ')', null,
-				'id,nickname,photo,is_offical,level', false, null, 'id,*,1');
-			// 点赞数据映射
-			$operateMapper = Utils::queryHandler(AdminUserOperate::getInstance(),
-				'item_type=2 and item_id in(' . $commentIdsStr . ') and type=1 and user_id=? and is_cancel=0', $authId,
-				'item_id', false, null, 'item_id,item_id,1');
-			// 回复数据映射
-			$childGroupMapper = [];
-			$statusStr = AdminPostComment::STATUS_NORMAL . ',' . AdminPostComment::STATUS_REPORTED;
-			$subSql = 'select count(*)+1 from admin_user_post_comments x where x.top_comment_id=a.top_comment_id and x.post_id=? and x.status in(' . $statusStr . ') having (count(*)+1)<=3';
-			$tmp = Utils::queryHandler(AdminPostComment::getInstance(),
-				'post_id=? and status in(' . $statusStr . ') and top_comment_id in(' . $commentIdsStr . ') and exists(' . $subSql . ')',
-				[$postId, $postId],
-				'*', false, 'a.created_at desc');
-			foreach ($tmp as $v) {
-				$id = intval($v['top_comment_id']);
-				$childGroupMapper[$id][] = $v;
-			}
-			// 填充列表数据
-			foreach ($list as $v) {
-				$id = intval($v['id']);
-				$userId = intval($v['user_id']);
-				$children = empty($childGroupMapper[$id]) ? [] : $childGroupMapper[$id];
-				$childrenCount = empty($childCountMapper[$id]) ? [] : $childCountMapper[$id];
-				$userInfo = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
-				$result['comment'][] = [
-					'id' => $id,
-					'user_info' => $userInfo,
-					'created_at' => $v['created_at'],
-					'respon_number' => $v['respon_number'],
-					'child_comment_count' => $childrenCount,
-					'fabolus_number' => $v['fabolus_number'],
-					'content' => base64_decode($v['content']),
-					'is_follow' => AppFunc::isFollow($authId, $userId),
-					'child_comment_list' => FrontService::handComments($children, $authId),
-					'is_fabolus' => $authId > 0 ? !empty($operateMapper[$id]) : false,
-				];
-			}
-		}
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
-	}
-	
-	/**
 	 * 热搜
 	 * @throws
 	 */
-	public function hotSearch(): bool
+	public function hotSearch()
 	{
 		$keys = [AdminSysSettings::SETTING_HOT_SEARCH, AdminSysSettings::SETTING_HOT_SEARCH_CONTENT];
 		$tmp = AdminSysSettings::getInstance()->field('sys_key,sys_value')
@@ -414,30 +311,115 @@ class Community extends FrontUserController
 	}
 	
 	/**
-	 * 帖子二级评论列表
+	 * 帖子详情
 	 * @throws
 	 */
-	public function getAllChildComments(): bool
+	public function detail()
 	{
 		// 参数校验
 		$params = $this->params;
-		$commentId = empty($params['comment_id']) || intval($params['comment_id']) < 1 ? 0 : intval($params['comment_id']);
-		if ($commentId < 1) {
+		$postId = empty($params['post_id']) || intval($params['post_id']) < 1 ? 0 : intval($params['post_id']);
+		if ($postId < 1) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		}
+		// 排序类型 1热度/回复数 2最新回复 3最早回复
+		$orderType = empty($params['order_type']) || intval($params['order_type']) < 1 ? 1 : intval($params['order_type']);
+		if ($orderType > 3 || $orderType < 1) {
+			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		}
+		// 获取帖子信息
+		$post = AdminUserPost::getInstance()->findAll($postId);
+		if (empty($post)) $this->output(Status::CODE_ERR, '对应帖子不存在');
+		// 若是其他人的帖子,增加点击率
+		$authId = empty($this->auth['id']) ? 0 : $this->auth['id'];
+		if ($post['user_id'] != $authId) AdminUserPost::getInstance()->saveDataById($postId, ['hit' => QueryBuilder::inc()]);
+		// 封装帖子信息
+		$post = FrontService::handPosts([$post], $authId)[0];
+		// 获取最新评论分页数据
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
+		$where = [
+			'post_id' => $postId,
+			'top_comment_id' => 0,
+			'status' => [[AdminPostComment::STATUS_NORMAL, AdminPostComment::STATUS_REPORTED], 'in'],
+		];
+		// 只要我的贴子
+		$onlyAuthor = empty($params['only_author']) || intval($params['only_author']) < 1 ? false : true;
+		if ($onlyAuthor) $where['user_id'] = intval($post['user_id']);
+		// 获取评论清单
+		$order = [['created_at', $orderType == 2 ? 'desc' : 'asc']];
+		if ($orderType == 1) array_unshift($order, ['fabolus_number', 'desc']);
+		[$list, $count] = AdminPostComment::getInstance()->findAll($where, '*', $order, true, $page, $size);
+		// 输出数据
+		$result = ['count' => $count, 'basic' => $post, 'comment' => []];
+		if (empty($list)) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+		// 填充清单
+		$commentIdsStr = join(',', array_column($list, 'id'));
+		$userIdsStr = join(',', array_unique(array_filter(array_column($list, 'user_id'))));
+		// 用户数据映射
+		$userMapper = empty($userIdsStr) ? [] : Utils::queryHandler(AdminUser::getInstance(),
+			'id in(' . $userIdsStr . ')', null,
+			'id,nickname,photo,is_offical,level', false, null, 'id,*,1');
+		// 点赞数据映射
+		$operateMapper = Utils::queryHandler(AdminUserOperate::getInstance(),
+			'item_type=2 and item_id in(' . $commentIdsStr . ') and type=1 and user_id=? and is_cancel=0', $authId,
+			'item_id', false, null, 'item_id,item_id,1');
+		// 回复数据映射
+		$childGroupMapper = [];
+		$statusStr = AdminPostComment::STATUS_NORMAL . ',' . AdminPostComment::STATUS_REPORTED;
+		$subSql = 'select count(*)+1 from admin_user_post_comments x where x.top_comment_id=a.top_comment_id and x.post_id=? and x.status in(' . $statusStr . ') having (count(*)+1)<=3';
+		$tmp = Utils::queryHandler(AdminPostComment::getInstance(),
+			'post_id=? and status in(' . $statusStr . ') and top_comment_id in(' . $commentIdsStr . ') and exists(' . $subSql . ')',
+			[$postId, $postId],
+			'*', false, 'a.created_at desc');
+		foreach ($tmp as $v) {
+			$id = intval($v['top_comment_id']);
+			$childGroupMapper[$id][] = $v;
+		}
+		// 填充列表数据
+		foreach ($list as $v) {
+			$id = intval($v['id']);
+			$userId = intval($v['user_id']);
+			$children = empty($childGroupMapper[$id]) ? [] : $childGroupMapper[$id];
+			$childrenCount = empty($childCountMapper[$id]) ? [] : $childCountMapper[$id];
+			$userInfo = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
+			$result['comment'][] = [
+				'id' => $id,
+				'user_info' => $userInfo,
+				'created_at' => $v['created_at'],
+				'respon_number' => $v['respon_number'],
+				'child_comment_count' => $childrenCount,
+				'fabolus_number' => $v['fabolus_number'],
+				'content' => base64_decode($v['content']),
+				'is_follow' => AppFunc::isFollow($authId, $userId),
+				'child_comment_list' => FrontService::handComments($children, $authId),
+				'is_fabolus' => $authId > 0 ? !empty($operateMapper[$id]) : false,
+			];
+		}
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+	}
+	
+	/**
+	 * 帖子二级评论列表
+	 * @throws
+	 */
+	public function getAllChildComments()
+	{
+		// 当前登录用户ID
+		$authId = empty($this->auth['id']) ? 0 : $this->auth['id'];
+		// 参数校验
+		$params = $this->params;
+		$commentId = empty($params['comment_id']) || intval($params['comment_id']) < 1 ? 0 : intval($params['comment_id']);
+		if ($commentId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取评论信息
 		$comment = AdminPostComment::getInstance()->findOne($commentId);
-		if (empty($comment)) {
-			$this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-		}
+		if (empty($comment)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		// 获取一级评论信息
-		$authId = empty($this->auth['id']) ? 0 : $this->auth['id'];
 		$topComment = $comment;
 		$topCommentId = empty($comment['top_comment_id']) || $comment['top_comment_id'] < 1 ? 0 : $comment['top_comment_id'];
 		if ($topCommentId > 0) {
-			$topComment = AdminPostComment::getInstance()
-				->where('id', $topCommentId)
-				->where('status', AdminUserPost::NEW_STATUS_DELETED, '<>')->get();
+			$where = ['id' => $topCommentId, 'status' => [AdminUserPost::NEW_STATUS_DELETED, '<>']];
+			$topComment = AdminPostComment::getInstance()->findOne($where);
 		}
 		// 输出数据
 		$result = ['fatherComment' => [], 'childComment' => [], 'count' => 0];
@@ -445,13 +427,12 @@ class Community extends FrontUserController
 		$tmp = empty($topComment) ? [] : FrontService::handComments([$topComment], $authId);
 		if (!empty($tmp)) $result['fatherComment'] = $tmp[0];
 		// 封装二级评论信息
-		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
-		$size = empty($params['size']) || intval($params['size']) < 1 ? 10 : intval($params['size']);
-		$model = AdminPostComment::getInstance()->where('top_comment_id', $topCommentId)
-			->where('status', AdminUserPost::STATUS_DEL, '<>')->getAll($page, $size);
-		$list = $model->all();
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
+		$where = ['top_comment_id' => $topCommentId, 'status' => [AdminUserPost::STATUS_DEL, '<>']];
+		[$list, $result['count']] = AdminPostComment::getInstance()
+			->findAll($where, '*', 'created_at,desc', true, $page, $size);
 		if (!empty($list)) $result['childComment'] = FrontService::handComments($list, $authId);
-		$result['count'] = $model->lastQueryResult()->getTotalCount();
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
@@ -459,7 +440,7 @@ class Community extends FrontUserController
 	 * 1发帖 2回帖 3资讯评论 列表
 	 * @throws
 	 */
-	public function userFirstPage(): bool
+	public function userFirstPage()
 	{
 		$params = $this->params;
 		// 用户ID校验
@@ -469,38 +450,26 @@ class Community extends FrontUserController
 		$isFollow = AppFunc::isFollow($authId, $userId);
 		// 输出数据
 		$result = ['is_me' => $authId == $userId, 'is_follow' => $isFollow, 'list' => ['data' => [], 'count' => 0]];
-		// 获取数据清单
-		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
-		$size = empty($params['size']) || intval($params['size']) < 1 ? 10 : intval($params['size']);
+		// 分页参数
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
 		// 类型校验 1发帖 2回帖 3资讯评论
 		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
 		switch ($type) {
 			case 1: // 发帖
-				$model = AdminUserPost::getInstance()->where('user_id', $userId)
-					->where('status', AdminUserPost::SHOW_IN_FRONT, 'in')->getLimit($page, $size);
-				$list = $model->all();
-				$result['list'] = [
-					'count' => $model->lastQueryResult()->getTotalCount(),
-					'data' => FrontService::handPosts($list, $authId),
-				];
+				$where = ['user_id' => $userId, 'status' => [AdminUserPost::SHOW_IN_FRONT, 'in']];
+				[$list, $count] = AdminUserPost::getInstance()->findAll($where, '*', 'created_at,desc', true, $page, $size);
+				$result['list'] = ['count' => $count, 'data' => FrontService::handPosts($list, $authId)];
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 			case 2: // 回帖
-				$model = AdminPostComment::getInstance()->where('user_id', $userId)
-					->where('status', AdminPostComment::SHOW_IN_FRONT, 'in')->getAll($page, $size);
-				$list = $model->all();
-				$result['list'] = [
-					'count' => $model->lastQueryResult()->getTotalCount(),
-					'data' => FrontService::handComments($list, $authId),
-				];
+				$where = ['user_id' => $userId, 'status' => [AdminPostComment::SHOW_IN_FRONT, 'in']];
+				[$list, $count] = AdminPostComment::getInstance()->findAll($where, '*', 'created_at,desc', true, $page, $size);
+				$result['list'] = ['count' => $count, 'data' => FrontService::handComments($list, $authId)];
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 			case 3: // 资讯评论
-				$model = AdminInformationComment::getInstance()->where('user_id', $userId)
-					->where('status', AdminInformationComment::SHOW_IN_FRONT, 'in')->getLimit($page, $size);
-				$list = $model->all();
-				$result['list'] = [
-					'count' => $model->lastQueryResult()->getTotalCount(),
-					'data' => FrontService::handInformationComment($list, $authId),
-				];
+				$where = ['user_id' => $userId, 'status' => [AdminInformationComment::SHOW_IN_FRONT, 'in']];
+				[$list, $count] = AdminInformationComment::getInstance()->findAll($where, '*', 'created_at,desc', true, $page, $size);
+				$result['list'] = ['count' => $count, 'data' => FrontService::handInformationComment($list, $authId)];
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
@@ -510,28 +479,21 @@ class Community extends FrontUserController
 	 * 关注及粉丝列表
 	 * @throws
 	 */
-	public function myFollowings(): bool
+	public function myFollowings()
 	{
 		$params = $this->params;
 		// 类型校验 1关注列表 2粉丝列表
 		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
-		if ($type != 1 && $type != 2) {
-			$this->output(Status::CODE_W_PARAM, Statuses::$msg[Status::CODE_W_PARAM]);
-		}
+		if ($type != 1 && $type != 2) $this->output(Status::CODE_W_PARAM, Statuses::$msg[Status::CODE_W_PARAM]);
 		// 用户ID校验
 		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
 		$userId = empty($params['uid']) || intval($params['uid']) < 1 ? $authId : intval($params['uid']);
-		if ($userId < 1) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
+		if ($userId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 关联用户ID清单
 		$userIds = $type == 1 ? AppFunc::getUserFollowing($userId) : AppFunc::getUserFans($userId);
 		if (!empty($userIds)) $userIds = array_values(array_unique(array_filter($userIds)));
-		$userIds = empty($userIds) ? [] : array_map(function ($v) {
-			return intval($v);
-		}, $userIds);
-		$users = empty($userIds) ? [] : AdminUser::getInstance()->where('id', $userIds, 'in')
-			->field(['id', 'nickname', 'photo', 'level', 'is_offical'])->all();
+		$users = empty($userIds) ? [] : AdminUser::getInstance()
+			->findAll(['id' => [$userIds, 'in']], 'id,nickname,photo,level,is_offical');
 		$users = array_map(function ($v) use ($authId) {
 			return [
 				'id' => $v['id'],
@@ -552,24 +514,23 @@ class Community extends FrontUserController
 	 * 用户基本资料
 	 * @throws
 	 */
-	public function userInfo(): bool
+	public function userInfo()
 	{
 		// 参数校验
 		$userId = empty($this->params['user_id']) || intval($this->params['user_id']) < 1 ? 0 : intval($this->params['user_id']);
-		if ($userId < 1) {
-			$this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
-		}
+		if ($userId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
+		// 当前登录用户ID
 		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
 		// 获取用户信息
-		$userInfo = AdminUser::getInstance()->field(['id', 'nickname', 'photo', 'level', 'point', 'is_offical'])->get($userId);
-		$userInfo['fans_count'] = count(AppFunc::getUserFans($userId));
-		$userInfo['follow_count'] = count(AppFunc::getUserFollowing($userId));
-		$userInfo['is_me'] = $userInfo['is_follow'] = false;
+		$user = AdminUser::getInstance()->findOne($userId, 'id,nickname,photo,level,point,is_offical');
+		$user['fans_count'] = count(AppFunc::getUserFans($userId));
+		$user['follow_count'] = count(AppFunc::getUserFollowing($userId));
+		$user['is_me'] = $user['is_follow'] = false;
 		if ($authId > 0) {
-			$userInfo['is_me'] = $authId == $userId;
-			$userInfo['is_follow'] = AppFunc::isFollow($authId, $userId);
+			$user['is_me'] = $authId == $userId;
+			$user['is_follow'] = AppFunc::isFollow($authId, $userId);
 		}
-		$userInfo['item_total'] = [
+		$user['item_total'] = [
 			'post_total' => AdminUserPost::getInstance()
 				->where('user_id', $userId)->where('status', AdminUserPost::NEW_STATUS_DELETED, '<>')->count(),
 			'comment_total' => AdminPostComment::getInstance()
@@ -577,15 +538,16 @@ class Community extends FrontUserController
 			'information_comment_total' => AdminInformationComment::getInstance()
 				->where('user_id', $userId)->where('status', AdminInformationComment::STATUS_DELETE, '<>')->count(),
 		];
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $userInfo);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user);
 	}
 	
 	/**
 	 * 常见问题清单
 	 * @throws
 	 */
-	public function normalProblemList(): bool
+	public function normalProblemList()
 	{
+		// 获取清单
 		$result = AdminNormalProblems::getInstance()->all();
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
@@ -594,7 +556,7 @@ class Community extends FrontUserController
 	 * todo ... [回复的评论]
 	 * @throws
 	 */
-	public function getPostChildComments(): bool
+	public function getPostChildComments()
 	{
 		// 参数校验
 		$params = $this->params;
@@ -602,8 +564,8 @@ class Community extends FrontUserController
 		$commentId = empty($params['comment_id']) || intval($params['comment_id']) < 1 ? 0 : intval($params['comment_id']);
 		if ($postId < 1 || $commentId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取最新评论分页数据
-		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : $params['page'];
-		$size = empty($params['size']) || intval($params['size']) < 1 ? 10 : $params['size'];
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
 		$where = ['parent_id' => $commentId, 'post_id' => $postId, 'status' => 1];
 		// 获取分页数据
 		[$list, $count] = AdminPostComment::getInstance()
@@ -615,19 +577,15 @@ class Community extends FrontUserController
 	 * todo ... [评论内容详情]
 	 * @throws
 	 */
-	public function commentInfo(): bool
+	public function commentInfo()
 	{
 		// 参数校验
 		$params = $this->params;
 		$commentId = empty($params['comment_id']) || intval($params['comment_id']) < 1 ? 0 : intval($params['comment_id']);
-		if ($commentId < 1) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
+		if ($commentId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取评论信息
 		$comment = AdminPostComment::getInstance()->findOne($commentId);
-		if (empty($comment)) {
-			$this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-		}
+		if (empty($comment)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		// 评论已删除
 		if ($comment['status'] == AdminPostComment::STATUS_DEL) {
 			$this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);

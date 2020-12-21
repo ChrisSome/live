@@ -60,21 +60,53 @@ abstract class BaseModel extends AbstractModel
 	}
 	
 	/**
-	 * @param $where
+	 * @param        $where
+	 * @param string $fields
 	 * @return mixed
 	 * @throws
 	 */
-	public function findOne($where)
+	public function findOne($where, $fields = '*')
 	{
 		$data = null;
-		if (!is_array($where)) {
-			$id = intval($where);
-			if ($id < 1) return null;
-			$data = self::create()->get($id);
-		} else {
-			$data = self::create()->where($where)->get();
+		// 查询字段
+		$fields = empty($fields) || $fields == '*' || !(is_array($fields) || is_string($fields)) ? null : $fields;
+		if (!empty($where)) {
+			$self = self::create();
+			if (!empty($fields)) $self = $self->field($fields);
+			if (is_array($where)) {
+				foreach ($where as $field => $v) {
+					if (is_string($v)) $v = [$v];
+					if (!is_array($v)) continue;
+					if (isset($v[1])) {
+						$type = strtolower($v[1]);
+						if ($type == 'like') {
+							$v[0] = '%' . trim($v[0], '% ') . '%';
+						} elseif ($type == 'in' && is_string($v[0])) {
+							$str = trim($v[0]);
+							$v[0] = array_filter(array_unique(array_filter(explode(',', $str))));
+							if (preg_match('/^\d+(,\d+)*$/', $str)) {
+								$v[0] = array_map(function ($x) {
+									return intval($x);
+								}, $v[0]);
+							}
+							if (empty($v[0])) $v = ['-1'];
+						}
+					}
+					$self = $self->where($field, ...$v);
+				}
+			} elseif (is_string($where) || is_integer($where)) {
+				$where = trim($where . '');
+				if (preg_match('/^\d+$/', $where)) {
+					$where = intval($where);
+					if ($where > 0) $data = $self->get($where);
+					return empty($data) ? null : $data;
+				} elseif (!empty($where)) {
+					$self = $self->where($where);
+				}
+			}
+			$data = $self->get();
 		}
-		return empty($data) ? null : $data->toArray();
+		return empty($data) ? null : $data;
 	}
 	
 	/**
@@ -151,6 +183,7 @@ abstract class BaseModel extends AbstractModel
 			$count = $tmp->lastQueryResult()->getTotalCount();
 			return [$list, $count];
 		}
+		if ($page > 0 && $size > 0) $self = $self->page($page, $size);
 		$list = $self->all();
 		return empty($list) ? [] : $list;
 	}

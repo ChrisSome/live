@@ -2,14 +2,12 @@
 
 namespace App\HttpController\User;
 
-use App\Base\FrontUserController;
-use App\Common\AppFunc;
 use App\lib\Tool;
+use App\Common\AppFunc;
 use App\Utility\Log\Log;
-use App\Utility\Message\Status;
+use App\Base\FrontUserController;
 use App\WebSocket\WebSocketStatus;
 use EasySwoole\EasySwoole\ServerManager;
-use \Swoole\Coroutine\Http\Client;
 
 class WebSocket extends FrontUserController
 {
@@ -25,23 +23,20 @@ class WebSocket extends FrontUserController
 		Log::getInstance()->info($info);
 	}
 	
-	public function contentPush($diff, $match_id)
+	public function contentPush($diff, $matchId)
 	{
-		$fd_arr = AppFunc::getUsersInRoom($match_id);
-		if (!$fd_arr) {
-			return;
-		}
+		$fd = AppFunc::getUsersInRoom($matchId);
+		if (empty($fd)) return;
+		
 		$tool = Tool::getInstance();
 		$server = ServerManager::getInstance()->getSwooleServer();
-		$returnData = [
-			'event' => 'match_tlive',
-			'match_id' => $match_id,
-			'content' => $diff,
-		];
-		foreach ($fd_arr as $fd) {
-			$connection = $server->connection_info($fd);
-			if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-				$server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
+		$data = ['event' => 'match_tlive', 'match_id' => $matchId, 'content' => $diff];
+		foreach ($fd as $v) {
+			$connection = $server->connection_info($v);
+			// 用户正常在线时可以进行消息推送
+			if (!empty($connection['websocket_status']) && $connection['websocket_status'] == 3) {
+				$jsonStr = $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $data);
+				$server->push($v, $jsonStr);
 			}
 		}
 	}

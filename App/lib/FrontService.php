@@ -248,7 +248,7 @@ class  FrontService
 	 * @param string $format
 	 * @return array
 	 */
-	static function getWeek($time = '', $format = 'Ymd')
+	static function getWeek($time = '', $format = 'Ymd'): array
 	{
 		$time = $time != '' ? $time : time();
 		//组合数据

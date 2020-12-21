@@ -2,41 +2,33 @@
 
 namespace App\HttpController\Match;
 
-use App\Base\BaseModel;
-use App\Base\FrontUserController;
-use App\Common\AppFunc;
-use App\lib\FrontService;
+use Throwable;
 use App\lib\Tool;
 use App\lib\Utils;
-use App\Model\AdminCompetition;
-use App\Model\AdminCompetitionRuleList;
-use App\Model\AdminCountryList;
-use App\Model\AdminHonorList;
-use App\Model\AdminManagerList;
-use App\Model\AdminMatch;
-use App\Model\AdminCountryCategory;
-use App\Model\AdminPlayer;
-use App\Model\AdminPlayerChangeClub;
-use App\Model\AdminPlayerHonorList;
-use App\Model\AdminPlayerStat;
-use App\Model\AdminSeason;
-use App\Model\AdminStageList;
-use App\Model\AdminSysSettings;
+use App\Common\AppFunc;
 use App\Model\AdminTeam;
+use App\lib\FrontService;
+use App\Model\AdminPlayer;
+use App\Model\AdminSeason;
+use easySwoole\Cache\Cache;
+use App\Model\AdminHonorList;
+use App\Model\AdminStageList;
 use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
-use App\Model\SeasonAllTableDetail;
 use App\Model\SeasonMatchList;
+use App\Model\AdminPlayerStat;
+use App\Model\AdminCompetition;
+use App\Model\AdminCountryList;
+use App\Model\AdminManagerList;
+use App\Model\AdminSysSettings;
 use App\Model\SeasonTeamPlayer;
-use App\Utility\Log\Log;
 use App\Utility\Message\Status;
-use easySwoole\Cache\Cache;
-use EasySwoole\ORM\AbstractModel;
-use EasySwoole\ORM\Exception\Exception;
-use EasySwoole\Redis\Redis as Redis;
-use EasySwoole\RedisPool\Redis as RedisPool;
-use Illuminate\Support\Facades\App;
-use Throwable;
+use App\Base\FrontUserController;
+use App\Model\AdminCountryCategory;
+use App\Model\AdminPlayerHonorList;
+use App\Model\SeasonAllTableDetail;
+use App\Model\AdminPlayerChangeClub;
+use App\Model\AdminCompetitionRuleList;
 
 class DataApi extends FrontUserController
 {
@@ -46,11 +38,6 @@ class DataApi extends FrontUserController
 	public $player_logo = 'https://cdn.sportnanoapi.com/football/player/';
 	protected $FIFA_male_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/men?user=%s&secret=%s'; //FIFA男子排名
 	protected $FIFA_female_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/women?user=%s&secret=%s'; //FIFA女子子排名
-	
-	public function competitionDes()
-	{
-		$competition_id = $this->params[''];
-	}
 	
 	/**
 	 * 数据中心推荐热门赛事

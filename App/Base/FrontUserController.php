@@ -98,8 +98,7 @@ class FrontUserController extends BaseController
 		$request = $this->request();
 		$params = $request->getRequestParam();
 		$this->params = empty($params) ? [] : $params;
-		$isOk = $this->checkToken();
-		if ($this->needCheckToken && !$this->checkToken() && !$isOk) {
+		if ($this->needCheckToken && !$this->checkToken()) {
 			$this->output(Status::CODE_VERIFY_ERR, '登录令牌缺失或者已过期');
 		}
 		$route = $request->getUri()->getPath();

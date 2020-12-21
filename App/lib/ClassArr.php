@@ -1,43 +1,29 @@
 <?php
+
 namespace App\lib;
 
-/**
- * 做一些反射机制有关的 处理
- */
-class ClassArr {
-
-	/**
-	 * [uploadClassStat description]
-	 * @auth   singwa
-	 * @date   2018-10-21T11:23:12+0800
-	 * @return [type]                   [description]
-	 */
-	public function uploadClassStat() {
+class ClassArr
+{
+	public function uploadClassStat(): array
+	{
 		return [
-			"image" => "\App\lib\Upload\Image",
-			"video" => "\App\lib\Upload\Video",
+			'image' => '\App\lib\Upload\Image',
+			'video' => '\App\lib\Upload\Video',
 		];
 	}
-
+	
 	/**
-	 * [initClass description]
-	 * @auth   singwa
-	 * @date   2018-10-21T11:28:05+0800
-	 * @param  [type]                   $type           [description]
-	 * @param  [type]                   $supportedClass [description]
-	 * @param  array                    $params         [description]
-	 * @param  boolean                  $needInstance   [description]
-	 * @return [type]                                   [description]
+	 * @param          $type
+	 * @param          $supportedClass
+	 * @param array    $params
+	 * @param boolean  $needInstance
+	 * @return mixed
+	 * @throws
 	 */
-	public function initClass($type, $supportedClass, $params = [], $needInstance = true) {
-	    var_dump($type);
-		if(!array_key_exists($type, $supportedClass)) {
-			return false;
-		}
-
+	public function initClass($type, $supportedClass, $params = [], $needInstance = true)
+	{
+		if (!array_key_exists($type, $supportedClass)) return null;
 		$className = $supportedClass[$type];
-
 		return $needInstance ? (new \ReflectionClass($className))->newInstanceArgs($params) : $className;
 	}
-
 }
