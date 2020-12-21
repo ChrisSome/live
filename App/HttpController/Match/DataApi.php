@@ -65,18 +65,22 @@ class DataApi extends FrontUserController
     {
         $hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
         $competitionIds = json_decode($hot_competition['sys_value'], true);
-        $return = [];
-        foreach ($competitionIds as $k => $competitionId) {
-            if (!$competition = AdminCompetition::getInstance()->where('competition_id', $competitionId)->get()) {
-                continue;
-            } else {
-                $data['competition_id'] = $competition['competition_id'];
-                $data['logo'] = $competition['logo'];
-                $data['short_name_zh'] = $competition['short_name_zh'];
-                $data['seasons'] = $competition->getSeason();
-                $return[] = $data;
-                unset($data);
+        $return = $res = [];
+        if ($season = AdminSeason::create()->where('competition_id', $competitionIds, 'in')->all()) {
+            foreach ($season as $itemSeason) {
+                $res[$itemSeason->competition_id][] = $itemSeason;
+
             }
+        }
+        //做映射
+        $competition = AdminCompetition::create()->where('competition_id', $competitionIds, 'in')->all();
+        foreach ($competition as $itemCompetition) {
+            $data['competition_id'] = $itemCompetition['competition_id'];
+            $data['logo'] = $itemCompetition['logo'];
+            $data['short_name_zh'] = $itemCompetition['short_name_zh'];
+            $data['seasons'] = isset($res[$itemCompetition->competition_id]) ? $res[$itemCompetition->competition_id] : [];
+            $return[] = $data;
+            unset($data);
         }
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);

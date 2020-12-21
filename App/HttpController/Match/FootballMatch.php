@@ -1580,36 +1580,7 @@ class FootBallMatch extends FrontUserController
 
 
     function test() {
-        $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
-
-
-        $recommandCompetitionId = AdminSysSettingsBak::create()->where('sys_key', AdminSysSettingsBak::COMPETITION_ARR)->get();
-        $default = json_decode($recommandCompetitionId->sys_value, true);
-
-        $res = AdminUserInterestCompetitionBak::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
-
-        $userInterestCompetition = json_decode($res->competition_ids, true);
-        $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
-        if ($userInterestCompetition) {
-            $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
-        } else {
-            $selectCompetitionIdArr = $default;
-        }
-
-        //进行中的比赛
-        // 还是这里报错吗？是的定位的到了是吧 是的  我改完之后就压测了一波  效果不太好，但是好像没报错，我把其中的两个查询改成了join，就出错了
-        //不知道是不是上一次美报错的是我没注意到还是什么
-        $playingMatch = AdminMatchBak::create()->where('is_delete', 0)
-            ->where('competition_id', $selectCompetitionIdArr, 'in')
-            ->limit(50)->all();
-
-
-        $formatMatch = FrontService::formatMatchThree($playingMatch, $uid, $interestMatchArr);
-
-
-        $return = ['list' => $formatMatch, 'user_interest_count' => count($interestMatchArr)];
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+        $res = AdminTeamLineUp::create()->where('match_id')->get();
     }
 
 
