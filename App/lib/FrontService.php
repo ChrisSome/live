@@ -125,7 +125,7 @@ class  FrontService
 	 * @return array
 	 * @throws
 	 */
-	public static function handComments($comments, $authId)
+	public static function handComments($comments, $authId): array
 	{
 		if (empty($comments)) return [];
 		$authId = intval($authId);

@@ -151,6 +151,10 @@ abstract class BaseModel extends AbstractModel
 		if (!empty($where)) {
 			if (is_array($where)) {
 				foreach ($where as $field => $v) {
+					if ($field == 'or') {
+						if (is_array($v)) $self->where('(' . join(' or ', $v) . ')');
+						continue;
+					}
 					$field = trim(strtolower($field), ' |');
 					$field = preg_replace('/\s/', '', $field);
 					if (empty($field)) continue;
@@ -196,19 +200,19 @@ abstract class BaseModel extends AbstractModel
 		if (!empty($fields)) $self = $self->field($fields);
 		// 排序/分组部分
 		if (!empty($orderOrGroup) && (is_array($orderOrGroup) || is_string($orderOrGroup))) {
-			if(is_string($orderOrGroup)) {
+			if (is_string($orderOrGroup)) {
 				$order = explode(',', trim(preg_replace('/\s+,\s+/', ',', $orderOrGroup), ','));
 				if (count($order) == 2) $self = $self->order(...$order);
-			}else {
-				if(isset($orderOrGroup['order']) || isset($orderOrGroup['group'])){
-					if(!empty($orderOrGroup['order']) && is_string($orderOrGroup['order'])){
+			} else {
+				if (isset($orderOrGroup['order']) || isset($orderOrGroup['group'])) {
+					if (!empty($orderOrGroup['order']) && is_string($orderOrGroup['order'])) {
 						$order = explode(',', trim(preg_replace('/\s+,\s+/', ',', $orderOrGroup), ','));
 						if (count($order) == 2) $self = $self->order(...$order);
 					}
-					if(!empty($orderOrGroup['group']) && is_string($orderOrGroup['group'])){
+					if (!empty($orderOrGroup['group']) && is_string($orderOrGroup['group'])) {
 						$self->group($orderOrGroup['group']);
 					}
-				}else{
+				} else {
 					$order = array_values($orderOrGroup);
 					if (is_string($order[0])) {
 						if (count($order) == 2) $self = $self->order(...$order);
