@@ -100,7 +100,6 @@ class Router extends AbstractRouter
 			$r->addRoute(['GET'], '/footBall/updateSeasonTeamPlayer', '/Match/FootballMatch/updateSeasonTeamPlayer'); //更新赛季比赛
 			
 			//数据中心
-			$r->addRoute(['GET'], '/footBall/formatValue', '/Match/DataApi/formatValue'); //推送
 			$r->addRoute(['GET'], '/footBall/CategoryCountry', '/Match/DataApi/CategoryCountry'); //国家分类
 			$r->addRoute(['GET'], '/footBall/competitionByCid', '/Match/DataApi/competitionByCid'); //获取赛事
 			$r->addRoute(['GET'], '/footBall/FIFAMaleRank', '/Match/DataApi/FIFAMaleRank'); //FIFA男子排名
@@ -120,7 +119,7 @@ class Router extends AbstractRouter
 			$r->addRoute(['GET'], '/information/informationInfo', '/Match/InformationApi/informationInfo'); //资讯内容
 			$r->addRoute(['POST'], '/information/informationComment', '/Match/InformationApi/informationComment'); //发表评论
 			$r->addRoute(['GET'], '/information/informationChildComment', '/Match/InformationApi/informationChildComment'); //二级评论列表
-			$r->addRoute(['GET'], '/information/getCategoryInformation', '/Match/InformationApi/getCategoryInformation'); //二级评论列表
+			$r->addRoute(['GET'], '/information/getCategoryInformation', '/Match/InformationApi/getCategoryInformation'); //获取分类的内容
 			
 			//个人中心
 			$r->addRoute(['GET'], '/user/UserCenter', '/User/UserCenter/UserCenter'); //个人中心
@@ -156,10 +155,8 @@ class Router extends AbstractRouter
 			$r->addRoute(['GET'], '/footBall/getClashHistory', '/Match/FootballApi/getClashHistory'); //历史交锋
 			$r->addRoute(['GET'], '/footBall/noticeInMatch', '/Match/FootballApi/noticeInMatch'); //直播间公告
 			$r->addRoute(['GET'], '/footBall/matchInfo', '/Match/FootballApi/getMatchInfo'); //比赛信息
-			
 			$r->addRoute(['GET'], '/footBall/test', '/Match/FootballMatch/test'); //历史交锋
 			$r->addRoute(['GET'], '/footBall/time', '/Match/FootballApi/test'); //历史交锋
-			
 			$r->addRoute(['GET'], '/footBall/fixMatch', '/Match/FootballMatch/fixMatch'); //比赛查询
 			$r->addRoute(['GET'], '/footBall/fixSomeDayMatch', '/Match/FootballMatch/fixSomeDayMatch'); //修正某天的比赛
 		});

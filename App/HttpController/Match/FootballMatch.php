@@ -1,54 +1,46 @@
 <?php
 
-
 namespace App\HttpController\Match;
 
-use App\Base\FrontUserController;
-use App\Common\AppFunc;
-use App\HttpController\User\WebSocket;
-use App\lib\FrontService;
-use App\Model\AdminAlphaMatch;
-use App\Model\AdminClashHistory;
-use App\Model\AdminCompetition;
-use App\Model\AdminCompetitionRuleList;
-use App\Model\AdminHonorList;
-use App\Model\AdminManagerList;
-use App\Model\AdminMatch;
-use App\Model\SeasonMatchListOne;
-use App\Task\TestTask;
-use EasySwoole\Component\Process\Manager;
-use App\Model\SeasonAllTableDetail;
-use App\Model\AdminMatchTlive;
-use App\Model\AdminNoticeMatch;
-use App\Model\AdminPlayer;
-use App\Model\AdminPlayerChangeClub;
-use App\Model\AdminPlayerHonorList;
-use App\Model\AdminPlayerStat;
-use App\Model\AdminSeason;
-use App\Model\AdminStageList;
-use App\Model\AdminSteam;
-use App\Model\AdminTeam;
-use App\Model\AdminTeamHonor;
-use App\Model\AdminTeamLineUp;
-use App\Model\AdminUser;
-use App\Model\AdminUserSetting;
-use App\Model\SeasonMatchList;
-use App\Model\SeasonTeamPlayer;
-use App\Model\SeasonTeamPlayerBak;
-use App\Storage\OnlineUser;
-use App\Task\MatchNotice;
-use App\Utility\Log\Log;
 use App\lib\Tool;
-use App\Utility\Message\Status;
-use App\GeTui\BatchSignalPush;
-use App\WebSocket\WebSocketStatus;
+use App\Common\AppFunc;
+use App\Model\AdminTeam;
+use App\Model\AdminUser;
+use App\Utility\Log\Log;
+use App\lib\FrontService;
+use App\Model\AdminMatch;
+use App\Model\AdminSteam;
+use App\Task\MatchNotice;
+use App\Model\AdminPlayer;
+use App\Model\AdminSeason;
 use easySwoole\Cache\Cache;
+use App\Model\AdminHonorList;
+use App\Model\AdminStageList;
+use App\Model\AdminTeamHonor;
+use App\Model\AdminAlphaMatch;
+use App\Model\AdminMatchTlive;
+use App\Model\AdminPlayerStat;
+use App\Model\AdminTeamLineUp;
+use App\Model\SeasonMatchList;
+use App\GeTui\BatchSignalPush;
+use App\Model\AdminCompetition;
+use App\Model\AdminManagerList;
+use App\Model\AdminNoticeMatch;
+use App\Model\AdminUserSetting;
+use App\Model\SeasonTeamPlayer;
+use App\Utility\Message\Status;
+use App\Model\AdminClashHistory;
+use App\Base\FrontUserController;
+use App\Model\SeasonMatchListOne;
+use App\Model\SeasonTeamPlayerBak;
+use App\WebSocket\WebSocketStatus;
+use App\Model\SeasonAllTableDetail;
+use App\Model\AdminPlayerHonorList;
+use App\Model\AdminPlayerChangeClub;
+use App\HttpController\User\WebSocket;
+use App\Model\AdminCompetitionRuleList;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
-use EasySwoole\ORM\DbManager;
-use EasySwoole\Redis\Redis as Redis;
-use EasySwoole\RedisPool\Redis as RedisPool;
-use EasySwoole\EasySwoole\Config;
 
 /**
  *                             _ooOoo_
@@ -76,38 +68,35 @@ class FootBallMatch extends FrontUserController
 {
 	protected $isCheckSign = false;
 	protected $needCheckToken = false;
-	const STATUS_SUCCESS = 0; //请求成功
-	public $start_id = 0;
-	public $taskData = [];
-	public $start_time = 0;
+	private $startId = 0;
 	private $user = 'mark9527';
 	private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
 	protected $url = 'https://open.sportnanoapi.com';
-	protected $uriTeamList = '/api/v4/football/team/list?user=%s&secret=%s&time=%s';  //球队列表
-	protected $uriTeamList1 = '/api/v4/football/team/list?user=%s&secret=%s&id=%s';  //球队列表
+	protected $uriTeamList = '/api/v4/football/team/list?user=%s&secret=%s&time=%s'; //球队列表
+	protected $uriTeamList1 = '/api/v4/football/team/list?user=%s&secret=%s&id=%s'; //球队列表
 	protected $uriM = 'https://open.sportnanoapi.com/api/v4/football/match/diary?user=%s&secret=%s&date=%s';
 	protected $uriCompetition = '/api/v4/football/competition/list?user=%s&secret=%s&time=%s';
 	protected $uriStage = '/api/v4/football/stage/list?user=%s&secret=%s&date=%s';
 	protected $uriSteam = '/api/sports/stream/urls_free?user=%s&secret=%s'; //直播地址
-	protected $uriLineUp = '/api/v4/football/team/squad/list?user=%s&secret=%s&time=%s';  //阵容
-	protected $uriPlayer = '/api/v4/football/player/list?user=%s&secret=%s&time=%s';  //球员
-	protected $uriCompensation = '/api/v4/football/compensation/list?user=%s&secret=%s&time=%s';  //获取比赛历史同赔统计数据列表
-	protected $live_url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';//比赛列表
-	protected $season_url = 'https://open.sportnanoapi.com/api/v4/football/season/list?user=%s&secret=%s&time=%s'; //更新赛季
-	protected $player_stat = 'https://open.sportnanoapi.com/api/v4/football/player/list/with_stat?user=%s&secret=%s&time=%s'; //获取球员能力技术列表
-	protected $player_change_club_history = 'https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&id=%s'; //球员转会历史
-	protected $team_honor = 'https://open.sportnanoapi.com/api/v4/football/team/honor/list?user=%s&secret=%s&id=%s'; //球队荣誉
-	protected $honor_list = 'https://open.sportnanoapi.com/api/v4/football/honor/list?user=%s&secret=%s&time=%s'; //荣誉详情
-	protected $all_stat = 'https://open.sportnanoapi.com/api/v4/football/season/all/stats/detail?user=%s&secret=%s&id=%s'; //获取赛季球队球员统计详情-全量
-	protected $stage_list = 'https://open.sportnanoapi.com/api/v4/football/stage/list?user=%s&secret=%s&time=%s'; //获取阶段列表
-	protected $manager_list = 'https://open.sportnanoapi.com/api/v4/football/manager/list?user=%s&secret=%s&time=%s'; //教练
+	protected $uriLineUp = '/api/v4/football/team/squad/list?user=%s&secret=%s&time=%s'; //阵容
+	protected $uriPlayer = '/api/v4/football/player/list?user=%s&secret=%s&time=%s'; //球员
+	protected $uriCompensation = '/api/v4/football/compensation/list?user=%s&secret=%s&time=%s'; //获取比赛历史同赔统计数据列表
+	protected $liveUrl = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';//比赛列表
+	protected $seasonUrl = 'https://open.sportnanoapi.com/api/v4/football/season/list?user=%s&secret=%s&time=%s'; //更新赛季
+	protected $playerStat = 'https://open.sportnanoapi.com/api/v4/football/player/list/with_stat?user=%s&secret=%s&time=%s'; //获取球员能力技术列表
+	protected $playerChangeClubHistory = 'https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&id=%s'; //球员转会历史
+	protected $teamHonor = 'https://open.sportnanoapi.com/api/v4/football/team/honor/list?user=%s&secret=%s&id=%s'; //球队荣誉
+	protected $honorList = 'https://open.sportnanoapi.com/api/v4/football/honor/list?user=%s&secret=%s&time=%s'; //荣誉详情
+	protected $allStat = 'https://open.sportnanoapi.com/api/v4/football/season/all/stats/detail?user=%s&secret=%s&id=%s'; //获取赛季球队球员统计详情-全量
+	protected $stageList = 'https://open.sportnanoapi.com/api/v4/football/stage/list?user=%s&secret=%s&time=%s'; //获取阶段列表
+	protected $managerList = 'https://open.sportnanoapi.com/api/v4/football/manager/list?user=%s&secret=%s&time=%s'; //教练
 	protected $uriDeleteMatch = '/api/v4/football/deleted?user=%s&secret=%s'; //删除或取消的比赛
-	protected $player_honor_list = 'https://open.sportnanoapi.com/api/v4/football/player/honor/list?user=%s&secret=%s&time=%s'; //获取球员荣誉列表
-	protected $trend_detail = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s'; //获取比赛趋势详情
-	protected $competition_rule = 'https://open.sportnanoapi.com/api/v4/football/competition/rule/list?user=%s&secret=%s&time=%s'; //获取赛事赛制列表
+	protected $playerHonorList = 'https://open.sportnanoapi.com/api/v4/football/player/honor/list?user=%s&secret=%s&time=%s'; //获取球员荣誉列表
+	protected $trendDetail = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s'; //获取比赛趋势详情
+	protected $competitionRule = 'https://open.sportnanoapi.com/api/v4/football/competition/rule/list?user=%s&secret=%s&time=%s'; //获取赛事赛制列表
 	protected $history = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s'; //历史比赛数据
-	protected $season_all_table_detail = 'https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s'; //获取赛季积分榜数据-全量
-	protected $uriPlayerOne = '/api/v4/football/player/list?user=%s&secret=%s&id=%s';  //球员
+	protected $seasonAllTableDetail = 'https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s'; //获取赛季积分榜数据-全量
+	protected $uriPlayerOne = '/api/v4/football/player/list?user=%s&secret=%s&id=%s'; //球员
 	
 	/**
 	 * 更新球队列表 1day/次
@@ -549,7 +538,7 @@ class FootBallMatch extends FrontUserController
 	 */
 	public function matchTlive()
 	{
-		$tmp = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+		$tmp = Tool::getInstance()->postApi(sprintf($this->liveUrl, $this->user, $this->secret));
 		$list = empty($tmp) ? null : json_decode($tmp, true);
 		if (empty($list)) {
 			Log::getInstance()->info('333333333');
@@ -578,7 +567,7 @@ class FootBallMatch extends FrontUserController
 				TaskManager::getInstance()->async(new MatchNotice($data));
 			}
 			// 比赛趋势
-			$tmp = Tool::getInstance()->postApi(sprintf($this->trend_detail, $this->user, $this->secret, $id));
+			$tmp = Tool::getInstance()->postApi(sprintf($this->trendDetail, $this->user, $this->secret, $id));
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$matchTrend = [];
 			if ($tmp['code'] == 0 && !empty($tmp['results'])) $matchTrend = $tmp['results'];
@@ -723,7 +712,7 @@ class FootBallMatch extends FrontUserController
 	public function updateSeason()
 	{
 		$timestamp = AdminSeason::getInstance()->max('updated_at');
-		$url = sprintf($this->season_url, $this->user, $this->secret, $timestamp + 1);
+		$url = sprintf($this->seasonUrl, $this->user, $this->secret, $timestamp + 1);
 		$tmp = Tool::getInstance()->postApi($url);
 		$tmp = empty($tmp) ? null : json_decode($tmp, true);
 		$list = empty($tmp['results']) ? null : $tmp['results'];
@@ -770,7 +759,7 @@ class FootBallMatch extends FrontUserController
 	{
 		while (true) {
 			$timestamp = AdminPlayerStat::getInstance()->max('updated_at');
-			$url = sprintf($this->player_stat, $this->user, $this->secret, $timestamp + 1);
+			$url = sprintf($this->playerStat, $this->user, $this->secret, $timestamp + 1);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$isEnd = !empty($resp['query']) && isset($resp['query']['total']) && intval($resp['query']['total']) == 0;
@@ -821,7 +810,7 @@ class FootBallMatch extends FrontUserController
 	{
 		while (true) {
 			$timestamp = AdminPlayerChangeClub::getInstance()->max('updated_at');
-			$url = sprintf($this->player_change_club_history, $this->user, $this->secret, $timestamp + 1);
+			$url = sprintf($this->playerChangeClubHistory, $this->user, $this->secret, $timestamp + 1);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$isEnd = !empty($resp['query']) && isset($resp['query']['total']) && intval($resp['query']['total']) == 0;
@@ -862,7 +851,7 @@ class FootBallMatch extends FrontUserController
 	{
 		while (true) {
 			$timestamp = AdminTeamHonor::getInstance()->max('updated_at');
-			$url = sprintf($this->team_honor, $this->user, $this->secret, $timestamp + 1);
+			$url = sprintf($this->teamHonor, $this->user, $this->secret, $timestamp + 1);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$isEnd = !empty($resp['query']) && isset($resp['query']['total']) && intval($resp['query']['total']) == 0;
@@ -885,7 +874,7 @@ class FootBallMatch extends FrontUserController
 					AdminTeamHonor::getInstance()->update($data, ['team_id' => $id]);
 				}
 			}
-			$this->start_id = intval($tmp['query']['max_id']);
+			$this->startId = intval($tmp['query']['max_id']);
 		}
 	}
 	
@@ -897,7 +886,7 @@ class FootBallMatch extends FrontUserController
 	{
 		while (true) {
 			$timestamp = AdminHonorList::getInstance()->max('updated_at');
-			$url = sprintf($this->honor_list, $this->user, $this->secret, $timestamp + 1);
+			$url = sprintf($this->honorList, $this->user, $this->secret, $timestamp + 1);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$isEnd = !empty($resp['query']) && isset($resp['query']['total']) && intval($resp['query']['total']) == 0;
@@ -933,7 +922,7 @@ class FootBallMatch extends FrontUserController
 	{
 		while (true) {
 			$timestamp = AdminStageList::getInstance()->max('updated_at');
-			$url = sprintf($this->stage_list, $this->user, $this->secret, $timestamp + 1);
+			$url = sprintf($this->stageList, $this->user, $this->secret, $timestamp + 1);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$list = empty($tmp['results']) ? null : $tmp['results'];
@@ -1008,7 +997,7 @@ class FootBallMatch extends FrontUserController
 					AdminStageList::getInstance()->update($data, ['stage_id' => $id]);
 				}
 			}
-			if (!empty($tmp['query']['max_id'])) $this->start_id = intval($tmp['query']['max_id']);
+			if (!empty($tmp['query']['max_id'])) $this->startId = intval($tmp['query']['max_id']);
 		}
 	}
 	
@@ -1020,7 +1009,7 @@ class FootBallMatch extends FrontUserController
 	{
 		while (true) {
 			$timestamp = AdminManagerList::getInstance()->max('updated_at');
-			$url = sprintf($this->manager_list, $this->user, $this->secret, $timestamp);
+			$url = sprintf($this->managerList, $this->user, $this->secret, $timestamp);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$list = empty($tmp['results']) ? null : $tmp['results'];
@@ -1086,7 +1075,7 @@ class FootBallMatch extends FrontUserController
 	{
 		while (true) {
 			$timestamp = AdminPlayerHonorList::getInstance()->max('updated_at');
-			$url = sprintf($this->player_honor_list, $this->user, $this->secret, $timestamp + 1);
+			$url = sprintf($this->playerHonorList, $this->user, $this->secret, $timestamp + 1);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$list = empty($tmp['results']) ? null : $tmp['results'];
@@ -1117,7 +1106,7 @@ class FootBallMatch extends FrontUserController
 	{
 		while (true) {
 			$timestamp = AdminCompetitionRuleList::getInstance()->max('updated_at');
-			$url = sprintf($this->competition_rule, $this->user, $this->secret, $timestamp + 1);
+			$url = sprintf($this->competitionRule, $this->user, $this->secret, $timestamp + 1);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$list = empty($tmp['results']) ? null : $tmp['results'];
@@ -1261,7 +1250,7 @@ class FootBallMatch extends FrontUserController
 		$list = AdminSeason::getInstance()->findOne(['season_id' => [$seasonId, '>']], 'season_id');
 		foreach ($list as $v) {
 			$id = intval($v['season_id']);
-			$url = sprintf($this->all_stat, $this->user, $this->secret, $id);
+			$url = sprintf($this->allStat, $this->user, $this->secret, $id);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$data = empty($tmp['results']) ? null : $tmp['results'];
@@ -1302,7 +1291,7 @@ class FootBallMatch extends FrontUserController
 		foreach ($list as $v) {
 			$id = intval($v['season_id']);
 			//更新赛季球队球员统计详情-全量
-			$url = sprintf($this->all_stat, $this->user, $this->secret, $id);
+			$url = sprintf($this->allStat, $this->user, $this->secret, $id);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$data = empty($tmp['results']) ? null : $tmp['results'];
@@ -1325,7 +1314,7 @@ class FootBallMatch extends FrontUserController
 				], ['season_id' => $id]);
 			}
 			//更新赛季积分榜
-			$url = sprintf($this->season_all_table_detail, $this->user, $this->secret, $id);
+			$url = sprintf($this->seasonAllTableDetail, $this->user, $this->secret, $id);
 			$tmp = Tool::getInstance()->postApi($url);
 			$tmp = empty($tmp) ? null : json_decode($tmp, true);
 			$data = empty($tmp['results']) ? null : $tmp['results'];
@@ -1428,7 +1417,7 @@ class FootBallMatch extends FrontUserController
 			'away_scores' => json_encode($data['score'][3]),
 		], ['match_id' => $matchId]);
 		//比赛趋势
-		$tmp = Tool::getInstance()->postApi(sprintf($this->trend_detail, $this->user, $this->secret, $matchId));
+		$tmp = Tool::getInstance()->postApi(sprintf($this->trendDetail, $this->user, $this->secret, $matchId));
 		$tmp = empty($tmp) ? null : json_decode($tmp, true);
 		$matchTrend = empty($tmp['results']) ? [] : $tmp['results'];
 		$tmp = AdminMatchTlive::getInstance()->findOne(['match_id' => $matchId]);

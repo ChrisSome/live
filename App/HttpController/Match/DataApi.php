@@ -2,7 +2,6 @@
 
 namespace App\HttpController\Match;
 
-use Throwable;
 use App\lib\Tool;
 use App\lib\Utils;
 use App\Common\AppFunc;
@@ -16,10 +15,8 @@ use App\Model\AdminStageList;
 use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
 use App\Model\SeasonMatchList;
-use App\Model\AdminPlayerStat;
 use App\Model\AdminCompetition;
 use App\Model\AdminCountryList;
-use App\Model\AdminManagerList;
 use App\Model\AdminSysSettings;
 use App\Model\SeasonTeamPlayer;
 use App\Utility\Message\Status;
@@ -32,765 +29,96 @@ use App\Model\AdminCompetitionRuleList;
 
 class DataApi extends FrontUserController
 {
-	protected $user = 'mark9527';
-	protected $secret = 'dbfe8d40baa7374d54596ea513d8da96';
-	public $team_logo = 'https://cdn.sportnanoapi.com/football/team/';
-	public $player_logo = 'https://cdn.sportnanoapi.com/football/player/';
-	protected $FIFA_male_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/men?user=%s&secret=%s'; //FIFA男子排名
-	protected $FIFA_female_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/women?user=%s&secret=%s'; //FIFA女子子排名
-	
-	/**
-	 * 数据中心推荐热门赛事
-	 */
-	public function getHotCompetition()
-	{
-		$hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
-		$competitionIds = json_decode($hot_competition['sys_value'], true);
-		$return = [];
-		foreach ($competitionIds as $k => $competitionId) {
-			if (!$competition = AdminCompetition::getInstance()->where('competition_id', $competitionId)->get()) {
-				continue;
-			} else {
-				$data['competition_id'] = $competition['competition_id'];
-				$data['logo'] = $competition['logo'];
-				$data['short_name_zh'] = $competition['short_name_zh'];
-				$data['seasons'] = $competition->getSeason();
-				$return[] = $data;
-				unset($data);
-			}
-		}
-		
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
-	}
-	
-	/**
-	 * 国家分类赛事
-	 * @return bool
-	 */
-	public function getCompetitionByCountry()
-	{
-		$type = $this->params['type'];
-		if (!$type) {
-			$category_id = $this->params['category_id'];
-			
-			$country_list = AdminCountryList::getInstance()->where('category_id', $category_id)->field(['id', 'name_zh', 'logo'])->all();
-			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $country_list);
-		} else {
-			$category_id = $this->params['category_id'];
-			$country_id = $this->params['country_id'];
-			
-			if ($category_id && !$country_id) {
-				$country_list = AdminCountryList::getInstance()->where('category_id', $category_id)->field('country_id', 'name_zh')->all();
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $country_list);
-			}
-			
-			if ($category_id && $country_id) {
-				$competition = AdminCompetition::getInstance()->where('country_id', $country_id)->where('category_id', $category_id)->field(['competition_id', 'short_name_zh', 'logo'])->all();
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $competition);
-			}
-		}
-		
-		$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-	}
-	
-	/**
-	 * 最新FIFA女子男子排名
-	 */
-	public function FIFAMaleRank()
-	{
-		//区域id，1-欧洲足联、2-南美洲足联、3-中北美洲及加勒比海足协、4-非洲足联、5-亚洲足联、6-大洋洲足联
-		$region_id = isset($this->params['region_id']) ? $this->params['region_id'] : 0;
-		$is_male = isset($this->params['is_male']) ? $this->params['is_male'] : 0;
-		$matchSeason = Tool::getInstance()->postApi(sprintf($is_male ? $this->FIFA_male_rank : $this->FIFA_female_rank, $this->user, $this->secret));
-		$teams = json_decode($matchSeason, true);
-		$decodeDatas = $teams['results'];
-		
-		foreach ($decodeDatas['items'] as $k => $decodeData) {
-			$decodeData['team']['country_logo'] = $this->team_logo . $decodeData['team']['country_logo'];
-			if ($region_id) {
-				if ($region_id == $decodeData['region_id']) {
-					$datas[] = $decodeData;
-				} else {
-					continue;
-				}
-			} else {
-				$datas[] = $decodeData;
-			}
-		}
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $datas);
-	}
-	
-	public function FIFAFemaleRank()
-	{
-	}
+	private $user = 'mark9527';
+	private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
+	private $teamLogoUrlPrefix = 'https://cdn.sportnanoapi.com/football/team/';
+	private $playerLogoUrlPrefix = 'https://cdn.sportnanoapi.com/football/player/';
+	private $fifaMaleRankURL = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/men?user=%s&secret=%s'; //FIFA男子排名
+	private $fifaFemaleRankURL = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/women?user=%s&secret=%s'; //FIFA女子子排名
 	
 	/**
 	 * 全部赛事 国家分类
-	 * @return bool
+	 * @throws
 	 */
 	public function CategoryCountry()
 	{
-		$categorys = AdminCountryCategory::getInstance()->all();
-		foreach ($categorys as $category) {
-			$countrys = AdminCountryList::getInstance()->where('category_id', $category->category_id)->field(['country_id', 'name_zh', 'logo'])->all();
-			$cate_info = [
-				'category_id' => $category->category_id,
-				'category_name_zh' => $category->name_zh,
-				'country' => $countrys,
-			
-			];
-			
-			$return[] = $cate_info;
-			unset($cate_info);
-		}
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
-	}
-	
-	/**
-	 * 获取赛事
-	 * @return bool
-	 */
-	public function competitionByCid()
-	{
-		$country_id = $this->params['country_id'];
-		$competitions = AdminCompetition::getInstance()
-			->field(['competition_id', 'short_name_zh', 'logo'])
-			->where('country_id', $country_id)
-			->where('type', [1, 2], 'in')
-			->all();
-		
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $competitions);
-	}
-	
-	public function formatValue()
-	{
-		//        $match = AdminMatch::getInstance()->where('competition_id', 82)->all();
-		//        $format = FrontService::handMatch($match, 0, true);
-		//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $format);
-		
-		$matchSeason = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/match/competition?user=%s&secret=%s&id=%s', $this->user, $this->secret, 1));
-		$teams = json_decode($matchSeason, true);
-		$decodeDatas = $teams['results'];
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
-		
-		foreach ($decodeDatas as $item) {
-			$data = [
-				'match_time' => date('Y-m-d H:i:s', $item['match_time']),
-				'home_team' => (AdminTeam::getInstance()->where('team_id', $item['home_team_id'])->get())['name_zh'],
-				'away_team' => (AdminTeam::getInstance()->where('team_id', $item['away_team_id'])->get())['name_zh'],
-			];
-			
-			$times[] = $data;
-		}
-		
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $times);
-	}
-	
-	/**
-	 * 球员详情
-	 * @return bool
-	 */
-	public function getPlayerInfo()
-	{
-		$player_id = $this->params['player_id'];
-		if (!$player_id) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		
-		//基本信息
-		$basic = AdminPlayer::getInstance()->where('player_id', $player_id)->get();
-		
-		if (!$basic) {
-			$this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-		}
-		$type = !empty($this->params['type']) ? $this->params['type'] : 1;
-		if ($type == 1) {
-			if ($team = $basic->getTeam()) {
-				$team_info = ['name_zh' => $team->name_zh, 'logo' => $team->logo];
-			} else {
-				$team_info = [];
-			}
-			$country = $basic->getCountry();
-			//转会
-			$format_history = [];
-			if ($history = AdminPlayerChangeClub::getInstance()->field(['player_id', 'from_team_id', 'to_team_id', 'transfer_type'])->where('player_id', $player_id)->all()) {
-				foreach ($history as $k => $item) {
-					$from_team = $item->fromTeamInfo();
-					if ($from_team) {
-						$from_team_info = ['name_zh' => $from_team->name_zh, 'logo' => $from_team->logo, 'team_id' => $from_team->team_id];
-					}
-					$to_team = $item->ToTeamInfo();
-					if ($to_team) {
-						$to_team_info = ['name_zh' => $to_team->name_zh, 'logo' => $to_team->logo, 'team_id' => $to_team->team_id];
-					}
-					$data['transfer_time'] = date('Y-m-d', $item['transfer_time']);
-					$data['transfer_type'] = $item->transfer_type; //转会类型，1-租借、2-租借结束、3-转会、4-退役、5-选秀、6-已解约、7-已签约、8-未知
-					$data['from_team_info'] = isset($from_team_info) ? $from_team_info : [];
-					$data['to_team_info'] = isset($to_team_info) ? $to_team_info : [];
-					$format_history[] = $data;
-					unset($data);
-				}
-			}
-			$format_player_honor = [];
-			if ($player_honor = AdminPlayerHonorList::getInstance()->field(['honors', 'player_id'])->where('player_id', $basic->player_id)->get()) {
-				$format_player_honor = json_decode($player_honor->honors, true);
-			}
-			//获取球员参加的所有赛季
-			$season = AppFunc::getPlayerSeasons(json_decode($basic->seasons, true));
-			$player_info = [
-				'team_info' => $team_info,
-				'contract_until' => date('Y-m-d', $basic->contract_until),
-				'country_info' => ['name_zh' => $country->name_zh, 'logo' => $country->logo],
-				'user_info' => [
-					'name_zh' => $basic->name_zh,
-					'logo' => $basic->logo,
-					'market_value' => AppFunc::changeToWan($basic->market_value),
-					'age' => $basic->age,
-					'weight' => $basic->weight,
-					'height' => $basic->height,
-					'preferred_foot' => $basic->preferred_foot,
-					'position' => $basic->position,
-					'birthday' => $basic->birthday ? date('Y-m-d', $basic->birthday) : '',
-				],
-				'change_club_history' => isset($format_history) ? $format_history : [],
-				'player_honor' => $format_player_honor,
-				'season_list' => $season ?: [],
-			];
-			$return_data = $player_info;
-		} elseif ($type == 2) {
-			//技术统计
-			$return_data = [];
-			
-			$stat_data = [];
-			
-			$select_season_id = $this->params['select_season_id'];
-			if (!$select_season_id) {
-				$this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES], []);
-			}
-			$res = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get();
-			
-			if ($res && $players_stats = json_decode($res->players_stats, true)) {
-				foreach ($players_stats as $players_stat) {
-					if ($players_stat['player']['id'] == $player_id) {
-						//比赛
-						$stat_data['match']['matches'] = $players_stat['matches']; //出场
-						$stat_data['match']['first'] = $players_stat['first']; //首发
-						$stat_data['match']['minutes_played'] = $players_stat['minutes_played'];//出场时间
-						$stat_data['match']['minutes_played_per_match'] = AppFunc::getAverageData($players_stat['minutes_played'], $players_stat['matches']);//场均时间
-						//进攻
-						$stat_data['goal']['goals'] = $players_stat['goals'];//进球
-						$stat_data['goal']['penalty'] = $players_stat['penalty'];//点球
-						$stat_data['goal']['penalty_per_match'] = AppFunc::getAverageData($players_stat['penalty'], $players_stat['matches']);//场均点球
-						
-						$stat_data['goal']['goals_per_match'] = AppFunc::getAverageData($players_stat['goals'], $players_stat['matches']);//场均进球
-						
-						$stat_data['goal']['cost_time_per_goal'] = AppFunc::getAverageData($players_stat['minutes_played'], $players_stat['goals']);//每球耗时
-						
-						$stat_data['goal']['shots_per_match'] = AppFunc::getAverageData($players_stat['shots'], $players_stat['matches']);//场均射门
-						
-						$stat_data['goal']['shots'] = $players_stat['shots'];//射门总数
-						$stat_data['goal']['was_fouled'] = $players_stat['was_fouled'];//被犯规
-						$stat_data['goal']['shots_on_target_per_match'] = AppFunc::getAverageData($players_stat['shots_on_target'], $players_stat['matches']);//场均射正
-						
-						//组织
-						$stat_data['pass']['assists'] = $players_stat['assists'];//助攻
-						$stat_data['pass']['assists_per_match'] = AppFunc::getAverageData($players_stat['assists'], $players_stat['matches']);//场均助攻
-						
-						$stat_data['pass']['key_passes_per_match'] = AppFunc::getAverageData($players_stat['key_passes'], $players_stat['matches']);//场均关键传球
-						
-						$stat_data['pass']['key_passes'] = $players_stat['key_passes'];//关键传球
-						$stat_data['pass']['passes'] = $players_stat['passes'];//传球
-						$stat_data['pass']['passes_per_match'] = AppFunc::getAverageData($players_stat['passes'], $players_stat['matches']);//传球
-						
-						$stat_data['pass']['passes_accuracy_per_match'] = AppFunc::getAverageData($players_stat['passes_accuracy'], $players_stat['matches']);//场均成功传球
-						
-						$stat_data['pass']['passes_accuracy'] = $players_stat['passes_accuracy'];//成功传球
-						
-						//防守
-						$stat_data['defense']['tackles_per_match'] = AppFunc::getAverageData($players_stat['tackles'], $players_stat['matches']);//场均抢断
-						
-						$stat_data['defense']['tackles'] = $players_stat['tackles'];//场均抢断
-						$stat_data['defense']['interceptions_per_match'] = AppFunc::getAverageData($players_stat['interceptions'], $players_stat['matches']);//场均拦截
-						
-						$stat_data['defense']['interceptions'] = $players_stat['interceptions'];//场均拦截
-						$stat_data['defense']['clearances_per_match'] = AppFunc::getAverageData($players_stat['clearances'], $players_stat['matches']);//场均解围
-						
-						$stat_data['defense']['clearances'] = $players_stat['clearances'];//场均解围
-						$stat_data['defense']['blocked_shots'] = $players_stat['blocked_shots'];//有效阻挡
-						$stat_data['defense']['blocked_shots_per_match'] = AppFunc::getAverageData($players_stat['blocked_shots'], $players_stat['matches']);//场均解围
-						
-						//其他
-						$stat_data['other']['dribble_succ_per_match'] = AppFunc::getAverageData($players_stat['dribble_succ'], $players_stat['matches']); //场均过人成功
-						
-						$stat_data['other']['duels_won_succ_per_match'] = AppFunc::getAverageData($players_stat['duels_won'], $players_stat['matches']); //场均1对1拼抢成功
-						$stat_data['other']['fouls_per_match'] = AppFunc::getAverageData($players_stat['fouls'], $players_stat['matches']); //场均犯规
-						$stat_data['other']['was_fouled_per_match'] = AppFunc::getAverageData($players_stat['was_fouled'], $players_stat['matches']); //场均被犯规
-						$stat_data['other']['yellow_cards_per_match'] = AppFunc::getAverageData($players_stat['yellow_cards'], $players_stat['matches']); //黄牌场均
-						$stat_data['other']['red_cards_per_match'] = AppFunc::getAverageData($players_stat['red_cards'], $players_stat['matches']); //红牌场均
-						break;
-					} else {
-						continue;
-					}
-				}
-				$return_data['stat_data'] = $stat_data;
-			}
-		} else {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_data);
-	}
-	
-	/**
-	 * 球队数据
-	 * @return bool
-	 * @throws Throwable
-	 */
-	public function teamInfo(): bool
-	{
-		// 球队信息
-		$teamId = empty($this->params['team_id']) ? 0 : intval($this->params['team_id']);
-		$team = $teamId > 0 ? Utils::queryHandler(AdminTeam::getInstance(), 'team_id=?', $teamId) : false;
-		if (empty($team)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-		// 赛季 & 当前赛季
-		$season = [];
-		$currentSeasonId = $selectSeasonId = 0;
-		$competitionId = intval($this->params['competition_id']);
-		$competition = Utils::queryHandler(AdminCompetition::getInstance(), 'competition_id=?', $competitionId);
-		if (!empty($competition)) {
-			$season = Utils::queryHandler(AdminSeason::getInstance(), 'competition_id=?', $competitionId, 'id, season_id, year', false);
-			$currentSeasonId = $selectSeasonId = $competition['cur_season_id'];
-		}
-		if (!empty($this->params['select_season_id'])) $selectSeasonId = $this->params['select_season_id'];
-		// 类型
-		$type = 1;
-		if (!empty($this->params['type'])) $type = intval($this->params['type']);
-		switch ($type) {
-			case 1:
-				// 球队荣誉
-				$honors = $honorIds = $honorMapper = $honorIdGroup = [];
-				$tmp = Utils::queryHandler(AdminTeamHonor::getInstance(), 'team_id=?', $teamId);
-				$tmp = empty($tmp) ? [] : json_decode($tmp['honors'], true);
-				foreach ($tmp as $v) {
-					$id = intval($v['honor']['id']);
-					if ($id > 0 && !in_array($id, $honorIds)) $honorIds[] = $id;
-				}
-				// 球队荣誉信息映射
-				if (!empty($honorIds)) $honorMapper = Utils::queryHandler(AdminHonorList::getInstance(),
-					'id IN (' . join(',', $honorIds) . ')', null,
-					'id,logo', false, null, 'id,logo,1');
-				// 球队荣誉信息 分组统计 & 补充数据
-				foreach ($tmp as $v) {
-					$honor = $v['honor'];
-					$honor['logo'] = '';
-					$id = intval($honor['id']);
-					if (!empty($honorMapper[$id])) $honor['logo'] = $honorMapper[$id];
-					// 分组统计
-					if (!in_array($id, $honorIdGroup)) {
-						$honors[$id]['honor'] = $honor;
-						$honors[$id]['count'] = 1;
-						$honorIdGroup[] = $id;
-					} else {
-						$honors[$id]['count'] += 1;
-					}
-					$honors[$id]['season'][] = $v['season'];
-				}
-				// 转会记录
-				$lastYearTimestamp = strtotime(date('Y-m-d 00:00:00', strtotime('-1 year')));
-				$changeInPlayers = Utils::queryHandler(AdminPlayerChangeClub::getInstance(),
-					'to_team_id=? and transfer_time>?', [$teamId, $lastYearTimestamp],
-					'*', false, 'transfer_time desc');
-				$formatChangeInPlayers = FrontService::handChangePlayer($changeInPlayers);
-				$changeOutPlayers = Utils::queryHandler(AdminPlayerChangeClub::getInstance(),
-					'from_team_id=? and transfer_time>?', [$teamId, $lastYearTimestamp],
-					'*', false, 'transfer_time desc');
-				$formatChangeOutPlayers = FrontService::handChangePlayer($changeOutPlayers);
-				//
-				$countryInfo = Utils::queryHandler(AdminCountryList::getInstance(), 'country_id=?', $team['country_id'], 'name_zh');
-				$managerInfo = Utils::queryHandler(AdminManagerList::getInstance(), 'manager_id=?', $team['manager_id'], 'name_zh');
-				// 输出数据
-				$result = [
-					'basic' => [
-						'logo' => $team['logo'],
-						'name_zh' => $team['name_zh'],
-						'website' => $team['website'],
-						'current_season_id' => $currentSeasonId,
-						'foundation_time' => $team['foundation_time'],
-						'foreign_players' => $team['foreign_players'],
-						'national_players' => $team['national_players'],
-						'country' => empty($countryInfo['name_zh']) ? '' : $countryInfo['name_zh'],
-						'manager_name_zh' => empty($managerInfo['name_zh']) ? '' : $managerInfo['name_zh'],
-					], // 球队基本资料
-					'format_change_in_players' => $formatChangeInPlayers,
-					'format_change_out_players' => $formatChangeOutPlayers,
-					'format_honors' => $honors,
-					'season' => $season,
-				];
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
-			case 2:
-				$tableData = $promotion = [];
-				$tmp = Utils::queryHandler(SeasonAllTableDetail::getInstance(), 'season_id=?', $selectSeasonId);
-				if (!empty($tmp)) {
-					$tables = json_decode($tmp['tables'], true);
-					// 晋升信息映射
-					$promotionMapper = [];
-					$tmp = json_decode($tmp['promotions'], true);
-					$tmp = (empty($tmp) || !is_array($tmp)) ? [] : $tmp;
-					foreach ($tmp as $v) {
-						$id = intval($v['id']);
-						$promotionMapper[$id] = $v['name_zh'];
-					}
-					//
-					$promotion = empty($promotionMapper) ? 0 : 1;
-					if ($promotion > 0) {
-						// 球队信息映射
-						$teamMapper = $teamIds = [];
-						$rows = empty($tables[0]['rows']) || !is_array($tables[0]['rows']) ? [] : $tables[0]['rows'];
-						foreach ($rows as $v) {
-							$id = intval($v['team_id']);
-							if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
-						}
-						if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
-							'team_id in (' . join(',', $teamIds) . ')', null,
-							'*', false, null, 'team_id,*,1');
-						
-						foreach ($rows as $v) {
-							$id = intval($v['team_id']);
-							$promotionId = intval($v['promotion_id']);
-							$promotionName = empty($promotionMapper[$promotionId]) ? '' : $promotionMapper[$promotionId];
-							$team = empty($teamMapper[$id]) ? false : $teamMapper[$id];
-							$tableData[] = [
-								'won' => $v['won'],
-								'draw' => $v['draw'],
-								'loss' => $v['loss'],
-								'total' => $v['total'],
-								'goals' => $v['goals'],
-								'points' => $v['points'],
-								'goals_against' => $v['goals_against'],
-								'team_id' => $id,
-								'logo' => empty($team) ? '' : $team['logo'],
-								'name_zh' => empty($team) ? '' : $team['name_zh'],
-								'promotion_id' => $promotionId,
-								'promotion_name_zh' => $promotionName,
-							];
-						}
-					} else {
-						// 球队信息映射
-						$teamMapper = $teamIds = [];
-						foreach ($tables as $v) {
-							foreach ($v['rows'] as $vv) {
-								$id = intval($vv['team_id']);
-								if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
-							}
-						}
-						if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
-							'team_id in (' . join(',', $teamIds) . ')', null,
-							'*', false, null, 'team_id,*,1');
-						//
-						foreach ($tables as $v) {
-							$rows = empty($v['rows']) || !is_array($v['rows']) ? [] : $v['rows'];
-							$items = [];
-							foreach ($rows as $vv) {
-								$id = intval($vv['team_id']);
-								$team = empty($teamMapper[$id]) ? false : $teamMapper[$id];
-								
-								$items[] = [
-									'team_id' => $id,
-									'logo' => empty($team) ? '' : $team['logo'],
-									'name_zh' => empty($team) ? '' : $team['name_zh'],
-									'total' => $vv['total'],
-									'won' => $vv['won'],
-									'draw' => $vv['draw'],
-									'loss' => $vv['loss'],
-									'goals' => $vv['goals'],
-									'points' => $vv['points'],
-									'goals_against' => $vv['goals_against'],
-								];
-							}
-							$tableData[] = ['group' => $v['group'], 'list' => $items];
-						}
-					}
-				}
-				//赛制说明
-				$competitionDescribe = Utils::queryHandler(AdminCompetitionRuleList::getInstance(),
-					"json_contains(season_ids,'{$selectSeasonId}') and competition_id=?", $competitionId, 'text');
-				$competitionDescribe = empty($competitionDescribe['text']) ? '' : $competitionDescribe['text'];
-				// 输出数据
-				$result = [
-					'table' => $tableData,
-					'competition_describe' => $competitionDescribe,
-					'current_season_id' => $currentSeasonId,
-					'promotion' => $promotion,
-				];
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
-			case 3:
-				// 输出数据
-				$result = [];
-				$tmp = Utils::queryHandler(SeasonMatchList::getInstance(),
-					'season_id=? and (home_team_id=? or away_team_id=?)', [$selectSeasonId, $teamId, $teamId],
-					'*', false);
-				if (!empty($tmp)) {
-					$competitionIds = $teamIds = [];
-					array_walk($tmp, function ($v, $k) use (&$competitionIds, &$teamIds) {
-						$id = intval($v['competition_id']);
-						if ($id > 0 && !in_array($id, $competitionIds)) $competitionIds[] = $id;
-						$id = intval($v['home_team_id']);
-						if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
-						$id = intval($v['away_team_id']);
-						if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
-					});
-					$competitionMapper = empty($competitionIds) ? [] : Utils::queryHandler(AdminCompetition::getInstance(),
-						'competition_id in (' . join(',', $competitionIds) . ')', null,
-						'competition_id,short_name_zh', false, null, 'competition_id,short_name_zh,1');
-					$teamMapper = empty($teamIds) ? [] : Utils::queryHandler(AdminTeam::getInstance(),
-						'team_id in (' . join(',', $teamIds) . ')', null,
-						'team_id,name_zh', false, null, 'team_id,name_zh,1');
-					foreach ($tmp as $v) {
-						$cid = intval($v['competition_id']);
-						$htId = intval($v['home_team_id']);
-						$atId = intval($v['away_team_id']);
-						$decodeHomeScore = json_decode($v['home_scores'], true);
-						$decodeAwayScore = json_decode($v['away_scores'], true);
-						$tmp = [];
-						[$tmp['home_scores'], $tmp['away_scores']] = AppFunc::getFinalScore($decodeHomeScore, $decodeAwayScore);
-						[$tmp['half_home_scores'], $tmp['half_away_scores']] = AppFunc::getHalfScore($decodeHomeScore, $decodeAwayScore);
-						[$tmp['home_corner'], $tmp['away_corner']] = AppFunc::getCorner($decodeHomeScore, $decodeAwayScore);//角球
-						$result[] = array_merge($tmp, [
-							'match_id' => intval($v['id']),
-							'match_time' => date('Y-m-d', $v['match_time']),
-							'home_team_name_zh' => empty($teamMapper[$htId]) ? '' : $teamMapper[$htId],
-							'away_team_name_zh' => empty($teamMapper[$atId]) ? '' : $teamMapper[$atId],
-							'competition_short_name_zh' => empty($competitionMapper[$cid]) ? '' : $competitionMapper[$cid],
-						]);
-					}
-				}
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
-			case 4:
-				$teamStr = $playerStr = '';
-				$seasonTeamPlayerKey = 'season_team_player_' . $selectSeasonId;
-				$tmp = Cache::get($seasonTeamPlayerKey);
-				if (empty($tmp)) {
-					$tmp = Utils::queryHandler(SeasonTeamPlayer::getInstance(), 'season_id=?', $selectSeasonId, 'teams_stats,players_stats');
-					if (!empty($tmp)) {
-						$teamStr = preg_replace('/\[?(,\s)?\{\"team\":\s\{\"id\":\s(?!' . $teamId . ')\d+,((?!,\s\{\"team\":).)+/', '', $tmp['teams_stats']);
-						$teamStr = trim($teamStr, '[,]');
-						$playerStr = preg_replace('/\[?(,\s)?\{\"team\":\s\{\"id\":\s(?!' . $teamId . ')\d+,((?!,\s\{\"team\":).)+/', '', $tmp['players_stats']);
-						$playerStr = '[' . trim($playerStr, '[,]') . ']';
-						Cache::set($seasonTeamPlayerKey, ['teams' => $teamStr, 'players' => $playerStr], 300);
-					}
-				} else {
-					$teamStr = $tmp['teams'];
-					$playerStr = $tmp['players'];
-				}
-				// 获取球队信息
-				if (empty($teamStr)) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
-				$teamInfo = json_decode($teamStr, true);
-				if (empty($teamInfo['matches'])) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
-				$teamMatchNum = $teamInfo['matches'];
-				//球队数据
-				$teamData = [
-					'goals' => !empty($teamInfo['goals']) ? $teamInfo['goals'] : '0.0', //进球
-					'penalty' => !empty($teamInfo['penalty']) ? $teamInfo['penalty'] : '0.0',//点球
-					'shots_per_match' => !empty($teamInfo['shots']) ? AppFunc::getAverageData($teamInfo['shots'], $teamMatchNum) : '0',//场均射门
-					'shots_on_target_per_match' => !empty($teamInfo['shots_on_target']) ? AppFunc::getAverageData($teamInfo['shots_on_target'], $teamMatchNum) : '0.0',//场均射正
-					'penalty_per_match' => !empty($teamInfo['penalty']) ? AppFunc::getAverageData($teamInfo['penalty'], $teamMatchNum) : '0.0',//场均角球
-					'passes_per_match' => !empty($teamInfo['passes']) ? AppFunc::getAverageData($teamInfo['passes'], $teamMatchNum) : '0.0',//场均传球
-					'key_passes_per_match' => !empty($teamInfo['key_passes']) ? AppFunc::getAverageData($teamInfo['key_passes'], $teamMatchNum) : '0.0',//场均关键传球
-					'passes_accuracy_per_match' => !empty($teamInfo['passes_accuracy']) ? AppFunc::getAverageData($teamInfo['passes_accuracy'], $teamMatchNum) : '0.0',//场均成功传球
-					'crosses_per_match' => !empty($teamInfo['crosses']) ? AppFunc::getAverageData($teamInfo['crosses'], $teamMatchNum) : '0.0',//场均过人
-					'crosses_accuracy_per_match' => !empty($teamInfo['crosses_accuracy']) ? AppFunc::getAverageData($teamInfo['crosses_accuracy'], $teamMatchNum) : '0.0',//场均成功过人
-					'goals_against' => !empty($teamInfo['goals_against']) ? $teamInfo['goals_against'] : '0.0',//失球
-					'fouls' => !empty($teamInfo['fouls']) ? $teamInfo['fouls'] : '0.0',//犯规
-					'was_fouled' => !empty($teamInfo['was_fouled']) ? $teamInfo['was_fouled'] : '0.0',//被犯规
-					'assists' => !empty($teamInfo['assists']) ? $teamInfo['assists'] : 0,//助攻
-					'red_cards' => !empty($teamInfo['red_cards']) ? $teamInfo['red_cards'] : '0.0',//红牌
-					'yellow_cards' => !empty($teamInfo['yellow_cards']) ? $teamInfo['yellow_cards'] : '0.0',//黄牌
-				];
-				// 队员数据
-				$keyPlayers = $players = [];
-				$items = json_decode($playerStr, true);
-				if (!empty($items)) {
-					$mostGoals = $mostAssists = $mostShots = $mostShotsOnTarget = [];
-					$mostPasses = $mostPassesAccuracy = $mostKeyPasses = [];
-					$mostInterceptions = $mostClearances = $mostSaves = [];
-					$mostYellowCards = $mostRedCards = $mostMinutesPlayed = [];
-					$handler = function ($item, $field, $target) {
-						if (!empty($item[$field]) && (empty($target) || intval($item[$field]) >= intval($target[$field]))) $target = $item;
-						return $target;
-					};
-					foreach ($items as $v) {
-						$playInfo = $v['player'];
-						$players[$playInfo['id']] = $playInfo;
-						$mostGoals = $handler($v, 'goals', $mostGoals);
-						$mostAssists = $handler($v, 'assists', $mostAssists);
-						$mostShots = $handler($v, 'shots', $mostShots);
-						$mostShotsOnTarget = $handler($v, 'shots_on_target', $mostShotsOnTarget);
-						$mostPasses = $handler($v, 'passes', $mostPasses);
-						$mostPassesAccuracy = $handler($v, 'passes_accuracy', $mostPassesAccuracy);
-						$mostKeyPasses = $handler($v, 'key_passes', $mostKeyPasses);
-						$mostInterceptions = $handler($v, 'interceptions', $mostInterceptions);
-						$mostClearances = $handler($v, 'clearances', $mostClearances);
-						$mostSaves = $handler($v, 'saves', $mostSaves);
-						$mostYellowCards = $handler($v, 'yellow_cards', $mostYellowCards);
-						$mostRedCards = $handler($v, 'red_cards', $mostRedCards);
-						$mostMinutesPlayed = $handler($v, 'minutes_played', $mostMinutesPlayed);
-					}
-					$keyPlayers = [
-						'most_goals' => FrontService::formatKeyPlayer($mostGoals, 'goals'),
-						'most_assists' => FrontService::formatKeyPlayer($mostAssists, 'assists'),
-						'most_shots' => FrontService::formatKeyPlayer($mostShots, 'shots'),
-						'most_shots_on_target' => FrontService::formatKeyPlayer($mostShotsOnTarget, 'shots_on_target'),
-						'most_passes' => FrontService::formatKeyPlayer($mostPasses, 'passes'),
-						'most_passes_accuracy' => FrontService::formatKeyPlayer($mostPassesAccuracy, 'passes_accuracy'),
-						'most_key_passes' => FrontService::formatKeyPlayer($mostKeyPasses, 'key_passes'),
-						'most_interceptions' => FrontService::formatKeyPlayer($mostInterceptions, 'interceptions'),
-						'most_clearances' => FrontService::formatKeyPlayer($mostClearances, 'clearances'),
-						'most_saves' => FrontService::formatKeyPlayer($mostSaves, 'saves'),
-						'most_yellow_cards' => FrontService::formatKeyPlayer($mostYellowCards, 'yellow_cards'),
-						'most_red_cards' => FrontService::formatKeyPlayer($mostRedCards, 'red_cards'),
-						'most_minutes_played' => FrontService::formatKeyPlayer($mostMinutesPlayed, 'minutes_played'),
-					];
-				}
-				// 输出数据
-				$result = ['team_data' => $teamData, 'key_player' => $keyPlayers];
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
-			case 5: //阵容
-				// 战队信息映射
-				$players = $playerIds = [];
-				$tmp = Utils::queryHandler(AdminTeamLineUp::getInstance(), 'team_id=?', $teamId, 'squad');
-				$tmp = json_decode($tmp['squad'], true);
-				foreach ($tmp as $v) {
-					$id = intval($v['player']['id']);
-					if (!in_array($id, $playerIds)) $playerIds[] = $id;
-					$players[$id] = [
-						'player_id' => $id,
-						'logo' => '',
-						'position' => $v['position'],
-						'shirt_number' => $v['shirt_number'],
-						'age' => 0,
-						'weight' => 0,
-						'height' => 0,
-						'nationality' => '',
-						'format_market_value' => '',
-						'name_zh' => $v['player']['name_zh'],
-					];
-				}
-				$playerMapper = [];
-				if (!empty($playerIds)) $playerMapper = Utils::queryHandler(AdminPlayer::getInstance(),
-					'player_id in (' . join(',', $playerIds) . ')', null,
-					'player_id,market_value,logo,age,weight,height,nationality', false, null, 'player_id,*,1');
-				// 输出数据
-				$result = [];
-				foreach ($players as $k => $v) {
-					$id = $v['player_id'];
-					$position = $v['position'];
-					unset($v['position']);
-					if (!empty($playerMapper[$id])) {
-						$playerInfo = $playerMapper[$id];
-						$v['age'] = $playerInfo['age'];
-						$v['logo'] = $playerInfo['logo'];
-						$v['weight'] = $playerInfo['weight'];
-						$v['height'] = $playerInfo['height'];
-						$v['nationality'] = $playerInfo['nationality'];
-						$v['format_market_value'] = AppFunc::changeToWan($playerInfo['market_value']);
-					}
-					$result[$position][] = $v;
-				}
-				$managerInfo = Utils::queryHandler(AdminManagerList::getInstance(), 'manager_id=?', $team['manager_id'], 'name_zh,logo');
-				$result['C'] = [
-					'name_zh' => empty($managerInfo['name_zh']) ? '' : $managerInfo['name_zh'],
-					'logo' => $this->player_logo . (empty($managerInfo['logo']) ? '' : $managerInfo['logo']),
-					'manager_id' => $team['manager_id'],
-				];
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
-		}
-	}
-	
-	/**
-	 * 球队转入转出记录
-	 * @return bool
-	 * @throws Throwable
-	 */
-	public function teamChangeClubHistory(): bool
-	{
-		// 参数处理
-		$teamId = empty($this->params['team_id']) || intval($this->params['team_id']) < 1 ? 0 : intval($this->params['team_id']);
-		$type = empty($this->params['type']) || intval($this->params['type']) < 1 ? 0 : intval($this->params['type']);
-		$page = empty($this->params['page']) || intval($this->params['page']) < 1 ? 1 : intval($this->params['page']);
-		$size = empty($this->params['size']) || intval($this->params['size']) < 1 ? 10 : intval($this->params['size']);
-		
-		// 球队信息
-		$team = $teamId > 0 ? Utils::queryHandler(AdminTeam::getInstance(), 'team_id=?', $teamId) : false;
-		if (empty($team)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		
 		// 输出数据
 		$result = [];
-		if ($type == 1) {
-			$data = Utils::queryHandler(AdminPlayerChangeClub::getInstance(), 'to_team_id=?', $teamId,
-				'*', false, 'transfer_time desc', null, $page, $size);
-			$list = FrontService::handChangePlayer($data['list']);
-			$result = ['list' => $list, 'total' => $data['total']];
-		} elseif ($type == 2) {
-			$data = Utils::queryHandler(AdminPlayerChangeClub::getInstance(), 'from_team_id=?', $teamId,
-				'*', false, 'transfer_time desc', null, $page, $size);
-			$list = FrontService::handChangePlayer($data['list']);
-			$result = ['list' => $list, 'total' => $data['total']];
+		$list = AdminCountryCategory::getInstance()->all();
+		foreach ($list as $v) {
+			$id = intval($v['category_id']);
+			if ($id > 0) $result[] = [
+				'category_id' => $id,
+				'category_name_zh' => $v['name_zh'],
+				'country' => AdminCountryList::getInstance()->findAll(['category_id' => $id], 'country_id,name_zh,logo'),
+			];
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
 	/**
-	 * 热搜赛事
-	 * @return bool
-	 * @throws Throwable
+	 * 获取赛事
+	 * @throws
 	 */
-	public function hotSearchCompetition(): bool
+	public function competitionByCid()
 	{
-		$list = Utils::queryHandler(AdminSysSettings::getInstance(),
-			'sys_key=?', [AdminSysSettings::SETTING_HOT_SEARCH_COMPETITION], 'sys_value');
-		$list = empty($list['sys_value']) ? [] : json_decode($list['sys_value'], true);
-		if (!empty($list)) {
-			$list = Utils::queryHandler(AdminCompetition::getInstance(),
-				'competition_id in(' . join(',', $list) . ')', null,
-				'competition_id,short_name_zh,logo', false);
+		// 获取赛事信息
+		$countryId = empty($this->params['country_id']) || intval($this->params['country_id']) < 1 ? 0 : intval($this->params['country_id']);
+		$where = ['country_id' => $countryId, 'type' => [[1, 2], 'in']];
+		$result = AdminCompetition::getInstance()->findAll($where, 'competition_id,short_name_zh,logo');
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+	}
+	
+	/**
+	 * 最新FIFA女子男子排名
+	 * @throws
+	 */
+	public function FIFAMaleRank()
+	{
+		$params = $this->params;
+		//区域id，1-欧洲足联、2-南美洲足联、3-中北美洲及加勒比海足协、4-非洲足联、5-亚洲足联、6-大洋洲足联
+		$regionId = empty($params['region_id']) || intval($params['region_id']) < 1 ? 0 : intval($params['region_id']);
+		$isMale = empty($params['is_male']) || intval($params['is_male']) < 1 ? 0 : 1;
+		$url = sprintf($isMale ? $this->fifaMaleRankURL : $this->fifaFemaleRankURL, $this->user, $this->secret);
+		$tmp = Tool::getInstance()->postApi($url);
+		$tmp = empty($tmp) ? null : json_decode($tmp, true);
+		$list = empty($tmp['results']) ? [] : $tmp['results'];
+		// 输出数据
+		$result = [];
+		foreach ($list as $v) {
+			if ($regionId > 0 && $regionId != $v['region_id']) continue;
+			if ($regionId > 0) $v['team']['country_logo'] = $this->teamLogoUrlPrefix . $v['team']['country_logo'];
+			$result[] = $v;
 		}
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
 	/**
 	 * 赛事信息
-	 * @return bool
-	 * @throws Throwable
+	 * @throws
 	 */
-	public function competitionInfo(): bool
+	public function competitionInfo()
 	{
+		$params = $this->params;
 		// 配置数据
-		$data = Utils::queryHandler(AdminSysSettings::getInstance(),
-			'sys_key=?', [AdminSysSettings::SETTING_DATA_COMPETITION], 'sys_value');
-		$data = empty($data['sys_value']) ? [] : json_decode($data['sys_value'], true);
+		$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::SETTING_DATA_COMPETITION], 'sys_value');
+		$config = empty($config['sys_value']) ? [] : json_decode($config['sys_value'], true);
 		// 赛事数据
-		$competitionId = empty($data[0]) || intval($data[0]) < 1 ? 0 : intval($data[0]);
-		if (!empty($this->params['competition_id']) && intval($this->params['competition_id']) > 0) {
-			$competitionId = intval($this->params['competition_id']);
-		}
+		$competitionId = empty($config[0]) || intval($config[0]) < 1 ? 0 : intval($config[0]);
+		if (!empty($params['competition_id']) && intval($params['competition_id']) > 0) $competitionId = intval($params['competition_id']);
 		if ($competitionId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		$competition = Utils::queryHandler(AdminCompetition::getInstance(), 'competition_id=?', $competitionId);
+		$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $competitionId]);
 		if (empty($competition)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		//
 		$selectSeasonId = intval($competition['cur_season_id']);
-		if (!empty($this->params['season_id']) && intval($this->params['season_id']) > 0) {
-			$selectSeasonId = intval($this->params['season_id']);
-		}
+		if (!empty($params['season_id']) && intval($params['season_id']) > 0) $selectSeasonId = intval($params['season_id']);
 		// 类型
-		$type = intval($this->params['type']); //0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队
+		$type = empty($params['type']) || intval($params['type']) < 0 ? 0 : intval($params['type']); //0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队
 		if ($type == 1) { // 积分榜
 			// 输出数据
-			$result = [
-				'data' => [],
-				'promotion' => 0,
-				'competition_describe' => '',
-			];
+			$result = ['data' => [], 'promotion' => 0, 'competition_describe' => ''];
 			// 赛季数据
-			$result['season_list'] = Utils::queryHandler(AdminSeason::getInstance(), 'competition_id=?', $competitionId, '*', false);
+			$result['season_list'] = $competitionId < 1 ? [] : AdminSeason::getInstance()->findAll(['competition_id' => $competitionId]);
 			// 赛事描述
 			$competitionDescribe = Cache::get('competition_describe_' . $selectSeasonId);
 			if (empty($competitionDescribe)) {
@@ -801,7 +129,7 @@ class DataApi extends FrontUserController
 			}
 			$result['competition_describe'] = $competitionDescribe;
 			//积分榜
-			$tmp = Utils::queryHandler(SeasonAllTableDetail::getInstance(), 'season_id=?', $selectSeasonId);
+			$tmp = SeasonAllTableDetail::getInstance()->findOne(['season_id' => $selectSeasonId]);
 			if (!empty($tmp)) {
 				$promotions = json_decode($tmp['promotions'], true);
 				$tables = json_decode($tmp['tables'], true);
@@ -905,32 +233,29 @@ class DataApi extends FrontUserController
 			$groupId = 1;
 			if (!empty($this->params['group_id']) && intval($this->params['group_id']) > 0) $groupId = intval($this->params['group_id']);
 			// 比赛信息
-			$tmp = Utils::queryHandler(SeasonMatchList::getInstance(), 'season_id=?', $selectSeasonId, '*', false);
-			
+			$tmp = SeasonMatchList::getInstance()->findAll(['season_id' => $selectSeasonId]);
 			foreach ($tmp as $v) {
 				$round = json_decode($v['round'], true);
 				$isOk = intval($round['stage_id']) == $stageId && (intval($round['round_num']) == $roundId || intval($round['group_num']) == $groupId);
-				
 				if (!$isOk) continue;
-				
 				$decodeHomeScore = json_decode($v['home_scores'], true);
 				$decodeAwayScore = json_decode($v['away_scores'], true);
-				$data = [];
-				$data['match_id'] = intval($v['id']);
-				$data['match_time'] = date('Y-m-d H:i:s', $v['match_time']);
-				$data['home_team_name_zh'] = $v['home_team_name'];
-				$data['away_team_name_zh'] = $v['away_team_name'];
-				$data['status_id'] = $v['status_id'];
-				[$data['home_scores'], $data['away_scores']] = AppFunc::getFinalScore($decodeHomeScore, $decodeAwayScore);
-				[$data['half_home_scores'], $data['half_away_scores']] = AppFunc::getHalfScore($decodeHomeScore, $decodeAwayScore);
-				[$data['home_corner'], $data['away_corner']] = AppFunc::getCorner($decodeHomeScore, $decodeAwayScore);
+				$config = [];
+				$config['match_id'] = intval($v['id']);
+				$config['status_id'] = $v['status_id'];
+				$config['home_team_name_zh'] = $v['home_team_name'];
+				$config['away_team_name_zh'] = $v['away_team_name'];
+				$config['match_time'] = date('Y-m-d H:i:s', $v['match_time']);
+				[$config['home_corner'], $config['away_corner']] = AppFunc::getCorner($decodeHomeScore, $decodeAwayScore);
+				[$config['home_scores'], $config['away_scores']] = AppFunc::getFinalScore($decodeHomeScore, $decodeAwayScore);
+				[$config['half_home_scores'], $config['half_away_scores']] = AppFunc::getHalfScore($decodeHomeScore, $decodeAwayScore);
 				//list($data['home_scores'], $data['away_scores'], $data['half_home_scores'], $data['half_away_scores'], $data['home_corner'], $data['away_corner']) = AppFunc::getAllScoreType($decode_home_score, $decode_away_score);
-				$result['match_list'][] = $data;
+				$result['match_list'][] = $config;
 			}
 		} else { // 最佳球员
 			// 输出数据
 			$result = [];
-			$tmp = Utils::queryHandler(SeasonTeamPlayer::getInstance(), 'season_id=?', $selectSeasonId, 'players_stats,teams_stats');
+			$tmp = SeasonTeamPlayer::getInstance()->findOne(['season_id' => $selectSeasonId], 'players_stats,teams_stats');
 			if ($type == 3) {
 				$tmp = json_decode($tmp['players_stats'], true);
 				if (!empty($tmp)) array_walk($tmp, function ($v, $k) use (&$result) {
@@ -980,48 +305,629 @@ class DataApi extends FrontUserController
 	}
 	
 	/**
-	 * 关键词搜索
-	 * @return bool
-	 * @throws Throwable
+	 * 数据中心推荐热门赛事
+	 * @throws
 	 */
-	public function contentByKeyWord(): bool
+	public function getHotCompetition()
 	{
-		// 关键字
-		$keywords = isset($this->params['key_word']) ? trim($this->params['key_word']) : '';
-		if (empty($keywords)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		$keywords = '%' . $keywords . '%';
-		// 参数整理
-		$type = empty($this->params['type']) || intval($this->params['type']) < 1 ? 0 : intval($this->params['type']);
-		$page = empty($this->params['page']) || intval($this->params['page']) < 1 ? 1 : intval($this->params['page']);
-		$size = empty($this->params['size']) || intval($this->params['size']) < 1 ? 10 : intval($this->params['size']);
+		// 配置信息
+		$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::SETTING_DATA_COMPETITION], 'sys_value');
+		$competitionIds = empty($config) ? [] : json_decode($config['sys_value'], true);
 		// 输出数据
-		if ($type == 1) { //赛事
-			$result = Utils::queryHandler(AdminCompetition::getInstance(),
-				'name_zh like ? or short_name_zh like ?', [$keywords, $keywords],
-				'competition_id,name_zh,short_name_zh,logo', false, 'competition_id desc', null, $page, $size);
-		} elseif ($type == 2) { //球队
-			$result = Utils::queryHandler(AdminTeam::getInstance(),
-				'name_zh like ?', [$keywords],
-				'team_id,name_zh,logo', false, 'team_id desc', null, $page, $size);
-		} elseif ($type == 3) { //球员
-			$result = Utils::queryHandler(AdminPlayer::getInstance(),
-				'name_zh like ?', [$keywords],
-				'player_id,name_zh,logo', false, 'market_value desc', null, $page, $size);
+		$result = [];
+		foreach ($competitionIds as $id) {
+			$id = intval($id);
+			$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $id]);
+			if (empty($competition)) continue;
+			$result[] = [
+				'competition_id' => $id,
+				'seasons' => $competition->getSeason(),
+				'logo' => empty($competition['logo']) ? '' : $competition['logo'],
+				'short_name_zh' => empty($competition['short_name_zh']) ? '' : $competition['short_name_zh'],
+			];
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
 	/**
-	 * @return bool
-	 * @throws Throwable
+	 * 球员详情
+	 * @throws
 	 */
-	public function getContinentCompetition(): bool
+	public function getPlayerInfo()
 	{
-		$categoryId = empty($this->params['category_id']) || intval($this->params['category_id']) < 1 ? 0 : intval($this->params['category_id']);
+		// 参数校验
+		$params = $this->params;
+		$playerId = empty($params['player_id']) || intval($params['player_id']) < 1 ? 0 : intval($params['player_id']);
+		if ($playerId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 球员信息
+		$player = AdminPlayer::getInstance()->findOne(['player_id' => $playerId]);
+		if (empty($player)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+		// 类型校验
+		$type = empty($params['type']) || intval($params['type']) < 2 ? 1 : intval($params['type']);
+		if ($type != 1 && $type != 2) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 填充数据
+		if ($type == 1) {
+			// 输出数据
+			$result = [
+				'team_info' => [],
+				'season_list' => [],
+				'player_honor' => [],
+				'country_info' => [],
+				'change_club_history' => [],
+				'user_info' => [
+					'age' => $player['age'],
+					'logo' => $player['logo'],
+					'weight' => $player['weight'],
+					'height' => $player['height'],
+					'name_zh' => $player['name_zh'],
+					'position' => $player['position'],
+					'preferred_foot' => $player['preferred_foot'],
+					'market_value' => AppFunc::changeToWan($player['market_value']),
+					'birthday' => empty($player['birthday']) ? '' : date('Y-m-d', $player['birthday']),
+				],
+				'contract_until' => date('Y-m-d', $player['contract_until']),
+			];
+			// 球员参加的所有赛季
+			$season = AppFunc::getPlayerSeasons(json_decode($player['seasons'], true));
+			if (!empty($season)) $result['season_list'] = $season;
+			// 球队信息
+			$team = $player->getTeam();
+			if (!empty($team)) $result['team_info'] = ['name_zh' => $team['name_zh'], 'logo' => $team['logo']];
+			// 地区信息
+			$country = $player->getCountry();
+			if (!empty($country)) $result['country_info'] = ['name_zh' => $country['name_zh'], 'logo' => $country['logo']];
+			// 转会历史
+			$tmp = AdminPlayerChangeClub::getInstance()->findAll(['player_id' => $playerId], 'player_id,from_team_id,to_team_id,transfer_type');
+			if (!empty($tmp)) {
+				foreach ($tmp as $v) {
+					$toTeam = $v->ToTeamInfo();
+					if (!empty($toTeam)) $toTeam = ['name_zh' => $toTeam['name_zh'], 'logo' => $toTeam['logo'], 'team_id' => $toTeam['team_id']];
+					$fromTeam = $v->fromTeamInfo();
+					if (!empty($fromTeam)) $fromTeam = ['name_zh' => $fromTeam['name_zh'], 'logo' => $fromTeam['logo'], 'team_id' => $fromTeam['team_id']];
+					$result['change_club_history'][] = [
+						'to_team_info' => empty($toTeam) ? [] : $toTeam,
+						'from_team_info' => empty($fromTeam) ? [] : $fromTeam,
+						'transfer_time' => date('Y-m-d', $v['transfer_time']),
+						'transfer_type' => $v['transfer_type'], // 转会类型 1租借 2租借结束 3转会 4退役 5选秀 6已解约 7已签约 8未知
+					];
+				}
+			}
+			// 荣誉清单
+			$tmp = AdminPlayerHonorList::getInstance()->findOne(['player_id' => $playerId], 'honors');
+			if (!empty($tmp)) $result['player_honor'] = json_decode($tmp['honors'], true);
+		} else { //技术统计
+			$seasonId = empty($params['select_season_id']) || intval($params['select_season_id']) < 1 ? 0 : intval($params['select_season_id']);
+			if ($seasonId < 1) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES], []);
+			// 输出数据
+			$result = ['stat_data' => []];
+			$playerStat = SeasonTeamPlayer::getInstance()->findOne(['season_id' => $seasonId]);
+			$playerStat = empty($playerStat['players_stats']) ? [] : json_decode($playerStat['players_stats'], true);
+			foreach ($playerStat as $v) {
+				// 是否忽略
+				$ignore = empty($v['player']['id']) || intval($v['player']['id']) != $playerId;
+				if ($ignore) continue;
+				// 比赛
+				$result['stat_data']['match']['first'] = $v['first']; //首发
+				$result['stat_data']['match']['matches'] = $v['matches']; //出场
+				$result['stat_data']['match']['minutes_played'] = $v['minutes_played']; //出场时间
+				$result['stat_data']['match']['minutes_played_per_match'] = AppFunc::getAverageData($v['minutes_played'], $v['matches']); //场均时间
+				// 进攻
+				$result['stat_data']['goal']['goals'] = $v['goals']; //进球
+				$result['stat_data']['goal']['shots'] = $v['shots']; //射门总数
+				$result['stat_data']['goal']['penalty'] = $v['penalty']; //点球
+				$result['stat_data']['goal']['was_fouled'] = $v['was_fouled']; //被犯规
+				$result['stat_data']['goal']['goals_per_match'] = AppFunc::getAverageData($v['goals'], $v['matches']); //场均进球
+				$result['stat_data']['goal']['shots_per_match'] = AppFunc::getAverageData($v['shots'], $v['matches']); //场均射门
+				$result['stat_data']['goal']['penalty_per_match'] = AppFunc::getAverageData($v['penalty'], $v['matches']); //场均点球
+				$result['stat_data']['goal']['cost_time_per_goal'] = AppFunc::getAverageData($v['minutes_played'], $v['goals']); //每球耗时
+				$result['stat_data']['goal']['shots_on_target_per_match'] = AppFunc::getAverageData($v['shots_on_target'], $v['matches']); //场均射正
+				//组织
+				$result['stat_data']['pass']['passes'] = $v['passes']; //传球
+				$result['stat_data']['pass']['assists'] = $v['assists']; //助攻
+				$result['stat_data']['pass']['key_passes'] = $v['key_passes']; //关键传球
+				$result['stat_data']['pass']['passes_accuracy'] = $v['passes_accuracy']; //成功传球
+				$result['stat_data']['pass']['passes_per_match'] = AppFunc::getAverageData($v['passes'], $v['matches']); //传球
+				$result['stat_data']['pass']['assists_per_match'] = AppFunc::getAverageData($v['assists'], $v['matches']); //场均助攻
+				$result['stat_data']['pass']['key_passes_per_match'] = AppFunc::getAverageData($v['key_passes'], $v['matches']); //场均关键传球
+				$result['stat_data']['pass']['passes_accuracy_per_match'] = AppFunc::getAverageData($v['passes_accuracy'], $v['matches']); //场均成功传球
+				//防守
+				$result['stat_data']['defense']['tackles'] = $v['tackles']; //场均抢断
+				$result['stat_data']['defense']['clearances'] = $v['clearances']; //场均解围
+				$result['stat_data']['defense']['blocked_shots'] = $v['blocked_shots']; //有效阻挡
+				$result['stat_data']['defense']['interceptions'] = $v['interceptions']; //场均拦截
+				$result['stat_data']['defense']['tackles_per_match'] = AppFunc::getAverageData($v['tackles'], $v['matches']); //场均抢断
+				$result['stat_data']['defense']['clearances_per_match'] = AppFunc::getAverageData($v['clearances'], $v['matches']); //场均解围
+				$result['stat_data']['defense']['interceptions_per_match'] = AppFunc::getAverageData($v['interceptions'], $v['matches']); //场均拦截
+				$result['stat_data']['defense']['blocked_shots_per_match'] = AppFunc::getAverageData($v['blocked_shots'], $v['matches']); //场均解围
+				//其他
+				$result['stat_data']['other']['fouls_per_match'] = AppFunc::getAverageData($v['fouls'], $v['matches']); //场均犯规
+				$result['stat_data']['other']['red_cards_per_match'] = AppFunc::getAverageData($v['red_cards'], $v['matches']); //红牌场均
+				$result['stat_data']['other']['was_fouled_per_match'] = AppFunc::getAverageData($v['was_fouled'], $v['matches']); //场均被犯规
+				$result['stat_data']['other']['yellow_cards_per_match'] = AppFunc::getAverageData($v['yellow_cards'], $v['matches']); //黄牌场均
+				$result['stat_data']['other']['dribble_succ_per_match'] = AppFunc::getAverageData($v['dribble_succ'], $v['matches']); //场均过人成功
+				$result['stat_data']['other']['duels_won_succ_per_match'] = AppFunc::getAverageData($v['duels_won'], $v['matches']); //场均1对1拼抢成功
+				break;
+			}
+		}
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+	}
+	
+	/**
+	 * 球队数据
+	 * @throws
+	 */
+	public function teamInfo()
+	{
+		$params = $this->params;
+		// 类型校验
+		$type = empty($params['type']) || intval($params['type']) < 1 ? 1 : intval($params['type']);
+		if (!in_array($type, [1, 2, 3, 4, 5])) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+		// 球队信息
+		$teamId = empty($params['team_id']) || intval($params['team_id']) < 1 ? 0 : intval($params['team_id']);
+		$team = $teamId < 1 ? null : AdminTeam::getInstance()->findOne(['team_id' => $teamId]);
+		if (empty($team)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+		// 赛季信息
+		$season = [];
+		$currentSeasonId = $selectSeasonId = 0;
+		$competitionId = empty($params['competition_id']) || intval($params['competition_id']) < 1 ? 0 : intval($params['competition_id']);
+		$competition = $competitionId < 1 ? null : AdminCompetition::getInstance()->findOne(['competition_id' => $competitionId]);
+		if (!empty($competition)) {
+			$season = AdminSeason::getInstance()->findAll(['competition_id' => $competitionId], 'id,season_id,year');
+			$currentSeasonId = $selectSeasonId = intval($competition['cur_season_id']);
+		}
+		if (!empty($params['select_season_id']) && intval($params['select_season_id']) > 0) $selectSeasonId = intval($params['select_season_id']);
+		switch ($type) {
+			case 1:
+				$country = $team->getCountry();
+				$manager = $team->getManager();
+				// 输出数据
+				$result = [
+					'basic' => [
+						'logo' => $team['logo'],
+						'name_zh' => $team['name_zh'],
+						'website' => $team['website'],
+						'current_season_id' => $currentSeasonId,
+						'foundation_time' => $team['foundation_time'],
+						'foreign_players' => $team['foreign_players'],
+						'national_players' => $team['national_players'],
+						'country' => empty($country['name_zh']) ? '' : $country['name_zh'],
+						'manager_name_zh' => empty($manager['name_zh']) ? '' : $manager['name_zh'],
+					], // 球队基本资料
+					'season' => $season,
+					'format_honors' => [],
+					'format_change_in_players' => [],
+					'format_change_out_players' => [],
+				];
+				// 球队荣誉
+				$honorIds = $honorIdGroup = [];
+				$tmp = AdminTeamHonor::getInstance()->findOne(['team_id' => $teamId]);
+				$tmp = empty($tmp['honors']) ? [] : json_decode($tmp['honors'], true);
+				foreach ($tmp as $v) {
+					$id = intval($v['honor']['id']);
+					if ($id > 0 && !in_array($id, $honorIds)) $honorIds[] = $id;
+				}
+				// 球队荣誉信息映射
+				if (!empty($honorIds)) $honorMapper = Utils::queryHandler(AdminHonorList::getInstance(),
+					'id IN (' . join(',', $honorIds) . ')', null,
+					'id,logo', false, null, 'id,logo,1');
+				// 球队荣誉信息 分组统计 & 补充数据
+				foreach ($tmp as $v) {
+					$honor = $v['honor'];
+					$honor['logo'] = '';
+					$id = intval($honor['id']);
+					if (!empty($honorMapper[$id])) $honor['logo'] = $honorMapper[$id];
+					// 分组统计
+					if (!in_array($id, $honorIdGroup)) {
+						$result['format_honors'][$id]['honor'] = $honor;
+						$result['format_honors'][$id]['count'] = 1;
+						$honorIdGroup[] = $id;
+					} else {
+						$result['format_honors'][$id]['count'] += 1;
+					}
+					$result['format_honors'][$id]['season'][] = $v['season'];
+				}
+				// 转会记录
+				$lastYearTimestamp = strtotime(date('Y-m-d 00:00:00', strtotime('-1 year')));
+				$where = ['to_team_id' => $teamId, 'transfer_time' => [$lastYearTimestamp, '>']];
+				$changeInPlayers = AdminPlayerChangeClub::getInstance()->findAll($where, '*', 'transfer_time,desc');
+				$result['format_change_in_players'] = FrontService::handChangePlayer($changeInPlayers);
+				$where = ['from_team_id' => $teamId, 'transfer_time' => [$lastYearTimestamp, '>']];
+				$changeOutPlayers = AdminPlayerChangeClub::getInstance()->findAll($where, '*', 'transfer_time,desc');
+				$result['format_change_out_players'] = FrontService::handChangePlayer($changeOutPlayers);
+				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+			case 2:
+				$tableData = $promotion = [];
+				$tmp = SeasonAllTableDetail::getInstance()->findOne(['season_id' => $selectSeasonId]);
+				if (!empty($tmp)) {
+					$tables = json_decode($tmp['tables'], true);
+					// 晋升信息映射
+					$promotionMapper = [];
+					$tmp = json_decode($tmp['promotions'], true);
+					$tmp = (empty($tmp) || !is_array($tmp)) ? [] : $tmp;
+					foreach ($tmp as $v) {
+						$id = intval($v['id']);
+						$promotionMapper[$id] = $v['name_zh'];
+					}
+					$promotion = empty($promotionMapper) ? 0 : 1;
+					if ($promotion > 0) {
+						// 球队信息映射
+						$teamMapper = $teamIds = [];
+						$rows = empty($tables[0]['rows']) || !is_array($tables[0]['rows']) ? [] : $tables[0]['rows'];
+						foreach ($rows as $v) {
+							$id = intval($v['team_id']);
+							if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
+						}
+						if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
+							'team_id in (' . join(',', $teamIds) . ')', null,
+							'*', false, null, 'team_id,*,1');
+						foreach ($rows as $v) {
+							$id = intval($v['team_id']);
+							$promotionId = intval($v['promotion_id']);
+							$promotionName = empty($promotionMapper[$promotionId]) ? '' : $promotionMapper[$promotionId];
+							$team = empty($teamMapper[$id]) ? false : $teamMapper[$id];
+							$tableData[] = [
+								'team_id' => $id,
+								'won' => $v['won'],
+								'draw' => $v['draw'],
+								'loss' => $v['loss'],
+								'total' => $v['total'],
+								'goals' => $v['goals'],
+								'points' => $v['points'],
+								'promotion_id' => $promotionId,
+								'promotion_name_zh' => $promotionName,
+								'goals_against' => $v['goals_against'],
+								'logo' => empty($team) ? '' : $team['logo'],
+								'name_zh' => empty($team) ? '' : $team['name_zh'],
+							];
+						}
+					} else {
+						// 球队信息映射
+						$teamMapper = $teamIds = [];
+						foreach ($tables as $v) {
+							foreach ($v['rows'] as $vv) {
+								$id = intval($vv['team_id']);
+								if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
+							}
+						}
+						if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
+							'team_id in (' . join(',', $teamIds) . ')', null,
+							'*', false, null, 'team_id,*,1');
+						foreach ($tables as $v) {
+							$rows = empty($v['rows']) || !is_array($v['rows']) ? [] : $v['rows'];
+							$items = [];
+							foreach ($rows as $vv) {
+								$id = intval($vv['team_id']);
+								$team = empty($teamMapper[$id]) ? false : $teamMapper[$id];
+								$items[] = [
+									'team_id' => $id,
+									'won' => $vv['won'],
+									'draw' => $vv['draw'],
+									'loss' => $vv['loss'],
+									'total' => $vv['total'],
+									'goals' => $vv['goals'],
+									'points' => $vv['points'],
+									'goals_against' => $vv['goals_against'],
+									'logo' => empty($team) ? '' : $team['logo'],
+									'name_zh' => empty($team) ? '' : $team['name_zh'],
+								];
+							}
+							$tableData[] = ['group' => $v['group'], 'list' => $items];
+						}
+					}
+				}
+				//赛制说明
+				$competitionDescribe = Utils::queryHandler(AdminCompetitionRuleList::getInstance(),
+					"json_contains(season_ids,'{$selectSeasonId}') and competition_id=?", $competitionId, 'text');
+				$competitionDescribe = empty($competitionDescribe['text']) ? '' : $competitionDescribe['text'];
+				// 输出数据
+				$result = [
+					'table' => $tableData,
+					'promotion' => $promotion,
+					'current_season_id' => $currentSeasonId,
+					'competition_describe' => $competitionDescribe,
+				];
+				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+			case 3:
+				// 输出数据
+				$result = [];
+				$tmp = Utils::queryHandler(SeasonMatchList::getInstance(),
+					'season_id=? and (home_team_id=? or away_team_id=?)', [$selectSeasonId, $teamId, $teamId],
+					'*', false);
+				if (!empty($tmp)) {
+					$competitionIds = $teamIds = [];
+					array_walk($tmp, function ($v, $k) use (&$competitionIds, &$teamIds) {
+						$id = intval($v['competition_id']);
+						if ($id > 0 && !in_array($id, $competitionIds)) $competitionIds[] = $id;
+						$id = intval($v['home_team_id']);
+						if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
+						$id = intval($v['away_team_id']);
+						if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
+					});
+					$competitionMapper = empty($competitionIds) ? [] : Utils::queryHandler(AdminCompetition::getInstance(),
+						'competition_id in (' . join(',', $competitionIds) . ')', null,
+						'competition_id,short_name_zh', false, null, 'competition_id,short_name_zh,1');
+					$teamMapper = empty($teamIds) ? [] : Utils::queryHandler(AdminTeam::getInstance(),
+						'team_id in (' . join(',', $teamIds) . ')', null,
+						'team_id,name_zh', false, null, 'team_id,name_zh,1');
+					foreach ($tmp as $v) {
+						$cid = intval($v['competition_id']);
+						$htId = intval($v['home_team_id']);
+						$atId = intval($v['away_team_id']);
+						$decodeHomeScore = json_decode($v['home_scores'], true);
+						$decodeAwayScore = json_decode($v['away_scores'], true);
+						$tmp = [];
+						[$tmp['home_scores'], $tmp['away_scores']] = AppFunc::getFinalScore($decodeHomeScore, $decodeAwayScore);
+						[$tmp['half_home_scores'], $tmp['half_away_scores']] = AppFunc::getHalfScore($decodeHomeScore, $decodeAwayScore);
+						[$tmp['home_corner'], $tmp['away_corner']] = AppFunc::getCorner($decodeHomeScore, $decodeAwayScore);//角球
+						$result[] = array_merge($tmp, [
+							'match_id' => intval($v['id']),
+							'match_time' => date('Y-m-d', $v['match_time']),
+							'home_team_name_zh' => empty($teamMapper[$htId]) ? '' : $teamMapper[$htId],
+							'away_team_name_zh' => empty($teamMapper[$atId]) ? '' : $teamMapper[$atId],
+							'competition_short_name_zh' => empty($competitionMapper[$cid]) ? '' : $competitionMapper[$cid],
+						]);
+					}
+				}
+				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+			case 4:
+				$teamStr = $playerStr = '';
+				$seasonTeamPlayerKey = 'season_team_player_' . $selectSeasonId;
+				$tmp = Cache::get($seasonTeamPlayerKey);
+				if (empty($tmp)) {
+					$tmp = SeasonTeamPlayer::getInstance()->findOne(['season_id' => $selectSeasonId], 'teams_stats,players_stats');
+					if (!empty($tmp)) {
+						$teamStr = preg_replace('/\[?(,\s)?\{\"team\":\s\{\"id\":\s(?!' . $teamId . ')\d+,((?!,\s\{\"team\":).)+/', '', $tmp['teams_stats']);
+						$teamStr = trim($teamStr, '[,]');
+						$playerStr = preg_replace('/\[?(,\s)?\{\"team\":\s\{\"id\":\s(?!' . $teamId . ')\d+,((?!,\s\{\"team\":).)+/', '', $tmp['players_stats']);
+						$playerStr = '[' . trim($playerStr, '[,]') . ']';
+						Cache::set($seasonTeamPlayerKey, ['teams' => $teamStr, 'players' => $playerStr], 300);
+					}
+				} else {
+					$teamStr = $tmp['teams'];
+					$playerStr = $tmp['players'];
+				}
+				// 获取球队信息
+				if (empty($teamStr)) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+				$teamInfo = json_decode($teamStr, true);
+				if (empty($teamInfo['matches'])) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+				$teamMatchNum = $teamInfo['matches'];
+				//球队数据
+				$teamData = [
+					'goals' => !empty($teamInfo['goals']) ? $teamInfo['goals'] : '0.0', //进球
+					'penalty' => !empty($teamInfo['penalty']) ? $teamInfo['penalty'] : '0.0',//点球
+					'shots_per_match' => !empty($teamInfo['shots']) ? AppFunc::getAverageData($teamInfo['shots'], $teamMatchNum) : '0',//场均射门
+					'shots_on_target_per_match' => !empty($teamInfo['shots_on_target']) ? AppFunc::getAverageData($teamInfo['shots_on_target'], $teamMatchNum) : '0.0',//场均射正
+					'penalty_per_match' => !empty($teamInfo['penalty']) ? AppFunc::getAverageData($teamInfo['penalty'], $teamMatchNum) : '0.0',//场均角球
+					'passes_per_match' => !empty($teamInfo['passes']) ? AppFunc::getAverageData($teamInfo['passes'], $teamMatchNum) : '0.0',//场均传球
+					'key_passes_per_match' => !empty($teamInfo['key_passes']) ? AppFunc::getAverageData($teamInfo['key_passes'], $teamMatchNum) : '0.0',//场均关键传球
+					'passes_accuracy_per_match' => !empty($teamInfo['passes_accuracy']) ? AppFunc::getAverageData($teamInfo['passes_accuracy'], $teamMatchNum) : '0.0',//场均成功传球
+					'crosses_per_match' => !empty($teamInfo['crosses']) ? AppFunc::getAverageData($teamInfo['crosses'], $teamMatchNum) : '0.0',//场均过人
+					'crosses_accuracy_per_match' => !empty($teamInfo['crosses_accuracy']) ? AppFunc::getAverageData($teamInfo['crosses_accuracy'], $teamMatchNum) : '0.0',//场均成功过人
+					'goals_against' => !empty($teamInfo['goals_against']) ? $teamInfo['goals_against'] : '0.0',//失球
+					'fouls' => !empty($teamInfo['fouls']) ? $teamInfo['fouls'] : '0.0',//犯规
+					'was_fouled' => !empty($teamInfo['was_fouled']) ? $teamInfo['was_fouled'] : '0.0',//被犯规
+					'assists' => !empty($teamInfo['assists']) ? $teamInfo['assists'] : 0,//助攻
+					'red_cards' => !empty($teamInfo['red_cards']) ? $teamInfo['red_cards'] : '0.0',//红牌
+					'yellow_cards' => !empty($teamInfo['yellow_cards']) ? $teamInfo['yellow_cards'] : '0.0',//黄牌
+				];
+				// 队员数据
+				$keyPlayers = $players = [];
+				$items = json_decode($playerStr, true);
+				if (!empty($items)) {
+					$mostGoals = $mostAssists = $mostShots = $mostShotsOnTarget = [];
+					$mostPasses = $mostPassesAccuracy = $mostKeyPasses = [];
+					$mostInterceptions = $mostClearances = $mostSaves = [];
+					$mostYellowCards = $mostRedCards = $mostMinutesPlayed = [];
+					$handler = function ($item, $field, $target) {
+						if (!empty($item[$field]) && (empty($target) || intval($item[$field]) >= intval($target[$field]))) $target = $item;
+						return $target;
+					};
+					foreach ($items as $v) {
+						$playInfo = $v['player'];
+						$players[$playInfo['id']] = $playInfo;
+						$mostGoals = $handler($v, 'goals', $mostGoals);
+						$mostAssists = $handler($v, 'assists', $mostAssists);
+						$mostShots = $handler($v, 'shots', $mostShots);
+						$mostShotsOnTarget = $handler($v, 'shots_on_target', $mostShotsOnTarget);
+						$mostPasses = $handler($v, 'passes', $mostPasses);
+						$mostPassesAccuracy = $handler($v, 'passes_accuracy', $mostPassesAccuracy);
+						$mostKeyPasses = $handler($v, 'key_passes', $mostKeyPasses);
+						$mostInterceptions = $handler($v, 'interceptions', $mostInterceptions);
+						$mostClearances = $handler($v, 'clearances', $mostClearances);
+						$mostSaves = $handler($v, 'saves', $mostSaves);
+						$mostYellowCards = $handler($v, 'yellow_cards', $mostYellowCards);
+						$mostRedCards = $handler($v, 'red_cards', $mostRedCards);
+						$mostMinutesPlayed = $handler($v, 'minutes_played', $mostMinutesPlayed);
+					}
+					$keyPlayers = [
+						'most_goals' => FrontService::formatKeyPlayer($mostGoals, 'goals'),
+						'most_assists' => FrontService::formatKeyPlayer($mostAssists, 'assists'),
+						'most_shots' => FrontService::formatKeyPlayer($mostShots, 'shots'),
+						'most_shots_on_target' => FrontService::formatKeyPlayer($mostShotsOnTarget, 'shots_on_target'),
+						'most_passes' => FrontService::formatKeyPlayer($mostPasses, 'passes'),
+						'most_passes_accuracy' => FrontService::formatKeyPlayer($mostPassesAccuracy, 'passes_accuracy'),
+						'most_key_passes' => FrontService::formatKeyPlayer($mostKeyPasses, 'key_passes'),
+						'most_interceptions' => FrontService::formatKeyPlayer($mostInterceptions, 'interceptions'),
+						'most_clearances' => FrontService::formatKeyPlayer($mostClearances, 'clearances'),
+						'most_saves' => FrontService::formatKeyPlayer($mostSaves, 'saves'),
+						'most_yellow_cards' => FrontService::formatKeyPlayer($mostYellowCards, 'yellow_cards'),
+						'most_red_cards' => FrontService::formatKeyPlayer($mostRedCards, 'red_cards'),
+						'most_minutes_played' => FrontService::formatKeyPlayer($mostMinutesPlayed, 'minutes_played'),
+					];
+				}
+				// 输出数据
+				$result = ['team_data' => $teamData, 'key_player' => $keyPlayers];
+				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+			case 5: //阵容
+				// 战队信息映射
+				$players = $playerIds = [];
+				$tmp = AdminTeamLineUp::getInstance()->findOne(['team_id' => $teamId], 'squad');
+				$tmp = json_decode($tmp['squad'], true);
+				foreach ($tmp as $v) {
+					$id = intval($v['player']['id']);
+					if (!in_array($id, $playerIds)) $playerIds[] = $id;
+					$players[$id] = [
+						'player_id' => $id,
+						'logo' => '',
+						'position' => $v['position'],
+						'shirt_number' => $v['shirt_number'],
+						'age' => 0,
+						'weight' => 0,
+						'height' => 0,
+						'nationality' => '',
+						'format_market_value' => '',
+						'name_zh' => $v['player']['name_zh'],
+					];
+				}
+				$playerMapper = [];
+				if (!empty($playerIds)) $playerMapper = Utils::queryHandler(AdminPlayer::getInstance(),
+					'player_id in (' . join(',', $playerIds) . ')', null,
+					'player_id,market_value,logo,age,weight,height,nationality', false, null, 'player_id,*,1');
+				// 输出数据
+				$result = [];
+				foreach ($players as $k => $v) {
+					$id = $v['player_id'];
+					$position = $v['position'];
+					unset($v['position']);
+					if (!empty($playerMapper[$id])) {
+						$playerInfo = $playerMapper[$id];
+						$v['age'] = $playerInfo['age'];
+						$v['logo'] = $playerInfo['logo'];
+						$v['weight'] = $playerInfo['weight'];
+						$v['height'] = $playerInfo['height'];
+						$v['nationality'] = $playerInfo['nationality'];
+						$v['format_market_value'] = AppFunc::changeToWan($playerInfo['market_value']);
+					}
+					$result[$position][] = $v;
+				}
+				$managerInfo = $team->getManager();
+				$result['C'] = [
+					'name_zh' => empty($managerInfo['name_zh']) ? '' : $managerInfo['name_zh'],
+					'logo' => $this->playerLogoUrlPrefix . (empty($managerInfo['logo']) ? '' : $managerInfo['logo']),
+					'manager_id' => $team['manager_id'],
+				];
+				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+		}
+	}
+	
+	/**
+	 * 关键词搜索
+	 * @throws
+	 */
+	public function contentByKeyWord()
+	{
+		$params = $this->params;
+		// 关键字
+		$keywords = isset($params['key_word']) ? trim($params['key_word']) : '';
+		if (empty($keywords)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 类型
+		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
+		if ($type != 1 && $type != 2 && $type != 3) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 分页参数
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
+		// 输出数据
+		if ($type == 1) { //赛事
+			$where = ['name_zh|short_name_zh' => [$keywords, 'like']];
+			$fields = 'competition_id,name_zh,short_name_zh,logo';
+			$result = AdminCompetition::getInstance()->findAll($where, $fields, 'competition_id,desc', true, $page, $size);
+		} elseif ($type == 2) { //球队
+			$where = ['name_zh' => [$keywords, 'like']];
+			$result = AdminTeam::getInstance()->findAll($where, 'team_id,name_zh,logo', 'team_id,desc', true, $page, $size);
+		} else { //球员
+			$where = ['name_zh' => [$keywords, 'like']];
+			$result = AdminPlayer::getInstance()->findAll($where, 'player_id,name_zh,logo', 'market_value,desc', true, $page, $size);
+		}
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+	}
+	
+	/**
+	 * 球队转入转出记录
+	 * @throws
+	 */
+	public function teamChangeClubHistory()
+	{
+		$params = $this->params;
+		// 类型校验
+		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
+		if ($type != 1 && $type != 2) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 球队信息
+		$teamId = empty($params['team_id']) || intval($params['team_id']) < 1 ? 0 : intval($params['team_id']);
+		$team = $teamId < 1 ? null : AdminTeam::getInstance()->findOne(['team_id' => $teamId]);
+		if (empty($team)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 分页参数
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
+		if ($type == 1) {
+			$result = AdminPlayerChangeClub::getInstance()
+				->findAll(['to_team_id' => $teamId], null, 'transfer_time,desc', true, $page, $size);
+			if (!empty($result['list'])) $result['list'] = FrontService::handChangePlayer($result['list']);
+		} else {
+			$result = AdminPlayerChangeClub::getInstance()
+				->findAll(['from_team_id' => $teamId], null, 'transfer_time,desc', true, $page, $size);
+			if (!empty($result['list'])) $result['list'] = FrontService::handChangePlayer($result['list']);
+		}
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+	}
+	
+	/**
+	 * 热搜赛事
+	 * @throws
+	 */
+	public function hotSearchCompetition()
+	{
+		// 配置信息
+		$where = ['sys_key' => AdminSysSettings::SETTING_HOT_SEARCH_COMPETITION];
+		$config = AdminSysSettings::getInstance()->findOne($where, 'sys_value');
+		// 赛事清单
+		$list = empty($config['sys_value']) ? [] : json_decode($config['sys_value'], true);
+		if (!empty($list)) $list = AdminCompetition::getInstance()
+			->findAll(['competition_id' => [$list, 'in']], 'competition_id,short_name_zh,logo');
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
+	}
+	
+	/**
+	 * 国家分类赛事
+	 * @throws
+	 */
+	public function getCompetitionByCountry()
+	{
+		$params = $this->params;
+		// 分类ID
+		$categoryId = empty($params['category_id']) || intval($params['category_id']) < 1 ? 0 : intval($params['category_id']);
+		// 类型
+		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
+		if (empty($type)) {
+			$where = ['category_id' => $categoryId];
+			$list = $categoryId < 1 ? [] : AdminCountryList::getInstance()->findAll($where, 'id,name_zh,logo');
+			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
+		}
+		// 国家ID
+		$countryId = empty($params['country_id']) || intval($params['country_id']) < 1 ? 0 : intval($params['country_id']);
+		if ($categoryId > 0) {
+			if ($countryId > 0) {
+				$where = ['category_id' => $categoryId, 'country_id' => $countryId];
+				$list = AdminCompetition::getInstance()->findAll($where, 'competition_id,short_name_zh,logo');
+				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
+			}
+			$list = AdminCountryList::getInstance()->findAll(['category_id' => $categoryId], 'country_id,name_zh');
+			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
+		}
+		$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+	}
+	
+	/**
+	 * 获取赛事信息
+	 * @throws
+	 */
+	public function getContinentCompetition()
+	{
+		$params = $this->params;
+		$categoryId = empty($params['category_id']) || intval($params['category_id']) < 1 ? 0 : intval($params['category_id']);
 		if ($categoryId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		$list = Utils::queryHandler(AdminCompetition::getInstance(),
-			'category_id=? and country_id=0', $categoryId,
-			'competition_id,short_name_zh,logo', false);
+		// 获取清单
+		$where = ['category_id' => $categoryId, 'country_id' => 0];
+		$list = AdminCompetition::getInstance()->findAll($where, 'competition_id,short_name_zh,logo');
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
 	}
 }
