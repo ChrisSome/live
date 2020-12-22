@@ -532,7 +532,7 @@ class Community extends FrontUserController
 		}
 		$user['item_total'] = [
 			'post_total' => AdminUserPost::getInstance()
-				->where('user_id', $userId)->where('status', AdminUserPost::NEW_STATUS_DELETED, '<>')->count(),
+				->where('user_id', $userId)->where('status', AdminUserPost::NEW_STATUS_NORMAL)->count(),
 			'comment_total' => AdminPostComment::getInstance()
 				->where('user_id', $userId)->where('status', AdminPostComment::STATUS_DEL, '<>')->count(),
 			'information_comment_total' => AdminInformationComment::getInstance()

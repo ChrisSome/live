@@ -76,4 +76,30 @@ class AdminUser extends BaseModel
 	{
 		return $this->hasOne(AdminUserSetting::class, null, 'id', 'user_id');
 	}
+	
+	/**
+	 * 需要给用户展示的赛事id以及用户关注的比赛id
+	 * @param $uid
+	 * @return array
+	 * @throws \Throwable
+	 */
+	public static function getUserShowCompetitionId($uid)
+	{
+		//默认赛事
+		$recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
+		$default = json_decode($recommandCompetitionId->sys_value, true);
+		//用户关注赛事 与 比赛
+		$res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
+		$interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
+		
+		$userInterestCompetition = json_decode($res->competition_ids, true);
+		if ($userInterestCompetition) {
+			$selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
+		} else {
+			$selectCompetitionIdArr = $default;
+		}
+		
+		return [array_values($selectCompetitionIdArr), $interestMatchArr];
+	}
+	
 }

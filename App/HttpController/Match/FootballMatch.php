@@ -292,7 +292,7 @@ class FootBallMatch extends FrontUserController
 	 * one day / time 赛事列表
 	 * @throws
 	 */
-	function competitionList()
+	function getCompetitiones()
 	{
 		$timestamp = AdminCompetition::getInstance()->max('updated_at');
 		$url = sprintf($this->url . $this->uriCompetition, $this->user, $this->secret, $timestamp + 1);
@@ -340,7 +340,7 @@ class FootBallMatch extends FrontUserController
 	 * 直播地址 10min/次
 	 * @throws
 	 */
-	public function steamList()
+	public function getSteam()
 	{
 		$url = sprintf($this->url . $this->uriSteam, $this->user, $this->secret);
 		$tmp = Tool::getInstance()->postApi($url);
@@ -372,7 +372,7 @@ class FootBallMatch extends FrontUserController
 	 * 更新球员列表 one day/time
 	 * @throws
 	 */
-	public function getPlayers()
+	public function players()
 	{
 		while (true) {
 			$timestamp = AdminPlayer::getInstance()->max('updated_at');

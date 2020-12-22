@@ -73,9 +73,9 @@ class Router extends AbstractRouter
 			$r->addRoute(['GET'], '/footBall/getTeamList', '/Match/FootballMatch/getTeamList'); //球队列表
 			$r->addRoute(['GET'], '/footBall/getTodayMatches', '/Match/FootballMatch/getTodayMatches'); //今日比赛
 			$r->addRoute(['GET'], '/footBall/getWeekMatches', '/Match/FootballMatch/getWeekMatches'); //未来一周比赛
-			$r->addRoute(['GET'], '/footBall/getCompetitiones', '/Match/FootballMatch/competitionList'); //赛事列表
-			$r->addRoute(['GET'], '/footBall/getSteam', '/Match/FootballMatch/steamList'); //直播源
-			$r->addRoute(['GET'], '/footBall/players', '/Match/FootballMatch/getPlayers'); //球员列表
+			$r->addRoute(['GET'], '/footBall/getCompetitiones', '/Match/FootballMatch/getCompetitiones'); //赛事列表
+			$r->addRoute(['GET'], '/footBall/getSteam', '/Match/FootballMatch/getSteam'); //直播源
+			$r->addRoute(['GET'], '/footBall/players', '/Match/FootballMatch/players'); //球员列表
 			$r->addRoute(['GET'], '/footBall/clashHistory', '/Match/FootballMatch/clashHistory'); //获取比赛历史同赔统计数据列表
 			$r->addRoute(['GET'], '/footBall/noticeUserMatch', '/Match/FootballMatch/noticeUserMatch'); //推送用户比赛即将开始 1次/分钟
 			$r->addRoute(['GET'], '/footBall/deleteMatch', '/Match/FootballMatch/deleteMatch'); //取消或者删除的比赛

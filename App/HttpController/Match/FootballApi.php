@@ -389,54 +389,31 @@ class FootballApi extends FrontUserController
 	 */
 	public function matchResult()
 	{
+		
 		if (!isset($this->params['time'])) {
 			return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-			
 		}
-		$uid = $this->auth['id'];
-		$page = $this->params['page'] ?: 1;
-		$size = $this->params['size'] ?: 20;
+		$uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
+		//需要展示的赛事id 以及用户关注的比赛
+		list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
+		$page = isset($this->params['page']) ? (int)$this->params['page'] : 1;
+		$size = isset($this->params['size']) ? (int)$this->params['size'] : 20;
 		$start = strtotime($this->params['time']);
 		$end = $start + 60 * 60 * 24;
-		
-		$userInterestCompetitiones = [];
-		
-		if ($uid && $competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
-			$userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-			
-		}
-		
-		//后台推荐赛事
-		$in_competition_arr = [];
-		
-		if ($recommand_competition_id_arr = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get()) {
-			$in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
-		}
-		
-		if ($userInterestCompetitiones) {
-			$selectCompetition = array_intersect($in_competition_arr, $userInterestCompetitiones);
-		} else {
-			$selectCompetition = $in_competition_arr;
-		}
-		if (!$selectCompetition) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-		
 		$matches = AdminMatch::getInstance()
 			->where('match_time', $start, '>=')
 			->where('match_time', $end, '<')
 			->where('status_id', self::STATUS_RESULT, 'in')
-			->where('competition_id', $selectCompetition, 'in')
+			->where('competition_id', $selectCompetitionIdArr, 'in')
 			->where('is_delete', 0)
 			->order('match_time', 'DESC')->getLimit($page, $size);
-		$list = $matches->all(null);
-		
+		$list = $matches->all();
 		$total = $matches->lastQueryResult()->getTotalCount();
 		
-		$formatMatch = FrontService::formatMatchTwo($list, $this->auth['id']);
+		$formatMatch = FrontService::formatMatchThree($list, $uid, $interestMatchArr);
 		$return = ['list' => $formatMatch, 'count' => $total];
 		return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 	}
-	
-	
 	
 	
 	public function userInterestMatchList()
@@ -604,10 +581,10 @@ class FootballApi extends FrontUserController
 			$decode = json_decode($res->tables, true);
 			$promotions = json_decode($res->promotions, true);
 			if ($promotions) {
-				$rows = $decode[0]['rows'];
+				$rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
 				
 			} else {
-				$rows = $decode['rows'];
+				$rows =isset($decode['rows']) ? $decode['rows'] : [];
 			}
 			
 			if ($rows) {
@@ -695,27 +672,19 @@ class FootballApi extends FrontUserController
 			return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
 			
 		}
-		$formatMatch = FrontService::formatMatchTwo([$match], $this->auth['id']);
+		
+		$formatMatch = FrontService::formatMatchThree([$match], $this->auth['id'], []);
 		if (!$return = $formatMatch[0]) {
 			return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 			
 		}
 		$return = isset($formatMatch[0]) ? $formatMatch[0] : [];
 		$competition_id = $return['competition_id'];
-		$type = DbManager::getInstance()->invoke(function ($client) use ($competition_id) {
-			$data = 0;
-			if ($competition = AdminCompetition::invoke($client)->where('competition_id', $competition_id)->get()) {
-				$data = $competition->type;
-			}
-			
-			
-			return $data;
-		});
-		if ($competition = AdminCompetition::getInstance()->field(['id', 'competition_id', 'type'])->where('competition_id', $return['competition_id'])->get()) {
-			$return['competition_type'] = $type;
+		$return['competition_type'] = 0;
+		if ($competition = AdminCompetition::create()->where('competition_id', $competition_id)->get()) {
+			$return['competition_type'] = $competition->type;
 		}
 		return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
-		
 	}
 	
 	

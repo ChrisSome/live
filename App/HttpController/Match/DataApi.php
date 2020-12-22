@@ -304,29 +304,33 @@ class DataApi extends FrontUserController
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $result]);
 	}
 	
+	
 	/**
 	 * 数据中心推荐热门赛事
-	 * @throws
 	 */
 	public function getHotCompetition()
 	{
-		// 配置信息
-		$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::SETTING_DATA_COMPETITION], 'sys_value');
-		$competitionIds = empty($config) ? [] : json_decode($config['sys_value'], true);
-		// 输出数据
-		$result = [];
-		foreach ($competitionIds as $id) {
-			$id = intval($id);
-			$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $id]);
-			if (empty($competition)) continue;
-			$result[] = [
-				'competition_id' => $id,
-				'seasons' => $competition->getSeason(),
-				'logo' => empty($competition['logo']) ? '' : $competition['logo'],
-				'short_name_zh' => empty($competition['short_name_zh']) ? '' : $competition['short_name_zh'],
-			];
+		$hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
+		$competitionIds = json_decode($hot_competition['sys_value'], true);
+		$return = $res = [];
+		if ($season = AdminSeason::create()->where('competition_id', $competitionIds, 'in')->all()) {
+			foreach ($season as $itemSeason) {
+				$res[$itemSeason->competition_id][] = $itemSeason;
+				
+			}
 		}
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+		//做映射
+		$competition = AdminCompetition::create()->where('competition_id', $competitionIds, 'in')->all();
+		foreach ($competition as $itemCompetition) {
+			$data['competition_id'] = $itemCompetition['competition_id'];
+			$data['logo'] = $itemCompetition['logo'];
+			$data['short_name_zh'] = $itemCompetition['short_name_zh'];
+			$data['seasons'] = isset($res[$itemCompetition->competition_id]) ? $res[$itemCompetition->competition_id] : [];
+			$return[] = $data;
+			unset($data);
+		}
+		
+		return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 	}
 	
 	/**

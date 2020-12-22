@@ -1,4 +1,4 @@
 <?php
-
-$a = array_intersect([], [1,2,3]);
-var_dump($a);
+$a = 'PzEyNDU2NzdfMw==';
+var_dump(base64_decode($a));
+var_dump(array_values($a));

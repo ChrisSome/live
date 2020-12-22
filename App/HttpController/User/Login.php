@@ -52,7 +52,6 @@ class Login extends FrontUserController
 		$type = intval($params['type']);
 		if ($type != 1 && $type != 2) $this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 		// 手机验证码校验
-		/*
 		if ($type == 1) {
 			$isCodeEmpty = empty($params['code']);
 			$codeInfo = $isCodeEmpty ? null : AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
@@ -65,13 +64,12 @@ class Login extends FrontUserController
 				return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
 			}
 		}
-		*/
 		// 获取用户信息
 		$statusArr = [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED, AdminUser::STATUS_FORBIDDEN];
 		$user = AdminUser::getInstance()->where('mobile', $mobile)->where('status', $statusArr, 'in')->get();
 		// 用户不存在
 		if (empty($user)) {
-			$this->output(StatusMapper::CODE_W_PHONE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE]);
+			$this->output(StatusMapper::CODE_PHONE_NOT_EXISTS, StatusMapper::$msg[StatusMapper::CODE_PHONE_NOT_EXISTS]);
 		}
 		// 密码错误
 		if ($type == 2 && !PasswordTool::getInstance()->checkPassword($params['password'], $user['password_hash'])) {
