@@ -31,12 +31,13 @@ class  FrontService
 	 * @param $posts
 	 * @param $authId
 	 * @return array
-	 * @throws Throwable
+	 * @throws
 	 */
 	public static function handPosts($posts, $authId): array
 	{
 		if (!$posts) return [];
 		$authId = intval($authId);
+		
 		$postIds = $userIds = $categoryIds = [];
 		array_walk($posts, function ($v, $k) use (&$postIds, &$userIds, &$categoryIds) {
 			$id = intval($v['id']);
@@ -48,28 +49,26 @@ class  FrontService
 		});
 		
 		// 点赞/收藏数据映射
-		$tmp = Utils::queryHandler(AdminUserOperate::getInstance(),
-			'(type=1 or type=2) and item_type=1 and is_cancel=0 and item_id in(' . join(',', $postIds) . ')', null,
-			'*', false);
+		$where = ['type' => [[1, 2], 'in'], 'item_type' => 1, 'is_cancel' => 0, 'item_id' => [$postIds, 'in']];
+		$tmp = AdminUserOperate::getInstance()->findAll($where);
 		foreach ($tmp as $v) {
 			$key = $v['item_id'] . '_' . $v['type'];
 			$operateMapper[$key] = 1;
 		}
 		// 最新发帖时间映射
-		$commentMapper = Utils::queryHandler(AdminPostComment::getInstance(), 'post_id in(' . join(',', $postIds) . ')', null,
-			'post_id,max(created_at) time', false, ['group' => 'post_id'], 'post_id,time,1');
+		$commentMapper = AdminPostComment::getInstance()->findAll(['post_id' => [$postIds, 'in']],
+			'post_id,max(created_at) time', ['group' => 'post_id'],
+			false, 0, 0, 'post_id,time,true');
 		// 类型数据映射
-		$categoryMapper = Utils::queryHandler(AdminUserPostsCategory::getInstance(), 'id in(' . join(',', $categoryIds) . ')', null,
-			'*', false, null, 'id,*,1');
+		$categoryMapper = AdminUserPostsCategory::getInstance()->findAll(['id' => [$categoryIds, 'in']], null, null,
+			false, 0, 0, 'id,*,true');
 		// 设置数据映射 & 用户数据映射
 		$settingMapper = $userMapper = [];
 		if (!empty($userIds)) {
-			$settingMapper = Utils::queryHandler(AdminUserSetting::getInstance(),
-				'user_id in(' . join(',', $userIds) . ')', null,
-				'user_id,private', false, null, 'user_id,private,1');
-			$userMapper = Utils::queryHandler(AdminUser::getInstance(),
-				'id in(' . join(',', $userIds) . ')', null,
-				'id,photo,nickname,level,is_offical', false, null, 'id,*,1');
+			$settingMapper = AdminUserSetting::getInstance()->findAll(['user_id' => [$userIds, 'in']],
+				'user_id,private', null, false, 0, 0, 'user_id,private,true');
+			$userMapper = AdminUser::getInstance()->findAll(['id' => [$userIds, 'in']], 'id,photo,nickname,level,is_offical',
+				null, false, 0, 0, 'id,*,true');
 		}
 		
 		$list = [];
@@ -122,42 +121,90 @@ class  FrontService
 	/**
 	 * 处理评论
 	 * @param $comments
-	 * @param $uid
+	 * @param $authId
 	 * @return array
+	 * @throws
 	 */
-	public static function handComments($comments, $uid)
+	public static function handComments($comments, $authId)
 	{
-		if (!$comments) {
-			return [];
-		} else {
-			$datas = [];
-			foreach ($comments as $item) {
-				$parentComment = $item->getParentContent();
-				$data['id'] = $item->id;  //当前评论id
-				$data['post_id'] = $item->post_id; //帖子id
-				$data['post_title'] = $item->postInfo()->title; //帖子标题
-				$data['parent_id'] = $item->parent_id; //父评论ID，可能为0
-				$data['parent_content'] = $parentComment ? $parentComment->content : ''; //父评论内容 可能为''
-				$data['content'] = $item->content; //当前评论内容
-				$data['created_at'] = $item->created_at;
-				$data['fabolus_number'] = $item->fabolus_number;
-				$data['is_fabolus'] = $uid ? ($item->isFabolus($uid, $item->id) ? true : false) : false;
-				$data['user_info'] = $item->uInfo();
-				$data['is_follow'] = AppFunc::isFollow($uid, $item->user_id); //是否关注该评论人
-				$data['respon_number'] = $item->respon_number;
-				$data['top_comment_id'] = $item->top_comment_id;
-				$data['t_u_info'] = $item->tuInfo();
-				$datas[] = $data;
-				unset($data);
-			}
+		if (empty($comments)) return [];
+		$authId = intval($authId);
+		
+		// 映射数据
+		$commentIds = $postIds = $userIds = $operateIds = [];
+		array_walk($comments, function ($v) use (&$commentIds, &$userIds, &$postIds, &$operateIds) {
+			$userId = intval($v['user_id']);
+			if ($userId > 0 && !in_array($userId, $userIds)) $userIds[] = $userId;
+			$userId = intval($v['t_u_id']);
+			if ($userId > 0 && !in_array($userId, $userIds)) $userIds[] = $userId;
+			$commentId = intval($v['parent_id']);
+			if ($commentId > 0 && !in_array($commentId, $commentIds)) $commentIds[] = $commentId;
+			$postId = intval($v['post_id']);
+			if ($postId > 0 && !in_array($postId, $postIds)) $postIds[] = $postId;
+			$operateId = '(user_id=' . $userId . ' and item_id=' . $v['id'] . ')';
+			if ($userId > 0 && !in_array($operateId, $operateIds)) $operateIds[] = $operateId;
+		});
+		// 用户映射
+		$userMapper = empty($userIds) ? [] : AdminUser::getInstance()->findAll(['id' => [$userIds, 'in']],
+			'id,mobile,photo,nickname,level,is_offical', null, false, 0, 0, 'id,*,true');
+		// 回复映射
+		$commentMapper = empty($commentIds) ? [] : AdminPostComment::getInstance()->findAll(['id' => [$commentIds, 'in']],
+			'id,content', null, false, 0, 0, 'id,content,true');
+		// 帖子映射
+		$postMapper = empty($postIds) ? [] : AdminUserPost::getInstance()->findAll(['id' => [$postIds, 'in']],
+			'id,title', null, false, 0, 0, 'id,title,true');
+		// 点赞映射
+		$operateMapper = [];
+		$tmp = empty($operateIds) ? [] : AdminUserOperate::getInstance()
+			->findAll(['or' => $operateIds, 'type' => 1, 'is_cancel' => 0, 'item_type' => 2], 'item_id,user_id');
+		foreach ($tmp as $v) {
+			$key = $v['item_id'] . '_' . $v['user_id'];
+			$operateMapper[$key] = 1;
 		}
-		return $datas;
+		// 返回数据
+		$list = [];
+		foreach ($comments as $v) {
+			$id = intval($v['id']);
+			$userId = intval($v['user_id']);
+			$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
+			$userId = intval($v['t_u_id']);
+			$topUser = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
+			$parentId = intval($v['parent_id']);
+			$parentContent = empty($commentMapper[$parentId]) ? [] : $commentMapper[$parentId];
+			$postId = intval($v['post_id']);
+			$postTitle = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
+			$list[] = [
+				'id' => $v['id'],
+				'post_id' => $postId,
+				'post_title' => $postTitle,
+				'parent_id' => $parentId,
+				'parent_content' => $parentContent,
+				'content' => $v['content'],
+				'created_at' => $v['created_at'],
+				'fabolus_number' => intval($v['fabolus_number']),
+				'is_fabolus' => $userId > 0 && !empty($operateMapper[$id . '_' . $userId]),
+				'user_info' => $user,
+				'is_follow' => AppFunc::isFollow($authId, $userId),
+				'respon_number' => intval($v['respon_number']),
+				'top_comment_id' => intval($v['top_comment_id']),
+				't_u_info' => $topUser,
+			];
+		}
+		return $list;
 	}
 	
-	public static function handInformationComment($informationComments, $authId)
+	/**
+	 * @param $informationComments
+	 * @param $authId
+	 * @return array
+	 * @throws
+	 */
+	public static function handInformationComment($informationComments, $authId): array
 	{
-		$authId = intval($authId);
 		if (empty($informationComments)) return [];
+		$authId = intval($authId);
+		
+		// 映射数据
 		$list = $operateMapper = $informationMapper = $userMapper = [];
 		$commentIds = $informationIds = $userIds = [];
 		array_walk($informationComments, function ($v, $k) use (&$commentIds, &$informationIds, &$userIds) {
@@ -381,7 +428,6 @@ class  FrontService
 				continue;
 			}
 			
-			
 			//用户关注赛事
 			$userInterestCompetitiones = [];
 			if ($competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
@@ -407,9 +453,9 @@ class  FrontService
 			$is_start = false;
 			if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
 				$is_start = false;
-			} else if (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
+			} elseif (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
 				$is_start = true;
-			} else if (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
+			} elseif (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
 				$is_start = false;
 			}
 			$round = json_decode($match->round, true);
@@ -441,11 +487,9 @@ class  FrontService
 			$item['note'] = $match->note;  //备注   欧青连八分之一决赛
 			$item['home_scores'] = $match->home_scores;  //主队比分
 			$item['away_scores'] = $match->away_scores;  //主队比分
-			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '' ;  //直播地址
+			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '';  //直播地址
 			$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
 			$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
-			
-			
 			
 			$data[] = $item;
 			
@@ -453,10 +497,6 @@ class  FrontService
 		}
 		return $data;
 	}
-	
-	
-	
-	
 	
 	static function formatMatchThree($matches, $uid, $interestMatchArr)
 	{
@@ -467,7 +507,6 @@ class  FrontService
 		
 		$userInterestMatchIds = $interestMatchArr;
 		foreach ($matches as $match) {
-			
 			//用户关注比赛
 			$is_interest = false;
 			if ($userInterestMatchIds && $uid && in_array($match->match_id, $userInterestMatchIds)) {
@@ -477,9 +516,9 @@ class  FrontService
 			$is_start = false;
 			if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
 				$is_start = false;
-			} else if (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
+			} elseif (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
 				$is_start = true;
-			} else if (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
+			} elseif (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
 				$is_start = false;
 			}
 			$has_living = 0;
@@ -510,7 +549,7 @@ class  FrontService
 			$item['note'] = $match->note;  //备注   欧青连八分之一决赛
 			$item['home_scores'] = $match->home_scores;  //主队比分
 			$item['away_scores'] = $match->away_scores;  //主队比分
-			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '' ;  //直播地址
+			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '';  //直播地址
 			$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
 			$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
 			
@@ -554,9 +593,9 @@ class  FrontService
 			$is_start = false;
 			if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
 				$is_start = false;
-			} else if (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
+			} elseif (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
 				$is_start = true;
-			} else if (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
+			} elseif (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
 				$is_start = false;
 			}
 			$has_living = 0;
@@ -588,7 +627,7 @@ class  FrontService
 			$item['note'] = $match->note;  //备注   欧青连八分之一决赛
 			$item['home_scores'] = $match->home_scores;  //主队比分
 			$item['away_scores'] = $match->away_scores;  //主队比分
-			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '' ;  //直播地址
+			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '';  //直播地址
 			$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
 			$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
 			

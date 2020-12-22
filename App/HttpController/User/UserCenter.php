@@ -18,13 +18,11 @@ use App\Model\AdminUserSetting;
 use App\Utility\Message\Status;
 use App\Model\AdminUserFeedBack;
 use App\Base\FrontUserController;
-use App\Model\AdminUserPhonecode;
 use EasySwoole\Validate\Validate;
 use App\Model\AdminUserFoulCenter;
 use App\Model\AdminUserSerialPoint;
 use EasySwoole\Mysqli\QueryBuilder;
 use App\Model\AdminInformationComment;
-use function foo\func;
 
 class UserCenter extends FrontUserController
 {
@@ -639,75 +637,144 @@ class UserCenter extends FrontUserController
 		$authId = intval($this->auth['id']);
 		// 帖子数据
 		$posts = AdminUserOperate::getInstance()->func(function ($builder) use ($authId) {
-			$builder->raw('select a.created_at,a.item_type,a.user_id,b.id,b.title '.
-					'from admin_user_operates as a left join admin_user_posts as b on a.author_id=b.user_id '.
-					'where a.item_id=b.id and a.type=1 and a.item_type=1 and a.author_id=?', [$authId]);
+			$builder->raw('select a.created_at,a.item_type,a.user_id,b.id,b.title ' .
+				'from admin_user_operates as a left join admin_user_posts as b on a.author_id=b.user_id ' .
+				'where a.item_id=b.id and a.type=1 and a.item_type=1 and a.author_id=?', [$authId]);
 			return true;
 		});
-		if(empty($posts)) {
+		if (!empty($posts)) {
 			// 用户映射
 			$userIds = [];
-			array_walk($posts, function ($v) use(&$userIds) {
-				$id =  intval($v['user_id']);
-				if($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+			array_walk($posts, function ($v) use (&$userIds) {
+				$id = intval($v['user_id']);
+				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 			});
 			$userMapper = AdminUser::getInstance()
 				->findAll(['id' => [$userIds, 'in']], 'id,nickname,photo', null,
-				false, 0, 0, 'id,*,true');
-			foreach ($posts as $k => $v){
+					false, 0, 0, 'id,*,true');
+			foreach ($posts as $k => $v) {
 				$id = intval($v['user_id']);
 				$posts[$k]['user_info'] = empty($userMapper[$id]) ? [] : $userMapper[$id];
- 			}
+			}
+		} else {
+			$posts = [];
 		}
 		//帖子评论
 		$postComments = AdminUserOperate::getInstance()->func(function ($builder) use ($authId) {
-			$builder->raw('select a.user_id,a.created_at,a.item_type,m.* '.
-				'from admin_user_operates as a left join(select c.id,c.content,b.title '.
-					'from admin_user_post_comments as c left join admin_user_posts as d on c.post_id=d.id) as b '.
+			$builder->raw('select a.user_id,a.created_at,a.item_type,m.* ' .
+				'from admin_user_operates as a left join(select c.id,c.content,b.title ' .
+				'from admin_user_post_comments as c left join admin_user_posts as d on c.post_id=d.id) as b ' .
 				'on a.item_id=b.id where a.type=1 and a.item_type=2 and a.author_id=?', [$authId]);
 			return true;
 		});
 		if (!empty($postComments)) {
 			// 用户映射
 			$userIds = [];
-			array_walk($postComments, function ($v) use(&$userIds) {
-				$id =  intval($v['user_id']);
-				if($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+			array_walk($postComments, function ($v) use (&$userIds) {
+				$id = intval($v['user_id']);
+				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 			});
 			$userMapper = AdminUser::getInstance()
 				->findAll(['id' => [$userIds, 'in']], 'id,nickname,photo', null,
 					false, 0, 0, 'id,*,true');
-			foreach ($postComments as $k => $v){
+			foreach ($postComments as $k => $v) {
 				$id = intval($v['user_id']);
 				$postComments[$k]['user_info'] = empty($userMapper[$id]) ? [] : $userMapper[$id];
 			}
+		} else {
+			$postComments = [];
 		}
 		//资讯评论
 		$informationComments = AdminUserOperate::getInstance()->func(function ($builder) use ($authId) {
-			//$builder->raw('select m.*, o.user_id, o.created_at, o.item_type
-			// from `admin_user_operates` o left join(select c.id, c.content, i.title
-			// from `admin_information_comments` c left join `admin_information` i on  c.information_id=i.id) m on o.item_id=m.id where o.type=? and o.item_type=? and o.author_id=?', [1, 4, $authId]);
-			$builder->raw('select m.*, o.user_id, o.created_at, o.item_type '.
-				'from admin_user_operates as a left join(select c.id,c.content,i.title '.
-				'from admin_information_comments as c left join admin_information as d on c.information_id=d.id) as b '.
+			$builder->raw('select m.*, o.user_id, o.created_at, o.item_type ' .
+				'from admin_user_operates as a left join(select c.id,c.content,i.title ' .
+				'from admin_information_comments as c left join admin_information as d on c.information_id=d.id) as b ' .
 				'on a.item_id=m.id where o.type=? and o.item_type=? and o.author_id=?', [1, 4, $authId]);
 			return true;
 		});
-		
-		if ($information_comments) {
-			foreach ($information_comments as $ic => $icomment) {
-				$user = AdminUser::getInstance()->findOne($icomment['user_id']);
-				
-				$information_comments[$kc]['user_info'] = ['id' => $user->id, 'nickname' => $user->nickname, 'photo' => $user->nickname];
+		if (!empty($informationComments)) {
+			// 用户映射
+			$userIds = [];
+			array_walk($informationComments, function ($v) use (&$userIds) {
+				$id = intval($v['user_id']);
+				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+			});
+			$userMapper = AdminUser::getInstance()
+				->findAll(['id' => [$userIds, 'in']], 'id,nickname,photo', null,
+					false, 0, 0, 'id,*,true');
+			foreach ($informationComments as $k => $v) {
+				$id = intval($v['user_id']);
+				$informationComments[$k]['user_info'] = empty($userMapper[$id]) ? [] : $userMapper[$id];
 			}
+		} else {
+			$informationComments = [];
 		}
-		$result = array_merge($posts, $post_comments, $information_comments);
-		$creates_at = array_column($result, 'created_at');
-		array_multisort($creates_at, SORT_DESC, $result);
-		
+		// 清单排序
+		$result = array_merge($posts, $postComments, $informationComments);
+		usort($result, function ($av, $bv) {
+			$as = $av['created_at'];
+			$bs = $bv['created_at'];
+			return $as > $bs ? -1 : ($as == $bs ? 0 : 1);
+		});
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
+	/**
+	 * 违规中心
+	 * @throws
+	 */
+	public function foulCenter()
+	{
+		$params = $this->params;
+		// 当前登录用户ID
+		$authId = intval($this->auth['id']);
+		// 分页参数
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
+		// 分页数据
+		$fields = 'id,reason,info,created_at,item_type,item_id,item_punish_type,user_punish_type';
+		$result = AdminUserFoulCenter::getInstance()
+			->findAll(['user_id' => $authId], $fields, 'created_at,desc', true, $page, $size);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+	}
+	
+	/**
+	 * 违规记录详情
+	 * @throws
+	 */
+	public function foulItemInfo()
+	{
+		$params = $this->params;
+		// 违规数据
+		$id = empty($params['operate_id']) || intval($params['operate_id']) < 1 ? 0 : intval($params['operate_id']);
+		$operate = $id < 1 ? null : AdminUserFoulCenter::getInstance()->findOne($id);
+		if (empty($operate)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 输出数据
+		$result = [];
+		$type = intval($operate['item_type']);
+		$itemId = intval($operate['item_id']);
+		if ($type == 1) {
+			$post = $itemId < 1 ? null : AdminUserPost::getInstance()->findOne($itemId, 'id,content');
+			$title = empty($post['title']) ? '' : $post['title'];
+			$content = empty($post['content']) ? '' : base64_decode($post['content']);
+			$result = ['item_id' => $id, 'item_type' => $type, 'content' => $content, 'title' => $title];
+		} elseif ($type == 2) {
+			$postComment = AdminPostComment::getInstance()->findOne($itemId, 'id,content');
+			$content = empty($postComment['content']) ? '' : base64_decode($postComment['content']);
+			$result = ['item_id' => $id, 'item_type' => $type, 'content' => $content];
+		} elseif ($type == 4) {
+			$informationComment = AdminInformationComment::getInstance()->findOne($itemId, 'id,content');
+			$content = empty($informationComment['content']) ? '' : base64_decode($informationComment['content']);
+			$result = ['item_id' => $id, 'item_type' => $type, 'content' => $content];
+		} elseif ($type == 5) {
+			$message = ChatHistory::getInstance()->findOne($id);
+			$content = empty($message['content']) ? '' : $message['content'];
+			$result = ['item_id' => $id, 'item_type' => $type, 'content' => $content];
+		}
+		$result['info'] = $operate['info'];
+		$result['reason'] = $operate['reason'];
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+	}
 	
 	/**
 	 * 草稿箱列表
@@ -715,335 +782,182 @@ class UserCenter extends FrontUserController
 	 */
 	public function drafts()
 	{
-		$page = $params['page'] ?: 1;
-		$size = $params['size'] ?: 20;
+		$params = $this->params;
+		// 当前登录用户ID
 		$authId = intval($this->auth['id']);
+		// 分页参数
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 20 : $params['size'];
+		// 分页数据
 		$where = ['status' => AdminUserPost::NEW_STATUS_SAVE, 'user_id' => $authId];
-		[$list, $count] = AdminUserPost::getInstance()->findAll($where, '*', 'created_at,desc', true, $page, $size);
+		[$list, $count] = AdminUserPost::getInstance()
+			->findAll($where, null, 'created_at,desc', true, $page, $size);
 		$list = empty($list) ? [] : FrontService::handPosts($list, $authId);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 	}
 	
 	/**
-	 * 回复我的
-	 * @return bool
+	 * 删除
+	 * @throws
 	 */
-	public function commentsToMe()
+	public function delItem()
 	{
-		//评论回复我的
-		$post_comments = AdminPostComment::getInstance()->field(['id', 'content', 'post_id', 'created_at', 'top_comment_id', 'user_id', 'parent_id'])
-			->where('t_u_id', $this->auth['id'])
-			->where('status', AdminPostComment::STATUS_DEL, '<>')
-			->all();
-		foreach ($post_comments as $post_comment) {
-			$user = AdminUser::getInstance()->where('id', $post_comment['user_id'])->get();
-			$data['comment_id'] = $post_comment['id'];
-			$data['comment_content'] = $post_comment['content'];
-			$data['father_comment_content'] = isset($post_comment->getParentContent()->content) ? $post_comment->getParentContent()->content : '';
-			$data['post_title'] = AdminUserPost::getInstance()->findOne($post_comment['post_id'])->title;
-			$data['post_id'] = $post_comment['post_id'];
-			$data['created_at'] = $post_comment['created_at'];
-			$data['top_comment_id'] = $post_comment['top_comment_id'];
-			$data['comment_type'] = 1;
-			$data['user_info'] = ['user_id' => $user['id'], 'nickname' => $user['nickname'], 'photo' => $user['photo']];
-			$format_post_comment[] = $data;
-			unset($data);
+		$params = $this->params;
+		// 当前登录用户ID
+		$authId = intval($this->auth['id']);
+		// 类型
+		$type = empty($params['type']) ? 0 : intval($params['type']);
+		// 选项ID
+		$id = empty($params['item_id']) ? 0 : intval($params['item_id']);
+		if ($type != 1 && $type != 2 && $type != 3) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		if ($type == 1) { // 删除帖子
+			$post = AdminUserPost::getInstance()->findOne(['id' => $id, 'user_id' => $authId]);
+			if (empty($post)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+			AdminUserPost::getInstance()->setField('status', AdminUserPost::NEW_STATUS_DELETED, $id);
+			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		}
-		//回复我的资讯评论
-		$uid = $this->auth['id'];
-		$information_comments = AdminInformationComment::getInstance()->where('t_u_id', $uid)->where('status', AdminInformationComment::STATUS_DELETE, '<>')->all();
-		foreach ($information_comments as $information_comment) {
-			$user = AdminUser::getInstance()->where('id', $information_comment['user_id'])->get();
-			$data['information_id'] = $information_comment['id'];
-			$data['comment_content'] = $information_comment['content'];
-			$data['father_comment_content'] = $information_comment->getParentComment()->content;
-			$data['information_id'] = $information_comment['information_id'];
-			$data['information_title'] = AdminInformation::getInstance()->where('id', $information_comment['information_id'])->get()->title;
-			$data['created_at'] = $information_comment['created_at'];
-			$data['top_comment_id'] = $information_comment['top_comment_id'];
-			$data['comment_type'] = 2;
-			$data['user_info'] = ['user_id' => $user['id'], 'nickname' => $user['nickname'], 'photo' => $user['photo']];
-			$format_information_comment[] = $data;
-			unset($data);
+		if ($type == 2) { // 帖子评论
+			$postComment = AdminPostComment::getInstance()->findOne(['id' => $id, 'user_id' => $authId]);
+			if (empty($postComment)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+			AdminPostComment::getInstance()->setField('status', AdminPostComment::STATUS_DEL, $id);
+			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		}
-		
-		$comments = array_merge($format_post_comment, $format_information_comment);
-		$comment_created_at = array_column($comments, 'created_at');
-		array_multisort($comment_created_at, SORT_DESC, $comments);
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $comments);
-	}
-	
-	
-	
-	public function foulCenter()
-	{
-		$page = $params['page'] ?: 1;
-		$size = $params['size'] ?: 10;
-		$res = AdminUserFoulCenter::getInstance()->field(['id', 'reason', 'info', 'created_at', 'item_type', 'item_id', 'item_punish_type', 'user_punish_type'])
-			->where('user_id', $this->auth['id'])->order('created_at', 'DESC')
-			->limit(($page - 1) * $size, $size)->withTotalCount();
-		$list = $res->all(null);
-		$total = $res->lastQueryResult()->getTotalCount();
-		
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $total]);
-	}
-	
-	/**
-	 * 站务中心
-	 * @return bool
-	 */
-	public function foulCenterOne()
-	{
-		$page = $params['page'] ?: 1;
-		$size = $params['size'] ?: 10;
-		$operates = AdminUserOperate::getInstance()->where('author_id', $this->auth['id'])->where('type', 3)->where('item_type', [1, 2, 4, 5], 'in')->getLimit($page, $size);
-		$list = $operates->all(null);
-		$total = $operates->lastQueryResult()->getTotalCount();
-		if ($list) {
-			foreach ($list as $item) {
-				if (!$item['res_item'] && !$item['res_user']) {
-					continue;
-				} else {
-					//1帖子 2帖子评论 3资讯 4资讯评论 5直播间发言
-					if ($item['item_type'] == 1) { //帖子
-						if ($post = AdminUserPost::getInstance()->where('id', $item['item_id'])->get()) {
-							$data['item_type'] = 1;
-							$data['item_id'] = $post->id;
-							$data['post_title'] = $post->title;
-							$data['created_at'] = $item->created_at;
-							
-							$data['res_item'] = $item->res_item;
-							$data['res_user'] = $item->res_item;
-							$data['last_time'] = $item->last_time;
-						} else {
-							continue;
-						}
-					} elseif ($item['item_type'] == 2) {
-						if ($post_comment = AdminPostComment::getInstance()->where('id', $item['item_id'])->get()) {
-							$data['item_type'] = 2;
-							$data['item_id'] = $post_comment->id;
-							$data['item_content'] = $post_comment->comment;
-							$data['created_at'] = $item->created_at;
-							$data['res_item'] = $item->res_item;
-							$data['res_user'] = $item->res_item;
-							$data['last_time'] = $item->last_time;
-						} else {
-							continue;
-						}
-					} elseif ($item['item_type'] == 4) {
-						if ($information_comment = AdminInformationComment::getInstance()->where('id', $item['item_id'])->get()) {
-							$data['item_type'] = 4;
-							$data['item_id'] = $information_comment->id;
-							$data['item_content'] = $information_comment->content;
-							$data['created_at'] = $item->created_at;
-							$data['res_item'] = $item->res_item;
-							$data['res_user'] = $item->res_item;
-							$data['last_time'] = $item->last_time;
-						} else {
-							continue;
-						}
-					} elseif ($item['item_type'] == 5) {
-						if ($chat_message = ChatHistory::getInstance()->where('id', $item['item_id'])->get()) {
-							$data['item_type'] = 5;
-							$data['item_id'] = $chat_message->id;
-							$data['item_content'] = $chat_message->comment;
-							$data['created_at'] = $item->created_at;
-							$data['res_item'] = $item->res_item;
-							$data['res_user'] = $item->res_item;
-							$data['last_time'] = $item->last_time;
-						} else {
-							continue;
-						}
-					}
-					$data['id'] = $item['id'];
-					
-					if (!isset($data)) {
-						continue;
-					}
-					if ($item['res_item'] == AdminUserOperate::TYPE_RES_ITEM_DELETE || $item['res_user'] == AdminUserOperate::TYPE_RES_USER_FORBIDDEN || $item['res_user'] == AdminUserOperate::TYPE_RES_USER_BAN) {
-						$datas[] = $data;
-					}
-				}
-			}
-			$return_data = ['list' => $datas, 'count' => $total];
-			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_data);
-		} else {
-			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => [], 'count' => 0]);
-		}
-	}
-	
-	/**
-	 * 违规记录详情
-	 */
-	public function foulItemInfo()
-	{
-		$id = $params['operate_id'];
-		if (!$operate = AdminUserFoulCenter::getInstance()->where('id', $id)->get()) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		$data = [];
-		if ($operate->item_type == 1) {
-			$post = AdminUserPost::getInstance()->where('id', $operate->item_id)->field(['id', 'content'])->get();
-			$data = ['item_id' => $id, 'item_type' => 1, 'content' => base64_decode($post->content), 'title' => $post->title];
-		} elseif ($operate->item_type == 2) {
-			$post_comment = AdminPostComment::getInstance()->where('id', $id)->field(['id', 'content'])->get();
-			$data = ['item_id' => $id, 'item_type' => 2, 'content' => $post_comment->content];
-		} elseif ($operate->item_type == 4) {
-			$information_comment = AdminInformationComment::getInstance()->where('id', $id)->field(['id', 'content'])->get();
-			$data = ['item_id' => $id, 'item_type' => 3, 'content' => $information_comment->content];
-		} elseif ($operate->item_type == 5) {
-			$chat_message = ChatHistory::getInstance()->where('id', $id)->get();
-			$data = ['item_id' => $id, 'item_type' => 5, 'content' => $chat_message->content];
-		}
-		$data['info'] = $operate->info;
-		$data['reason'] = $operate->reason;
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+		// 资讯评论
+		$informationComment = AdminInformationComment::getInstance()->findOne(['id' => $id, 'user_id' => $authId]);
+		if (empty($informationComment)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		AdminInformationComment::getInstance()->setField('status', AdminInformationComment::STATUS_DELETE, $id);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 	}
 	
 	/**
 	 * 任务列表
+	 * @throws
 	 */
-	
 	public function getAvailableTask()
 	{
-		$user_tasks = AdminUserSerialPoint::USER_TASK;
-		foreach ($user_tasks as $k => $task) {
-			if ($task['status'] != AdminUserSerialPoint::TASK_STATUS_NORMAL) {
-				continue;
-			}
-			$done_times = AdminUserSerialPoint::getInstance()->where('task_id', $task['id'])->where('created_at', date('Y-m-d'))->where('user_id', $this->auth['id'])->count();
-			$user_tasks[$k]['done_times'] = $done_times;
+		// 当前登录用户ID
+		$authId = intval($this->auth['id']);
+		// 任务清单
+		$tasks = AdminUserSerialPoint::USER_TASK;
+		foreach ($tasks as $k => $v) {
+			if ($v['status'] != AdminUserSerialPoint::TASK_STATUS_NORMAL) continue;
+			$id = intval($v['id']);
+			$times = $id < 1 ? 0 : AdminUserSerialPoint::getInstance()
+				->findOne(['task_id' => $id, 'created_at' => date('Y-m-d'), 'user_id' => $authId], 'count(*) total');
+			$tasks[$k]['done_times'] = empty($times[0]['total']) ? 0 : intval($times);
 		}
-		
-		$user_info = AdminUser::getInstance()->field(['id', 'photo', 'level', 'is_offical', 'level', 'point'])->where('id', $this->auth['id'])->get();
-		
-		$return = ['user_info' => $user_info, 'task_list' => $user_tasks];
-		$return['d_value'] = AppFunc::getPointsToNextLevel($user_info->id);
-		$return ['t_value'] = AppFunc::getPointOfLevel($user_info->level);
-		if (!$user_info->third_wx_unionid) {
-			$return ['special'] = ['id' => 4, 'name' => '分享好友', 'status' => 1, 'times_per_day' => 1, 'icon' => 'http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg', 'points_per_time' => 200];
+		// 用户数据
+		$user = AdminUser::getInstance()->findOne($authId, 'id,photo,level,is_offical,level,point');
+		// 输出数据
+		$result = ['user_info' => $user, 'task_list' => $tasks];
+		$result['d_value'] = AppFunc::getPointsToNextLevel($authId);
+		$result ['t_value'] = AppFunc::getPointOfLevel($user['level']);
+		if (empty($user['third_wx_unionid'])) {
+			$result ['special'] = [
+				'id' => 4, 'name' => '分享好友', 'status' => 1,
+				'times_per_day' => 1, 'points_per_time' => 200,
+				'icon' => 'http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg',
+			];
 		}
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
 	/**
 	 * 做任务加积分，这里只能是每日签到与分享
-	 * @return bool
+	 * @throws
 	 */
 	public function userDoTask()
 	{
-		$task_id = $params['task_id'];
-		$user_id = $this->auth['id'];
-		if (!in_array($task_id, [1, 4])) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		$params = $this->params;
+		// 当前登录用户ID
+		$authId = intval($this->auth['id']);
+		// 任务ID
+		$taskId = empty($params['task_id']) || intval($params['task_id']) < 1 ? 0 : intval($params['task_id']);
+		if (!in_array($taskId, [1, 4])) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 任务数据
+		$task = AdminUserSerialPoint::USER_TASK;
+		$task = empty($task[$taskId]) ? [] : $task[$taskId];
+		if (empty($task)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		//
+		$where = ['user_id' => $authId, 'task_id' => $taskId, 'created_at' => date('Y-m-d')];
+		$times = AdminUserSerialPoint::getInstance()->findOne($where, 'count(*) total');
+		$times = empty($times[0]['total']) ? 0 : intval($times[0]['total']);
+		if ($task['times_per_day'] <= $times) $this->output(Status::CODE_TASK_LIMIT, Status::$msg[Status::CODE_TASK_LIMIT]);
+		try {
+			$times = intval($task['points_per_time']);
+			DbManager::getInstance()->startTransaction();
+			AdminUserSerialPoint::getInstance()->insert([
+				'type' => 1,
+				'point' => $times,
+				'task_id' => $taskId,
+				'user_id' => $authId,
+				'task_name' => $task['name'],
+				'created_at' => date('Y-m-d'),
+			]);
+			$user = AdminUser::getInstance()->findOne($authId, 'point');
+			AdminUser::getInstance()->saveDataById($authId, [
+				'point' => QueryBuilder::inc($times),
+				'level' => AppFunc::getUserLvByPoint($user['point']),
+			]);
+		} catch (\Throwable  $e) {
+			DbManager::getInstance()->rollback();
+		} finally {
+			DbManager::getInstance()->commit();
 		}
-		$user_task_list = AdminUserSerialPoint::USER_TASK;
-		if (!$user_task = $user_task_list[$task_id]) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		$user_did_task = AdminUserSerialPoint::getInstance()->where('user_id', $this->auth['id'])->where('task_id', $task_id)->where('created_at', date('Y-m-d'))->count();
-		if ($user_task['times_per_day'] <= $user_did_task) {
-			$this->output(Status::CODE_TASK_LIMIT, Status::$msg[Status::CODE_TASK_LIMIT]);
-		}
-		$user = DbManager::getInstance()->invoke(function ($client) use ($task_id, $user_id, $user_task) {
-			$intvalModel = AdminUserSerialPoint::invoke($client);
-			$intvalModel->task_id = $task_id;
-			$intvalModel->user_id = $user_id;
-			$intvalModel->point = $user_task['points_per_time'];
-			$intvalModel->task_name = $user_task['name'];
-			$intvalModel->type = 1;
-			$intvalModel->created_at = date('Y-m-d');
-			$intvalModel->save();
-			
-			$user = AdminUser::invoke($client)->where('id', $user_id)->get();
-			$user->point += $user_task['points_per_time'];
-			$user->level = AppFunc::getUserLvByPoint($user->point);
-			$user->update();
-			return $user;
-		});
-		$user_info = [
-			'level' => $user->level,
-			'point' => $user->point,
-			'd_value' => AppFunc::getPointsToNextLevel($user_id),
+		$user = AdminUser::getInstance()->findOne($authId);
+		// 输出数据
+		$result = [
+			'level' => $user['level'], 'point' => $user['point'],
+			'd_value' => AppFunc::getPointsToNextLevel($authId),
 		];
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user_info);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
 	/**
 	 * 积分明细
-	 * @return bool
+	 * @throws
 	 */
 	public function getPointList()
 	{
-		$page = $params['page'] ?: 1;
-		$size = $params['size'] ?: 10;
-		$model = AdminUserSerialPoint::getInstance()->where('user_id', $this->auth['id'])
-			->field(['id', 'task_name', 'type', 'point', 'created_at'])
-			->getLimit($page, $size);
-		$list = $model->all(null);
-		$total = $model->lastQueryResult()->getTotalCount();
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
-	}
-	
-	/**
-	 * 删除
-	 * @return bool
-	 */
-	public function delItem()
-	{
-		if ((!$type = $params['type']) || (!$item_id = $params['item_id'])) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		
-		$uid = $this->auth['id'];
-		if ($type == 1) {//删除帖子
-			if (!$post = AdminUserPost::getInstance()->where('id', $item_id)->where('user_id', $uid)->get()) {
-				$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-			} else {
-				$post->status = AdminUserPost::NEW_STATUS_DELETED;
-				$post->update();
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-			}
-		} elseif ($type == 2) {//帖子评论
-			if (!$post_comment = AdminPostComment::getInstance()->where('id', $item_id)->where('user_id', $uid)->get()) {
-				$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-			} else {
-				$post_comment->status = AdminPostComment::STATUS_DEL;
-				$post_comment->update();
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-			}
-		} elseif ($type == 3) {
-			if (!$information_comment = AdminInformationComment::getInstance()->where('id', $item_id)->where('user_id', $uid)->get()) {
-				$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-			} else {
-				$information_comment = AdminInformationComment::STATUS_DELETE;
-				$information_comment->update();
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-			}
-		} else {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
+		$params = $this->params;
+		// 当前登录用户ID
+		$authId = intval($this->auth['id']);
+		// 分页参数
+		$page = empty($params['page']) ? 1 : $params['page'];
+		$size = empty($params['size']) ? 10 : $params['size'];
+		// 分页数据
+		$fields = 'id,task_name,type,point,created_at';
+		[$list, $count] = AdminUserSerialPoint::getInstance()
+			->findAll(['user_id' => $authId], $fields, 'created_at,desc', true, $page, $size);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $count]);
 	}
 	
 	/**
 	 * 用户反馈
+	 * @throws
 	 */
 	public function userFeedBack()
 	{
+		// 参数校验
 		$validator = new Validate();
 		$validator->addColumn('content')->required();
-		if (!$validator->validate($params)) {
+		if (!$validator->validate($this->params)) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		}
-		$data['content'] = addslashes(htmlspecialchars($params['content']));
-		$data['user_id'] = $this->auth['id'];
-		if ($params['img']) {
-			$data['img'] = $params['img'];
-		}
-		if (AdminUserFeedBack::getInstance()->insert($data)) {
-			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-		} else {
-			$this->output(Status::CODE_ERR, '提交失败，请联系客服');
-		}
+		// 当前登录用户ID
+		$authId = intval($this->auth['id']);
+		$params = $this->params;
+		$imgs = trim($params['img']);
+		$content = trim($params['content']);
+		if (empty($content)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		// 插入数据
+		$data = [
+			'user_id' => $authId,
+			'content' => addslashes(htmlspecialchars($content)),
+		];
+		if (!empty($imgs)) $data['img'] = $imgs;
+		$tmp = AdminUserFeedBack::getInstance()->insert($data);
+		if ($tmp) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+		$this->output(Status::CODE_ERR, '提交失败，请联系客服');
 	}
 }

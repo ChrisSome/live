@@ -11,11 +11,11 @@ use EasySwoole\EasySwoole\ServerManager;
 
 class WebSocket extends FrontUserController
 {
-	public $needCheckToken = false;
 	protected $isCheckSign = false;
-	protected $uriM = 'https://open.sportnanoapi.com/api/v4/football/match/diary?user=%s&secret=%s&date=%s';
-	protected $user = 'mark9527';
-	protected $secret = 'dbfe8d40baa7374d54596ea513d8da96';
+	protected $needCheckToken = false;
+	private $user = 'mark9527';
+	private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
+	private $uriM = 'https://open.sportnanoapi.com/api/v4/football/match/diary?user=%s&secret=%s&date=%s';
 	
 	function callback($instance, $channelName, $message)
 	{

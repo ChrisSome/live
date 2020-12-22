@@ -132,7 +132,7 @@ abstract class BaseModel extends AbstractModel
 	/**
 	 * @param null   $where
 	 * @param null   $fields
-	 * @param null   $order
+	 * @param null   $orderOrGroup
 	 * @param bool   $isPager
 	 * @param int    $page
 	 * @param int    $size
@@ -140,7 +140,7 @@ abstract class BaseModel extends AbstractModel
 	 * @return array
 	 * @throws
 	 */
-	public function findAll($where = null, $fields = null, $order = null,
+	public function findAll($where = null, $fields = null, $orderOrGroup = null,
 	                        bool $isPager = false, $page = 0, $size = 10,
 	                        string $keyAndValue = ''): array
 	{
@@ -194,22 +194,30 @@ abstract class BaseModel extends AbstractModel
 		// 查询字段
 		$fields = empty($fields) || $fields == '*' || !(is_array($fields) || is_string($fields)) ? null : $fields;
 		if (!empty($fields)) $self = $self->field($fields);
-		// 排序部分
-		if (!empty($order) && is_string($order)) {
-			$order = trim(preg_replace('/\s+,\s+/', ',', $order), ',');
-		}
-		if (!empty($order)) {
-			if (is_array($order)) {
-				$order = array_values($order);
-				if (is_string($order[0])) {
-					if (count($order) == 2) $self = $self->order(...$order);
-				} elseif (is_array($order[0])) {
-					foreach ($order as $v) {
-						if (count($v) == 2) $self = $self->order(...$v);
+		// 排序/分组部分
+		if (!empty($orderOrGroup) && (is_array($orderOrGroup) || is_string($orderOrGroup))) {
+			if(is_string($orderOrGroup)) {
+				$order = explode(',', trim(preg_replace('/\s+,\s+/', ',', $orderOrGroup), ','));
+				if (count($order) == 2) $self = $self->order(...$order);
+			}else {
+				if(isset($orderOrGroup['order']) || isset($orderOrGroup['group'])){
+					if(!empty($orderOrGroup['order']) && is_string($orderOrGroup['order'])){
+						$order = explode(',', trim(preg_replace('/\s+,\s+/', ',', $orderOrGroup), ','));
+						if (count($order) == 2) $self = $self->order(...$order);
+					}
+					if(!empty($orderOrGroup['group']) && is_string($orderOrGroup['group'])){
+						$self->group($orderOrGroup['group']);
+					}
+				}else{
+					$order = array_values($orderOrGroup);
+					if (is_string($order[0])) {
+						if (count($order) == 2) $self = $self->order(...$order);
+					} elseif (is_array($order[0])) {
+						foreach ($order as $k => $v) {
+							if (count($v) == 2) $self = $self->order(...$v);
+						}
 					}
 				}
-			} elseif (is_string($order) && count(explode(',', $order)) == 2) {
-				$self = $self->order(...explode(',', $order));
 			}
 		}
 		// 获取清单

@@ -7,9 +7,9 @@ return [
 		'db' => 'es_admin',
 		'charset' => 'utf8',
 		'username' => 'root',
-		'connect_timeout' => 5,
+		'connect_timeout' => 10,
 		'host' => '8.210.195.192',
-		'max_reconnect_times' => 3,
+		'max_reconnect_times' => 5,
 		'password' => 'prybEL5CaeK5rsMT',
 		'alias' => '',// 子查询别名
 		'isSubQuery' => false,// 是否为子查询

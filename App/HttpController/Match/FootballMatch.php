@@ -1402,7 +1402,7 @@ class FootBallMatch extends FrontUserController
 	}
 	
 	/**
-	 * todo ... [??]
+	 * 比赛数据矫正
 	 * @throws
 	 */
 	public function fixMatch()
@@ -1432,63 +1432,6 @@ class FootBallMatch extends FrontUserController
 			'tlive' => isset($data['tlive']) ? json_encode($data['tlive']) : '',
 			'incidents' => isset($data['incidents']) ? json_encode($data['incidents']) : '',
 		]);
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
-	}
-	
-	/**
-	 * todo ... [??]
-	 * @throws
-	 */
-	public function test()
-	{
-		ini_set("max_execution_time", 1000);
-		//$seasonId = Cache::get('season_match_list_seasonId-');
-		$seasonId = SeasonMatchListOne::getInstance()->max('season_id');
-		$list = AdminSeason::getInstance()
-			->findAll(['season_id' => [$seasonId, '>']], 'season_id', null, false, 1, 2000);
-		foreach ($list as $v) {
-			$id = intval($v['id']);
-			Cache::set('season_match_list_seasonId-', $id);
-			$url = sprintf('https://open.sportnanoapi.com/api/v4/football/match/season?user=%s&secret=%s&id=%s', $this->user, $this->secret, $id);
-			$tmp = Tool::getInstance()->postApi($url);
-			$tmp = empty($tmp) ? null : json_decode($tmp, true);
-			$items = empty($tmp['results']) ? null : $tmp['results'];
-			if (empty($items)) continue;
-			
-			foreach ($items as $vv) {
-				if (SeasonMatchListOne::getInstance()->findOne(['match_id' => $vv['id']])) continue;
-				$homeTeam = AdminTeam::getInstance()->findOne(['team_id' => $vv['home_team_id']]);
-				$awayTeam = AdminTeam::getInstance()->findOne(['team_id' => $vv['away_team_id']]);
-				$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $vv['competition_id']]);
-				SeasonMatchListOne::getInstance()->insert([
-					'match_id' => $vv['id'],
-					'note' => $vv['note'],
-					'neutral' => $vv['neutral'],
-					'status_id' => $vv['status_id'],
-					'season_id' => $vv['season_id'],
-					'updated_at' => $vv['updated_at'],
-					'match_time' => $vv['match_time'],
-					'home_team_logo' => $homeTeam->logo,
-					'away_team_logo' => $awayTeam->logo,
-					'home_team_id' => $vv['home_team_id'],
-					'away_team_id' => $vv['away_team_id'],
-					'home_position' => $vv['home_position'],
-					'away_position' => $vv['away_position'],
-					'competition_id' => $vv['competition_id'],
-					'home_scores' => json_encode($vv['home_scores']),
-					'away_scores' => json_encode($vv['away_scores']),
-					'competition_color' => $competition->primary_color,
-					'round' => isset($vv['round']) ? json_encode($vv['round']) : '',
-					'venue_id' => isset($vv['venue_id']) ? intval($vv['venue_id']) : 0,
-					'referee_id' => isset($vv['referee_id']) ? intval($vv['referee_id']) : 0,
-					'coverage' => isset($vv['coverage']) ? json_encode($vv['coverage']) : '',
-					'environment' => isset($vv['environment']) ? json_encode($vv['environment']) : '',
-					'home_team_name' => $homeTeam->short_name_zh ? $homeTeam->short_name_zh : $homeTeam->name_zh,
-					'away_team_name' => $awayTeam->short_name_zh ? $awayTeam->short_name_zh : $awayTeam->name_zh,
-					'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
-				]);
-			}
-		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
 	}
 }

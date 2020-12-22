@@ -84,7 +84,7 @@ class EasySwooleEvent implements Event
 	
 	/**
 	 * @param EventRegister $register
-	 * @throws CacheException
+	 * @throws
 	 */
 	public static function mainServerCreate(EventRegister $register)
 	{
@@ -101,8 +101,8 @@ class EasySwooleEvent implements Event
 		Cache::init($conf);
 		
 		// 注册Websocket相关
-		OnlineUser::getInstance();
 		$web = new WebSocketEvents();
+		OnlineUser::getInstance();
 		$onWorkerStart = new OnWorkStart();
 		$register->set(EventRegister::onWorkerStart, function ($server, $workerId) use ($onWorkerStart) {
 			$onWorkerStart->onWorkerStart($server, $workerId);
