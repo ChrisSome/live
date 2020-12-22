@@ -343,11 +343,9 @@ class FootBallMatch extends FrontUserController
         $match = AdminMatch::getInstance()->where('match_time', $timestamp, '>=')->where('match_time', $end_timestamp, '<')->where('status_id', 8)->all();
         foreach ($match as $match_item) {
             $season_id = $match_item->season_id;
-            $season_id_arr = [];
-            if (in_array($season_id, $season_id_arr)){
+            if (isset($season_id_arr) && in_array($season_id, $season_id_arr)){
                 continue;
             }
-            $season_id_arr[] = $season_id;
             //更新赛季球队球员统计详情-全量
             $url = sprintf($this->all_stat, $this->user, $this->secret, $season_id);
             $res = Tool::getInstance()->postApi($url);
@@ -391,6 +389,7 @@ class FootBallMatch extends FrontUserController
                 }
 
             }
+            $season_id_arr[] = $season_id;
 
 
         }

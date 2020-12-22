@@ -406,7 +406,7 @@ class FootballApi extends FrontUserController
 
 
     /**
-     * 历史
+     * 历史交锋
      * @return bool
      */
     public function getClashHistory()
@@ -415,7 +415,6 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
-
         $matchId = $this->params['match_id'];
         $sensus = AdminClashHistory::getInstance()->where('match_id', $this->params['match_id'])->get();
 
@@ -424,12 +423,14 @@ class FootballApi extends FrontUserController
 
         //积分排名
         $currentSeasonId = $matchInfo->competitionName()->cur_season_id;
+
         if (!$currentSeasonId) {
             $intvalRank = [];
         } else {
             $res = SeasonAllTableDetail::getInstance()->where('season_id', $currentSeasonId)->get();
             $decode = json_decode($res->tables, true);
             $promotions = json_decode($res->promotions, true);
+
             if ($promotions) {
                 $rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
 

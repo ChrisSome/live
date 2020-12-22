@@ -166,8 +166,8 @@ class UserCenter   extends FrontUserController{
 
 
     /**
-     * 草稿箱列表
      * @return bool
+     * @throws \Throwable
      */
     public function drafts()
     {
