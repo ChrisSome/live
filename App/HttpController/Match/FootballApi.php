@@ -14,6 +14,7 @@ use App\Model\AdminUser;
 use App\Model\AdminUserInterestCompetition;
 use App\Model\ChatHistory;
 use App\Model\SeasonAllTableDetail;
+use App\Model\SignalMatchLineUp;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
@@ -302,8 +303,9 @@ class FootballApi extends FrontUserController
     }
 
     /**
-     * 首发阵容
+     * 单场比赛阵容详情
      * @return bool
+     * @throws
      */
     public function lineUpDetail()
     {
@@ -312,95 +314,84 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
-        $res = Tool::getInstance()->postApi(sprintf($this->lineUpDetail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $match_id));
-        $decode = json_decode($res, true);
-        $homeFirstPlayers = [];
-        $homeAlternatePlayers = [];
-        $awayFirstPlayers = [];
-        $awayAlternatePlayers = [];
-        if ($decode['code'] == 0) {
-            $homeFormation = $decode['results']['home_formation'];
-            $awayFormation = $decode['results']['away_formation'];
-            $home = $decode['results']['home'];
-            $away = $decode['results']['away'];
-            if ($home) {
-                foreach ($home as $homeItem)
-                {
-                    if (!isset($home['logo'])) {
-                        $homeplayerinfo = AdminPlayer::getInstance()->where('player_id', $homeItem['id'])->get();
 
-                    }
+        $homeFirstPlayers = $homeAlternatePlayers = $awayFirstPlayers = $awayAlternatePlayers = [];
 
-                    $homePlayer['player_id'] = $homeItem['id'];
-                    $homePlayer['name'] = $homeItem['name'];
-                    $homePlayer['logo'] = isset($home['logo']) ? $this->playerLogo . $homeItem['logo'] : ($homeplayerinfo ? $homeplayerinfo->logo : '');
-                    $homePlayer['position'] = $homeItem['position'];
-                    $homePlayer['shirt_number'] = $homeItem['shirt_number'];
-                    if ($homeItem['first']) {
-                        $homeFirstPlayers[] = $homePlayer;
-                    } else {
-                        $homeAlternatePlayers[] = $homePlayer;
-
-                    }
-                    unset($homePlayer);
-
-
-                }
-            }
-
-            if ($away) {
-                foreach ($away as $awayItem) {
-                    if (!$awayItem['logo']) {
-                        $awayplayerinfo = AdminPlayer::getInstance()->where('player_id', $awayItem['id'])->get();
-                    }
-                    $awayPlayer['player_id'] = $awayItem['id'];
-                    $awayPlayer['name'] = $awayItem['name'];
-                    $awayPlayer['logo'] = $awayItem['logo'] ? $this->playerLogo . $awayItem['logo'] : ($awayplayerinfo ? $awayplayerinfo->logo : '');
-                    $awayPlayer['position'] = $awayItem['position'];
-                    $awayPlayer['shirt_number'] = $awayItem['shirt_number'];
-                    if ($awayItem['first']) {
-
-                        $awayFirstPlayers[] = $awayPlayer;
-                    } else {
-                        $awayAlternatePlayers[] = $awayPlayer;
-                    }
-                    unset($awayPlayer);
-
-
-                }
-            }
-
-            $matchInfo = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->where('is_delete', 0)->get();
-            if (!$matchInfo) {
-                $homeTeamInfo = [];
-                $awayTeamInfo = [];
-            } else {
-                $homeTeamInfo['firstPlayers'] = $homeFirstPlayers;
-                $homeTeamInfo['alternatePlayers'] = $homeAlternatePlayers;
-                $homeTeamInfo['teamName'] = $matchInfo->homeTeamName()['name_zh'];
-                $homeTeamInfo['teamLogo'] = $matchInfo->homeTeamName()['logo'];
-                $homeTeamInfo['homeManagerName'] = $matchInfo->homeTeamName()->getManager()->name_zh;
-                $homeTeamInfo['homeFormation'] = $homeFormation;
-
-                $awayTeamInfo['firstPlayers'] = $awayFirstPlayers;
-                $awayTeamInfo['alternatePlayers'] = $awayAlternatePlayers;
-                $awayTeamInfo['teamName'] = $matchInfo->awayTeamName()['name_zh'];
-                $awayTeamInfo['teamLogo'] = $matchInfo->awayTeamName()['logo'];
-                $awayTeamInfo['awayManagerName'] = $matchInfo->awayTeamName()->getManager()->name_zh;
-                $awayTeamInfo['awayFormation'] = $awayFormation;
-
-            }
-
-            $data = [
-                'home' => $homeTeamInfo,
-                'away' => $awayTeamInfo,
-            ];
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
-
+        if ($signalMatchLineUp = SignalMatchLineUp::getInstance()->where('match_id', $match_id)->get()) {
+            $homeFormation = json_decode($signalMatchLineUp->home_formation, true);
+            $awayFormation = json_decode($signalMatchLineUp->away_formation, true);
+            $home = json_decode($signalMatchLineUp->home, true);
+            $away = json_decode($signalMatchLineUp->away, true);
         } else {
-            return $this->writeJson(Status::CODE_MATCH_LINE_UP_ERR, Status::$msg[Status::CODE_MATCH_LINE_UP_ERR]);
+            $res = Tool::getInstance()->postApi(sprintf($this->lineUpDetail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $match_id));
+            $decode = json_decode($res, true);
 
+            if ($decode['code'] == 0 && $decode['results']) {
+                $homeFormation = $decode['results']['home_formation'];
+                $awayFormation = $decode['results']['away_formation'];
+                $home = $decode['results']['home'];
+                $away = $decode['results']['away'];
+                //入库
+                $signalMatchLineUp = SignalMatchLineUp::create();
+                $signalMatchLineUp->home_formation = json_encode($homeFormation);
+                $signalMatchLineUp->away_formation = json_encode($awayFormation);
+                $signalMatchLineUp->home = json_encode($home);
+                $signalMatchLineUp->away = json_encode($away);
+                $signalMatchLineUp->match_id = $match_id;
+                $signalMatchLineUp->confirmed = $decode['results']['confirmed'];
+                $signalMatchLineUp->save();
+            } else {
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+            }
         }
+
+        if (!empty($home)) {
+            foreach ($home as $homeItem)
+            {
+                $homePlayer['player_id'] = $homeItem['id'];
+                $homePlayer['name'] = $homeItem['name'];
+                $homePlayer['logo'] = isset($home['logo']) ? $this->playerLogo . $homeItem['logo'] : '';
+                $homePlayer['position'] = $homeItem['position'];
+                $homePlayer['shirt_number'] = $homeItem['shirt_number'];
+                if ($homeItem['first']) {
+                    $homeFirstPlayers[] = $homePlayer; //首发
+                } else {
+                    $homeAlternatePlayers[] = $homePlayer; //替补
+                }
+                unset($homePlayer);
+            }
+        }
+
+        if (!empty($away)) {
+            foreach ($away as $awayItem) {
+                $awayPlayer['player_id'] = $awayItem['id'];
+                $awayPlayer['name'] = $awayItem['name'];
+                $awayPlayer['logo'] = $awayItem['logo'] ? $this->playerLogo . $awayItem['logo'] : '';
+                $awayPlayer['position'] = $awayItem['position'];
+                $awayPlayer['shirt_number'] = $awayItem['shirt_number'];
+                if ($awayItem['first']) {
+                    $awayFirstPlayers[] = $awayPlayer; //首发
+                } else {
+                    $awayAlternatePlayers[] = $awayPlayer; //替补
+                }
+                unset($awayPlayer);
+            }
+        }
+
+        $homeTeamInfo['firstPlayers'] = $homeFirstPlayers;
+        $homeTeamInfo['alternatePlayers'] = $homeAlternatePlayers;
+        $homeTeamInfo['homeFormation'] = $homeFormation;
+
+        $awayTeamInfo['firstPlayers'] = $awayFirstPlayers;
+        $awayTeamInfo['alternatePlayers'] = $awayAlternatePlayers;
+        $awayTeamInfo['awayFormation'] = $awayFormation;
+
+        $data = [
+            'home' => $homeTeamInfo,
+            'away' => $awayTeamInfo,
+        ];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+
 
     }
 
