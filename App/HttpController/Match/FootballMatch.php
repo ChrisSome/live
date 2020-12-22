@@ -1288,8 +1288,11 @@ class FootBallMatch extends FrontUserController
 		$startTime = strtotime(date('Ymd', strtotime('-1 day')));
 		$endTime = $startTime + 3600 * 24;
 		$list = AdminMatch::getInstance()->findAll(['match_time' => [[$startTime, $endTime], 'between'], 'status_id' => 6]);
+		$seasonIds = [];
 		foreach ($list as $v) {
 			$id = intval($v['season_id']);
+			if (in_array($id, $seasonIds)) continue;
+			$seasonIds[] = $id;
 			//更新赛季球队球员统计详情-全量
 			$url = sprintf($this->allStat, $this->user, $this->secret, $id);
 			$tmp = Tool::getInstance()->postApi($url);

@@ -556,7 +556,7 @@ class FootballApi extends FrontUserController
 	
 	
 	/**
-	 * 历史
+	 * 历史交锋
 	 * @return bool
 	 */
 	public function getClashHistory()
