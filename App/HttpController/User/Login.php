@@ -316,17 +316,18 @@ class Login extends FrontUserController
 	public function checkPhoneCode()
 	{
 		// 参数校验
-		$params = $this->param();
-		if (empty($params['code']) || empty($params['mobile'])) {
+		$code = $this->param('code');
+		$mobile = $this->param('mobile');
+		if (empty($code) || empty($mobile)) {
 			$this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 		}
 		// 获取验证码信息
-		$tmp = AdminUserPhonecode::getInstance()->getLastCodeByMobile($params['mobile']);
-		if (empty($tmp['status']) || $tmp['code'] != $params['code']) {
+		$tmp = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
+		if (empty($tmp['status']) || $tmp['code'] != $code) {
 			$this->output(StatusMapper::CODE_W_PHONE_CODE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE_CODE]);
 		}
 		// 手机号用户已存在
-		if (AdminUser::getInstance()->findOne(['mobile' => $params['mobile']])) {
+		if (AdminUser::getInstance()->findOne(['mobile' => $mobile])) {
 			$this->output(StatusMapper::CODE_PHONE_EXIST, StatusMapper::$msg[StatusMapper::CODE_PHONE_EXIST]);
 		}
 		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK]);
