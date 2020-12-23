@@ -318,7 +318,8 @@ class FootballApi extends FrontUserController
 			'competition_id' => [$selectCompetitionIdArr, 'in'],
 			'is_delete' => 0,
 		];
-		[$list, $count] = AdminMatch::getInstance()->findAll($where, null, 'match_time,desc', true, $page, $size);
+		[$list, $count] = empty($selectCompetitionIdArr) ? [[], 0] : AdminMatch::getInstance()
+			->findAll($where, null, 'match_time,desc', true, $page, $size);
 		$list = empty($list) ? [] : FrontService::formatMatchThree($list, $this->authId, $interestMatchArr);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}

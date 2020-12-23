@@ -81,14 +81,14 @@ class AdminUser extends BaseModel
 	public static function getUserShowCompetitionId($uid): array
 	{
 		//默认赛事
-		$config = AdminSysSettings::create()->findOne(['sys_key' => AdminSysSettings::COMPETITION_ARR], 'sys_value');
+		$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::COMPETITION_ARR], 'sys_value');
 		$config = empty($config['sys_value']) ? [] : json_decode($config['sys_value'], true);
 		//用户关注赛事 与 比赛
-		$res = AdminUserInterestCompetition::create()->alias('c')
+		$tmp = AdminUserInterestCompetition::create()->alias('c')
 			->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')
 			->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
-		$interestMatchArr = empty($res['match_ids']) ? [] : json_decode($res['match_ids'], true);
-		$userInterestCompetition = empty($res['competition_ids']) ? [] : json_decode($res['competition_ids'], true);
+		$interestMatchArr = empty($tmp['match_ids']) ? [] : json_decode($tmp['match_ids'], true);
+		$userInterestCompetition = empty($tmp['competition_ids']) ? [] : json_decode($tmp['competition_ids'], true);
 		if (!empty($userInterestCompetition)) {
 			$selectCompetitionIdArr = array_intersect($config, $userInterestCompetition);
 		} else {
