@@ -96,19 +96,14 @@ abstract class BaseModel extends AbstractModel
 		if (!empty($fields)) $self = $self->field($fields);
 		if (is_array($where)) {
 			foreach ($where as $field => $v) {
-				if (empty($v)) continue;
+				if (is_array($v) && empty($v)) continue;
 				
 				if ($field == 'or') {
-					if (is_array($v)) $self = $self->where('(' . join(' or ', $v) . ')');
+					if (is_array($v)) $self->where('(' . join(' or ', $v) . ')');
 					continue;
 				}
 				
-				if (is_int($field) && is_string($v)) {
-					$self = $self->where($v);
-					continue;
-				}
-				
-				if (!is_string($field)) return null;
+				if (is_int($field) && is_array($v)) return $isPager ? [[], 0] : [];
 				
 				$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
 				if ($extra == 'like') {
@@ -121,13 +116,13 @@ abstract class BaseModel extends AbstractModel
 					$self = $self->where('(' . $strArr . ')');
 					continue;
 				} elseif ($extra == 'in' || $extra == 'between') {
-					if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return null;
+					if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return $isPager ? [[], 0] : [];
 					foreach ($v[0] as $kk => $vv) {
 						$v[0][$kk] = intval($vv);
 					}
 					$self = $self->where($field, ...$v);
 				} else {
-					if (!is_array($v)) $v = [$v];
+					
 					$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
 					if (isset($fieldsTmp[1])) {
 						$fqs = [];
@@ -135,9 +130,10 @@ abstract class BaseModel extends AbstractModel
 							$fqs[] = $f . '="' . $v . '"';
 						}
 						$self = $self->where('(' . join(' or ', $fqs) . ')');
-					} else {
+					}else{
 						$self = $self->where($field, $v);
 					}
+					
 				}
 			}
 		} elseif (is_string($where)) {
@@ -174,20 +170,16 @@ abstract class BaseModel extends AbstractModel
 		// 查询条件
 		if (!empty($where)) {
 			if (is_array($where)) {
+				
 				foreach ($where as $field => $v) {
-					if (empty($v)) continue;
+					if (is_array($v) && empty($v)) continue;
 					
 					if ($field == 'or') {
 						if (is_array($v)) $self->where('(' . join(' or ', $v) . ')');
 						continue;
 					}
 					
-					if (is_int($field) && is_string($v)) {
-						$self = $self->where($v);
-						continue;
-					}
-					
-					if (!is_string($field)) return $isPager ? [[], 0] : [];
+					if (is_int($field) && is_array($v)) return $isPager ? [[], 0] : [];
 					
 					$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
 					if ($extra == 'like') {
@@ -206,7 +198,7 @@ abstract class BaseModel extends AbstractModel
 						}
 						$self = $self->where($field, ...$v);
 					} else {
-						if (!is_array($v)) $v = [$v];
+						
 						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
 						if (isset($fieldsTmp[1])) {
 							$fqs = [];
@@ -214,9 +206,10 @@ abstract class BaseModel extends AbstractModel
 								$fqs[] = $f . '="' . $v . '"';
 							}
 							$self = $self->where('(' . join(' or ', $fqs) . ')');
-						} else {
+						}else{
 							$self = $self->where($field, $v);
 						}
+						
 					}
 				}
 			} elseif (is_string($where)) {
@@ -264,6 +257,7 @@ abstract class BaseModel extends AbstractModel
 		}
 		if ($page > 0 && $size > 0) $self = $self->page($page, $size);
 		$list = $self->all();
+		
 		$keyAndValue = empty($keyAndValue) ? '' : trim(strtolower($keyAndValue));
 		if (preg_match('/^[a-z_]+\s*,\s*[^,]*(\s*,\s*(true|false))?$/', $keyAndValue)) {
 			$keyAndValue = preg_replace('/\s/', '', $keyAndValue);
