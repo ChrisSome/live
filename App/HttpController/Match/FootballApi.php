@@ -176,20 +176,10 @@ class FootballApi extends FrontUserController
     public function matchListPlaying()
     {
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
-//        //默认赛事
-//        $recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
-//        $default = json_decode($recommandCompetitionId->sys_value, true);
-//        //用户关注赛事 与 比赛
-//        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
-//        $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
-//
-//        $userInterestCompetition = json_decode($res->competition_ids, true);
-//        if ($userInterestCompetition) {
-//            $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
-//        } else {
-//            $selectCompetitionIdArr = $default;
-//        }
+
         list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
+        if (!$selectCompetitionIdArr)   return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+
         $playingMatch = AdminMatch::create()->where('is_delete', 0)
             ->where('competition_id', $selectCompetitionIdArr, 'in')
             ->where('status_id', self::STATUS_PLAYING, 'in')

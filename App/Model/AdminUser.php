@@ -116,8 +116,10 @@ class AdminUser extends BaseModel
         //默认赛事
         $recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
         $default = json_decode($recommandCompetitionId->sys_value, true);
+        if (!$uid) return [$default, []];
         //用户关注赛事 与 比赛
         $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
+
         $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
 
         $userInterestCompetition = json_decode($res->competition_ids, true);

@@ -26,6 +26,7 @@ use App\Model\AdminSysSettings;
 use App\Model\AdminTeam;
 use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
+use App\Model\AdminUserInterestCompetition;
 use App\Model\SeasonAllTableDetail;
 use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
@@ -33,6 +34,7 @@ use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use easySwoole\Cache\Cache;
 use EasySwoole\ORM\AbstractModel;
+use EasySwoole\ORM\DbManager;
 use EasySwoole\ORM\Exception\Exception;
 use EasySwoole\Redis\Redis as Redis;
 use EasySwoole\RedisPool\Redis as RedisPool;
@@ -69,7 +71,6 @@ class DataApi extends FrontUserController
         if ($season = AdminSeason::create()->where('competition_id', $competitionIds, 'in')->all()) {
             foreach ($season as $itemSeason) {
                 $res[$itemSeason->competition_id][] = $itemSeason;
-
             }
         }
         //做映射
@@ -85,6 +86,34 @@ class DataApi extends FrontUserController
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
+
+    }
+
+
+
+    public function getHotCompetition1()
+    {
+        $hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
+        $competitionIds = json_decode($hot_competition['sys_value'], true);
+//        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
+        $res = AdminSeason::create()->alias('s')->join('admin_competition_list as c', 'c.competition_id = s.competition_id')
+            ->field('s.season_id, s.year, s.has_table, c.logo, c.short_name_zh, c.competition_id')->where('s.competition_id', $competitionIds, 'in')->all();
+        if (!$res) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
+        $seasons = [];
+        foreach ($res as $item) {
+            $format_season = ['season_id' => $item['season_id'], 'has_table' => $item['has_table'], 'year' => $item['year'], 'competition_id' => $item['competition_id']];
+
+            if (isset($data[$item->competition_id]) && $format_season['competition_id'] == $item->competition_id) {
+                $data[$item->competition_id]['seasons'][] = ['season_id' => $item['season_id'], 'has_table' => $item['has_table'], 'year' => $item['year']];
+            } else {
+                $data[$item->competition_id]['competition_id'] = $item['competition_id'];
+                $data[$item->competition_id]['logo'] = $item['logo'];
+                $data[$item->competition_id]['short_name_zh'] = $item['short_name_zh'];
+                $data[$item->competition_id]['seasons'][0] = $format_season;
+            }
+        }
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
     }
 
