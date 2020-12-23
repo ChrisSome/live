@@ -531,8 +531,7 @@ class Community extends FrontUserController
 
             //保存
             $data['status'] = AdminUserPost::NEW_STATUS_SAVE;
-
-            if (!$this->params['pid']) {
+            if (!isset($this->params['pid'])) {
                 if (AdminUserPost::getInstance()->insert($data)) {
                     return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 

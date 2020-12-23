@@ -380,6 +380,7 @@ class InformationApi extends FrontUserController
         //发布
         if ($sensitiveWords = AdminSensitive::getInstance()->where('status', AdminSensitive::STATUS_NORMAL)->field(['word'])->all()) {
             foreach ($sensitiveWords as $sword) {
+                if (!$sword['word']) continue;
                 if (strstr($this->params['content'], $sword['word'])) {
                     return $this->writeJson(Status::CODE_ADD_POST_SENSITIVE, sprintf(Status::$msg[Status::CODE_ADD_POST_SENSITIVE], $sword['word']));
                 }
