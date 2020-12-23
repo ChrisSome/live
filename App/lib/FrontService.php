@@ -583,7 +583,7 @@ class  FrontService {
             }
             $has_living = 0;
             $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
-
+            $steamLike = $match->steamLink();
             $round = json_decode($match->round, true);
             $item['home_team_name'] = $match->home_team_name;
             $item['home_team_logo'] = $match->home_team_logo;
@@ -609,7 +609,7 @@ class  FrontService {
             $item['note'] = $match->note;  //备注   欧青连八分之一决赛
             $item['home_scores'] = $match->home_scores;  //主队比分
             $item['away_scores'] = $match->away_scores;  //主队比分
-            $item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '' ;  //直播地址
+            $item['steamLink'] = !empty($steamLike['mobile_link']) ? $steamLike['mobile_link'] : '' ;  //直播地址
             $item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
             $item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
 

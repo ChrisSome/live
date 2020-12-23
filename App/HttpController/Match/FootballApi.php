@@ -4,16 +4,19 @@ namespace App\HttpController\Match;
 use App\Base\FrontUserController;
 use App\lib\FrontService;
 use App\lib\Tool;
+use App\lib\Utils;
 use App\Model\AdminClashHistory;
 use App\Model\AdminCompetition;
 use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminPlayer;
 use App\Model\AdminSysSettings;
+use App\Model\AdminTeam;
 use App\Model\AdminUser;
 use App\Model\AdminUserInterestCompetition;
 use App\Model\ChatHistory;
 use App\Model\SeasonAllTableDetail;
+use App\Model\SeasonMatchList;
 use App\Model\SignalMatchLineUp;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
@@ -409,7 +412,10 @@ class FootballApi extends FrontUserController
         $matchId = $this->params['match_id'];
         $sensus = AdminClashHistory::getInstance()->where('match_id', $this->params['match_id'])->get();
 
-        $matchInfo = AdminMatch::getInstance()->where('match_id', $matchId)->where('is_delete', 0)->get();
+        if (!$matchInfo = AdminMatch::getInstance()->where('match_id', $matchId)->where('is_delete', 0)->get()) {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+        }
 
 
         //积分排名
@@ -419,32 +425,49 @@ class FootballApi extends FrontUserController
             $intvalRank = [];
         } else {
             $res = SeasonAllTableDetail::getInstance()->where('season_id', $currentSeasonId)->get();
+
             $decode = json_decode($res->tables, true);
             $promotions = json_decode($res->promotions, true);
 
+            $homeIntvalRank = $awayIntvalRank = [];
             if ($promotions) {
                 $rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
 
-            } else {
-                $rows =isset($decode['rows']) ? $decode['rows'] : [];
-            }
+                foreach ($rows as $item) {
 
-            if ($rows) {
-                $intvalRank = [];
-                foreach ($rows as $row) {
+                    if ($item['team_id'] == $matchInfo->home_team_id) {
 
-                    if ($row['team_id'] == $matchInfo->home_team_id) {
-                        $intvalRank['homeIntvalRank'] = $row;
+                        $homeIntvalRank = $item;
+                    } else if ($item['team_id'] == $matchInfo->away_team_id) {
+                        $awayIntvalRank = $item;
                     }
 
-                    if ($row['team_id'] == $matchInfo->away_team_id) {
-                        $intvalRank['awayIntvalRank'] = $row;
+                    if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) break;
+                }
 
+            } else {
+
+                foreach ($decode as $item_row) {
+
+                    foreach ($item_row['rows'] as $k_row) {
+                        $team_ids[] = $k_row['team_id'];
+                        if ($k_row['team_id'] == $matchInfo->home_team_id) {
+                            $homeIntvalRank = $k_row;
+                        }
+
+                        if ($k_row['team_id'] == $matchInfo->away_team_id) {
+                            $awayIntvalRank = $k_row;
+                        }
+
+                        if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) {
+
+                            break;
+                        }
                     }
                 }
-            } else {
-                $intvalRank = [];
             }
+
+            $intvalRank = ['homeIntvalRank' => $homeIntvalRank, 'awayIntvalRank' => $awayIntvalRank];
 
         }
 
@@ -453,19 +476,23 @@ class FootballApi extends FrontUserController
         $awayTid = $matchInfo->away_team_id;
 
         //历史交锋
-        $matches = AdminMatch::getInstance()->where('status_id', 8)->where('((home_team_id=' . $homeTid . ' and away_team_id=' . $awayTid . ') or (home_team_id='.$awayTid.' and away_team_id='.$homeTid.'))')->where('is_delete', 0)->order('match_time', 'DESC')->all();
-        //是否显示不感兴趣的赛事
-        $formatHistoryMatches = FrontService::handMatch($matches, 0, true);
+        $matches = SeasonMatchList::getInstance()->where('status_id', 8)->where('((home_team_id=' . $homeTid . ' and away_team_id=' . $awayTid . ') or (home_team_id='.$awayTid.' and away_team_id='.$homeTid.'))')
+            ->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
+
+        $formatHistoryMatches = FrontService::formatMatchThree($matches, 0, []);
 
         //近期战绩
 
-
-        $homeRecentMatches = AdminMatch::getInstance()->where('status_id', 8)->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid)->where('is_delete', 0)->order('match_time', 'DESC')->all();
-        $awayRecentMatches = AdminMatch::getInstance()->where('status_id', 8)->where('home_team_id='.$awayTid. ' or away_team_id='.$awayTid)->where('is_delete', 0)->order('match_time', 'DESC')->all();
+        $homeRecentMatches = SeasonMatchList::getInstance()->where('status_id', 8)->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid)
+            ->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
+        $awayRecentMatches = SeasonMatchList::getInstance()->where('status_id', 8)->where('home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
+            ->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
 
         //近期赛程
-        $homeRecentSchedule = AdminMatch::getInstance()->where('status_id', [1,2,3,4,5,7,8], 'in')->where('(home_team_id = ' . $homeTid . ' or away_team_id = ' . $homeTid . ')')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-        $awayRecentSchedule = AdminMatch::getInstance()->where('status_id', [1,2,3,4,5,7,8], 'in')->where('(home_team_id = ' . $awayTid . ' or away_team_id = ' . $awayTid . ')')->where('is_delete', 0)->order('match_time', 'ASC')->all();
+        $homeRecentSchedule = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
+            ->where('(home_team_id = ' . $homeTid . ' or away_team_id = ' . $homeTid . ')')->where('is_delete', 0)->order('match_time', 'ASC')->all();
+        $awayRecentSchedule = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
+            ->where('(home_team_id = ' . $awayTid . ' or away_team_id = ' . $awayTid . ')')->where('is_delete', 0)->order('match_time', 'ASC')->all();
 
 
         $returnData = [
@@ -473,10 +500,10 @@ class FootballApi extends FrontUserController
             'historyResult' => !empty($sensus['history']) ? json_decode($sensus['history'], true) : [],
             'recentResult' => !empty($sensus['recent']) ? json_decode($sensus['recent'], true) : [],
             'history' => $formatHistoryMatches, //历史交锋
-            'homeRecent' => FrontService::handMatch($homeRecentMatches, 0, true),//主队近期战绩
-            'awayRecent' => FrontService::handMatch($awayRecentMatches, 0, true),//客队近期战绩
-            'homeRecentSchedule' => FrontService::handMatch($homeRecentSchedule, $this->auth['id'] ? $this->auth['id'] : 0, true),//主队近期赛程
-            'awayRecentSchedule' => FrontService::handMatch($awayRecentSchedule, $this->auth['id'] ? $this->auth['id'] : 0, true),//客队近期赛程
+            'homeRecent' => FrontService::formatMatchThree($homeRecentMatches, 0, []),//主队近期战绩
+            'awayRecent' => FrontService::formatMatchThree($awayRecentMatches, 0, []),//客队近期战绩
+            'homeRecentSchedule' => FrontService::formatMatchThree($homeRecentSchedule, 0, []),//主队近期赛程
+            'awayRecentSchedule' => FrontService::formatMatchThree($awayRecentSchedule, 0, []),//客队近期赛程
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
 
