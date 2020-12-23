@@ -16,7 +16,7 @@ abstract class BaseController extends Controller
 	{
 		if (empty($key)) return $this->request()->getRequestParam();
 		$param = $this->request()->getRequestParam($key);
-		if (is_null($param)) return $default;
+		if (empty($param)) return $default;
 		if ($isInt) {
 			$value = intval($param);
 			if ($value < 1 && is_int($default) && $default > 0) $value = $default;
