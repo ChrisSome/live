@@ -262,7 +262,7 @@ class FootballApi extends FrontUserController
 	public function matchSchedule()
 	{
 		// 参数校验
-		$time = $this->param('time', true);
+		$time = $this->param('time');
 		if ($time < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 分页参数
 		$page = $this->param('page', true, 1);
@@ -302,7 +302,7 @@ class FootballApi extends FrontUserController
 	public function matchResult()
 	{
 		// 参数校验
-		$time = $this->param('time', true);
+		$time = $this->param('time');
 		if ($time < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		//需要展示的赛事id 以及用户关注的比赛
 		[$selectCompetitionIdArr, $interestMatchArr] = AdminUser::getUserShowCompetitionId($this->authId);
