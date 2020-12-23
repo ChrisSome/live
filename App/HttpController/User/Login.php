@@ -39,40 +39,38 @@ class Login extends FrontUserController
 	{
 		// 参数校验
 		$validator = new Validate();
-		$validator->addColumn('mobile', '手机号码')
-			->required('手机号不能为空')->regex('/^1\d{10}/', '手机号格式不正确');
+		$validator->addColumn('mobile', '手机号码')->required('手机号不能为空')->regex('/^1\d{10}/', '手机号格式不正确');
 		$validator->addColumn('type')->required();
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(Status::CODE_BAD_REQUEST, $validator->getError()->__toString());
 		}
-		$params = $this->params;
 		// 手机号
-		$mobile = $params['mobile'];
+		$mobile = $this->param('mobile');
 		// 登录方式: 1手机号登录, 2账号密码登录
-		$type = intval($params['type']);
+		$type = $this->param('type', true);
 		if ($type != 1 && $type != 2) $this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 		// 手机验证码校验
 		if ($type == 1) {
-			$isCodeEmpty = empty($params['code']);
-			$codeInfo = $isCodeEmpty ? null : AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
+			$code = $this->param('code');
+			$codeInfo = empty($code) ? null : AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
 			// 验证码错误
-			if ($isCodeEmpty || empty($codeInfo['code'])) {
-				return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+			if (empty($code) || empty($codeInfo['code'])) {
+				$this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 			}
 			// 验证码不匹配
-			if ($codeInfo['code'] != $params['code']) {
-				return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+			if ($codeInfo['code'] != $code) {
+				$this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 			}
 		}
 		// 获取用户信息
 		$statusArr = [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED, AdminUser::STATUS_FORBIDDEN];
-		$user = AdminUser::getInstance()->where('mobile', $mobile)->where('status', $statusArr, 'in')->get();
-		// 用户不存在
+		$user = AdminUser::getInstance()->findOne(['mobile' => $mobile, 'status' => [$statusArr, 'in']]);
 		if (empty($user)) {
 			$this->output(StatusMapper::CODE_PHONE_NOT_EXISTS, StatusMapper::$msg[StatusMapper::CODE_PHONE_NOT_EXISTS]);
 		}
 		// 密码错误
-		if ($type == 2 && !PasswordTool::getInstance()->checkPassword($params['password'], $user['password_hash'])) {
+		$password = $this->param('password');
+		if ($type == 2 && !PasswordTool::getInstance()->checkPassword($password, $user['password_hash'])) {
 			$this->output(StatusMapper::CODE_W_PHONE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE]);
 		}
 		// 用户已被禁用
@@ -84,7 +82,7 @@ class Login extends FrontUserController
 			$this->output(StatusMapper::CODE_USER_STATUS_CANCLE, StatusMapper::$msg[StatusMapper::CODE_USER_STATUS_CANCLE]);
 		}
 		// 更新用户手机cid
-		$cid = empty($params['cid']) ? '' : trim($params['cid']);
+		$cid = $this->param('cid');
 		if (!empty($cid)) $user->setField('cid', $cid);
 		// 缓存登录标识
 		$timestamp = time();
@@ -94,7 +92,7 @@ class Login extends FrontUserController
 			$redis->set(sprintf(UserModel::USER_TOKEN_KEY, $token), $userId);
 		});
 		// 长链接绑定
-		$fd = empty($params['fd']) ? false : $params['fd'];
+		$fd = $this->param('fd');
 		if (!empty($fd)) {
 			$data = [
 				'fd' => $fd,
@@ -137,17 +135,17 @@ class Login extends FrontUserController
 		$validator = new Validate();
 		$validator->addColumn('access_token')->required('access_token不能为空');
 		$validator->addColumn('open_id')->required('open_id不能为空');
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(StatusMapper::CODE_ERR, $validator->getError()->__toString());
 		}
-		$params = $this->params;
+		$params = $this->param();
 		// 获取微信用户信息
 		$wxInfo = AdminUser::getInstance()->getWxUser($params['access_token'], $params['open_id']);
 		$wxInfo = empty($wxInfo) ? [] : json_decode($wxInfo, true);
 		if (json_last_error()) $this->output(StatusMapper::CODE_ERR, 'json parse error');
 		if (!empty($wxInfo['errcode'])) $this->output(StatusMapper::CODE_ERR, $wxInfo['errmsg']);
 		$unionId = empty($wxInfo['unionid']) ? '' : base64_encode($wxInfo['unionid']);
-		$user = empty($unionId) ? false : AdminUser::getInstance()->where('third_wx_unionid', $unionId)->get();
+		$user = empty($unionId) ? false : AdminUser::getInstance()->findOne(['third_wx_unionid' => $unionId]);
 		if (empty($user)) {
 			$result = [
 				'third_wx_unionid' => $unionId,
@@ -218,10 +216,10 @@ class Login extends FrontUserController
 			->required('验证码不能为空');
 		$validator->addColumn('mobile', '手机号码')
 			->required('手机号不能为空')->regex('/^1[3456789]\d{9}$/', '手机号格式不正确');
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(StatusMapper::CODE_W_PARAM, $validator->getError()->__toString());
 		}
-		$params = $this->params;
+		$params = $this->param();
 		// 获取用户信息
 		$mobile = $params['mobile'];
 		$user = AdminUser::getInstance()->findOne(['mobile' => $mobile]);
@@ -255,7 +253,7 @@ class Login extends FrontUserController
 		$validator = new Validate();
 		$validator->addColumn('access_token')->required('access_token不能为空');
 		$validator->addColumn('open_id')->required('open_id不能为空');
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(StatusMapper::CODE_ERR, $validator->getError()->__toString());
 		}
 		// 获取用户信息
@@ -265,14 +263,14 @@ class Login extends FrontUserController
 		if (empty($user)) {
 			$this->output(StatusMapper::CODE_LOGIN_ERR, StatusMapper::$msg[StatusMapper::CODE_LOGIN_ERR]);
 		}
-		$params = $this->params;
+		$params = $this->param();
 		// 获取三方微信账户信息
 		$wxInfo = AdminUser::getInstance()->getWxUser($params['access_token'], $params['open_id']);
 		$wxInfo = empty($wxInfo) ? [] : json_decode($wxInfo, true);
 		if (json_last_error()) $this->output(StatusMapper::CODE_ERR, 'json parse error');
 		if (!empty($wxInfo['errcode'])) $this->output(StatusMapper::CODE_ERR, $wxInfo['errmsg']);
 		// 判断是否微信已绑定
-		$user = AdminUser::getInstance()->where('third_wx_unionid', base64_encode($wxInfo['unionid']))->get();
+		$user = AdminUser::getInstance()->findOne(['third_wx_unionid' => base64_encode($wxInfo['unionid'])]);
 		if (!empty($user)) $this->output(StatusMapper::CODE_BIND_WX, StatusMapper::$msg[StatusMapper::CODE_BIND_WX]);
 		// 更新用户数据
 		$data = [
@@ -297,10 +295,10 @@ class Login extends FrontUserController
 		$validator = new Validate();
 		$validator->addColumn('mobile', '手机号码')
 			->required('手机号不能为空')->regex('/^1[3456789]\d{9}$/', '手机号格式不正确');
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(StatusMapper::CODE_W_PARAM, $validator->getError()->__toString());
 		}
-		$mobile = $this->params['mobile'];
+		$mobile = $this->param('mobile');
 		$code = Tool::getInstance()->generateCode();
 		// 异步task
 		$result = TaskManager::getInstance()->async(new PhoneTask([
@@ -318,7 +316,7 @@ class Login extends FrontUserController
 	public function checkPhoneCode()
 	{
 		// 参数校验
-		$params = $this->params;
+		$params = $this->param();
 		if (empty($params['code']) || empty($params['mobile'])) {
 			$this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 		}
@@ -345,11 +343,11 @@ class Login extends FrontUserController
 		$validator->addColumn('nickname')->required();
 		$validator->addColumn('mobile')->required();
 		$validator->addColumn('password')->required();
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(StatusMapper::CODE_W_PARAM, StatusMapper::$msg[StatusMapper::CODE_W_PARAM]);
 		}
 		// 敏感词校验
-		$params = $this->params;
+		$params = $this->param();
 		$nickname = trim($params['nickname']);
 		$sensitive = AdminSensitive::getInstance()->findOne(['word' => [$nickname, 'like']]);
 		if (!empty($sensitive)) {

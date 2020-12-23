@@ -35,16 +35,14 @@ class UserCenter extends FrontUserController
 	 */
 	public function UserCenter()
 	{
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
 		// 用户信息
-		$userInfo = AdminUser::getInstance()->findOne($authId, 'id,nickname,photo,level,is_offical');
+		$userInfo = AdminUser::getInstance()->findOne($this->authId, 'id,nickname,photo,level,is_offical');
 		// 粉丝数
-		$fansCount = count(AppFunc::getUserFans($authId));
+		$fansCount = count(AppFunc::getUserFans($this->authId));
 		// 关注数
-		$followCount = count(AppFunc::getUserFollowing($authId));
+		$followCount = count(AppFunc::getUserFollowing($this->authId));
 		// 获赞数
-		$fabolusNumber = AdminUserOperate::getInstance()->findOne(['author_id' => $authId, 'type' => 1], 'count(*) total');
+		$fabolusNumber = AdminUserOperate::getInstance()->findOne(['author_id' => $this->authId, 'type' => 1], 'count(*) total');
 		$fabolusNumber = empty($fabolusNumber['total']) ? 0 : intval($fabolusNumber['total']);
 		// 输出数据
 		$result = [
@@ -62,31 +60,29 @@ class UserCenter extends FrontUserController
 	 */
 	public function userBookMark()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 类型校验
 		$type = empty($params['type']) || intval($params['type']) < 1 ? 1 : intval($params['type']);
-		if ($type != 1 && $type != 2) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		if ($type != 1 && $type != 2) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);;
 		// 关键字
 		$keywords = trim($params['key_word']);
 		// 分页参数
-		$page = empty($params['page']) ? 1 : $params['page'];
-		$size = empty($params['size']) ? 10 : $params['size'];
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 10);
 		if ($type == 1) {
 			if (!empty($keywords)) {
 				$sqlTemplate = 'select %s ' .
 					'from admin_user_operates as a inner join admin_user_posts as b on a.item_id=b.id ' .
 					'where a.item_type=1 and a.type=2 and a.user_id=%b and b.status in(1,2,6) and b.title like "%%s%"';
-				$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $authId, $keywords) {
+				$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
 					$fields = 'a.id,a.title,a.content,a.user_id,a.fabolus_number,a.collect_number,a.respon_number,a.created_at,a.status';
-					$builder->raw(sprintf($sqlTemplate, $fields, $authId, $keywords), []);
+					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, $keywords), []);
 					return true;
 				});
 				$list = empty($list) ? [] : $list;
-				$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $authId, $keywords) {
+				$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
 					$fields = 'count(a.id) total';
-					$builder->raw(sprintf($sqlTemplate, $fields, $authId, $keywords), []);
+					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, $keywords), []);
 					return true;
 				});
 				$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
@@ -97,13 +93,13 @@ class UserCenter extends FrontUserController
 				}
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
 			}
-			$where = ['user_id' => $authId, 'item_type' => 1, 'type' => AdminUserOperate::TYPE_BOOK_MARK];
+			$where = ['user_id' => $this->authId, 'item_type' => 1, 'type' => AdminUserOperate::TYPE_BOOK_MARK];
 			[$list, $count] = AdminUserOperate::getInstance()
 				->findAll($where, null, 'created_at,desc', true, $page, $size);
 			$postIds = array_values(array_unique(array_filter(array_column($list, 'item_id'))));
 			if (!empty($postIds)) {
 				$list = AdminUserPost::getInstance()->findAll(['id' => [$postIds, 'in']]);
-				$list = FrontService::handPosts($list, $authId);
+				$list = FrontService::handPosts($list, $this->authId);
 			}
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 		}
@@ -112,15 +108,15 @@ class UserCenter extends FrontUserController
 			$sqlTemplate = 'select %s ' .
 				'from admin_user_operates as a inner join admin_information as b on a.item_id=b.id ' .
 				'where a.item_type=3 and a.type=2 and a.user_id=%b and b.title like "%%s%"';
-			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $authId, $keywords) {
+			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
 				$fields = 'a.id,a.title,a.content,a.user_id,a.fabolus_number,a.collect_number,a.respon_number,a.created_at,a.status';
-				$builder->raw(sprintf($sqlTemplate, $fields, $authId, $keywords), []);
+				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, $keywords), []);
 				return true;
 			});
 			$list = empty($list) ? [] : $list;
-			$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $authId, $keywords) {
+			$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
 				$fields = 'count(a.id) total';
-				$builder->raw(sprintf($sqlTemplate, $fields, $authId, $keywords), []);
+				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, $keywords), []);
 				return true;
 			});
 			$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
@@ -131,12 +127,12 @@ class UserCenter extends FrontUserController
 			}
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
 		}
-		$where = ['user_id' => $authId, 'item_type' => 3, 'type' => AdminUserOperate::TYPE_BOOK_MARK];
+		$where = ['user_id' => $this->authId, 'item_type' => 3, 'type' => AdminUserOperate::TYPE_BOOK_MARK];
 		[$list, $count] = AdminUserOperate::getInstance()
 			->findAll($where, null, 'created_at,desc', true, $page, $size);
 		$informationIds = empty($list) ? [] : array_values(array_unique(array_filter(array_column($list, 'item_id'))));
 		$list = empty($informationIds) ? [] : AdminInformation::getInstance()->findAll(['id' => [$informationIds, 'in']]);
-		$list = empty($list) ? [] : FrontService::handInformation($list, $authId);
+		$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}
 	
@@ -146,11 +142,9 @@ class UserCenter extends FrontUserController
 	 */
 	public function editUser()
 	{
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
-		$user = AdminUser::getInstance()->findOne($authId);
+		$user = AdminUser::getInstance()->findOne($this->authId);
 		if (empty($user)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-		$params = $this->params;
+		$params = $this->param();
 		// 类型校验
 		$type = empty($params['type']) || intval($params['type']) < 1 ? 1 : intval($params['type']);
 		if ($type != 1 && $type != 2) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
@@ -160,7 +154,7 @@ class UserCenter extends FrontUserController
 		$validate = new Validate();
 		$nickname = trim($params['nickname']);
 		if (!empty($nickname) && $type == 1) {
-			$tmp = AdminUser::getInstance()->findOne(['nickname' => $nickname, 'id' => [$authId, '<>']]);
+			$tmp = AdminUser::getInstance()->findOne(['nickname' => $nickname, 'id' => [$this->authId, '<>']]);
 			if (!empty($tmp)) $this->output(Status::CODE_USER_DATA_EXIST, Status::$msg[Status::CODE_USER_DATA_EXIST]);
 			$validate->addColumn('nickname', '申请昵称')->required()->lengthMax(32)->lengthMin(4);
 			$data['nickname'] = $nickname;
@@ -191,7 +185,7 @@ class UserCenter extends FrontUserController
 		}
 		if (empty($data)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 更新数据
-		if (AdminUser::getInstance()->saveDataById($authId, $data)) {
+		if (AdminUser::getInstance()->saveDataById($this->authId, $data)) {
 			// $code = empty($params['code']) ? '' : trim($params['code']);
 			// if (!empty($mobile) && !empty($code)) {
 			//	 AdminUserPhonecode::getInstance()
@@ -208,15 +202,13 @@ class UserCenter extends FrontUserController
 	 */
 	public function messageCenter()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 类型校验
 		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
-		if ($type > 4) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		if ($type > 4) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);;
 		// 分页参数
-		$page = empty($params['page']) ? 1 : $params['page'];
-		$size = empty($params['size']) ? 10 : $params['size'];
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 10);
 		if ($type < 1) {
 			// 输出数据
 			$result = [
@@ -226,20 +218,20 @@ class UserCenter extends FrontUserController
 				'comment_un_read_count' => 0,//回复未读
 				'interest_un_read_count' => 0,//关注未读
 			];
-			$where = ['user_id' => $authId, 'type' => 1, 'status' => AdminMessage::STATUS_UNREAD];
+			$where = ['user_id' => $this->authId, 'type' => 1, 'status' => AdminMessage::STATUS_UNREAD];
 			$total = AdminMessage::getInstance()->findOne($where, 'count(*) total');
 			$result['sys_un_read_count'] = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
-			$where = ['user_id' => $authId, 'type' => 2, 'status' => AdminMessage::STATUS_UNREAD];
+			$where = ['user_id' => $this->authId, 'type' => 2, 'status' => AdminMessage::STATUS_UNREAD];
 			$total = AdminMessage::getInstance()->findOne($where, 'count(*) total');
 			$result['fabolus_un_read_count'] = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
-			$where = ['user_id' => $authId, 'type' => 3, 'status' => AdminMessage::STATUS_UNREAD];
+			$where = ['user_id' => $this->authId, 'type' => 3, 'status' => AdminMessage::STATUS_UNREAD];
 			$total = AdminMessage::getInstance()->findOne($where, 'count(*) total');
 			$result['comment_un_read_count'] = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
-			$where = ['user_id' => $authId, 'type' => 4, 'status' => AdminMessage::STATUS_UNREAD];
+			$where = ['user_id' => $this->authId, 'type' => 4, 'status' => AdminMessage::STATUS_UNREAD];
 			$total = AdminMessage::getInstance()->findOne($where, 'count(*) total');
 			$result['interest_un_read_count'] = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
 			// 首条通知
-			$where = ['status' => [AdminMessage::STATUS_DEL, '<>'], 'type' => 1, 'user_id' => $authId];
+			$where = ['status' => [AdminMessage::STATUS_DEL, '<>'], 'type' => 1, 'user_id' => $this->authId];
 			$result['last_sys_message'] = AdminMessage::getInstance()
 				->findOne($where, 'id,content,created_at', 'created_at,desc');
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
@@ -247,7 +239,7 @@ class UserCenter extends FrontUserController
 		// 系统消息
 		if ($type == 1) {
 			//我的通知
-			$where = ['status' => [AdminMessage::STATUS_DEL, '<>'], 'type' => 1, 'user_id' => $authId];
+			$where = ['status' => [AdminMessage::STATUS_DEL, '<>'], 'type' => 1, 'user_id' => $this->authId];
 			[$list, $count] = AdminMessage::getInstance()
 				->findAll($where, null, 'created_at,desc', true, $page, $size);
 			// 帖子映射
@@ -272,7 +264,7 @@ class UserCenter extends FrontUserController
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 		}
 		if ($type == 2) {
-			$where = ['user_id' => $authId, 'type' => 2, 'item_type' => [[1, 2, 4], 'in'], 'status' => [AdminMessage::STATUS_DEL, '<>']];
+			$where = ['user_id' => $this->authId, 'type' => 2, 'item_type' => [[1, 2, 4], 'in'], 'status' => [AdminMessage::STATUS_DEL, '<>']];
 			[$list, $count] = AdminMessage::getInstance()
 				->findAll($where, null, 'created_at,desc', true, $page, $size);
 			// 映射数据
@@ -356,7 +348,7 @@ class UserCenter extends FrontUserController
 		}
 		// 评论与回复
 		if ($type == 3) {
-			$where = ['user_id' => $authId, '' => [[1, 2, 4], 'in'], 'type' => 3, 'status' => [AdminMessage::STATUS_DEL, '<>']];
+			$where = ['user_id' => $this->authId, '' => [[1, 2, 4], 'in'], 'type' => 3, 'status' => [AdminMessage::STATUS_DEL, '<>']];
 			[$items, $count] = AdminMessage::getInstance()
 				->findAll($where, null, 'created_at,desc', true, $page, $size);
 			// 映射数据
@@ -481,7 +473,7 @@ class UserCenter extends FrontUserController
 		}
 		// 用户关注我
 		if ($type == 4) {
-			$where = ['user_id' => $authId, 'type' => 4, 'status' => [AdminMessage::STATUS_DEL, '<>']];
+			$where = ['user_id' => $this->authId, 'type' => 4, 'status' => [AdminMessage::STATUS_DEL, '<>']];
 			[$list, $count] = AdminMessage::getInstance()
 				->findAll($where, null, 'created_at,desc', true, $page, $size);
 			// 用户映射
@@ -512,7 +504,7 @@ class UserCenter extends FrontUserController
 	 */
 	public function readMessage()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 类型
 		$type = empty($params['type']) ? 0 : intval($params['type']);
 		if ($type != 1 && $type != 2) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -524,10 +516,8 @@ class UserCenter extends FrontUserController
 			if (empty($message)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 			AdminMessage::getInstance()->setField('status', AdminMessage::STATUS_READ, $messageId);
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-		}
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
-		AdminMessage::getInstance()->setField('status', AdminMessage::STATUS_READ, ['user_id' => $authId]);
+		};
+		AdminMessage::getInstance()->setField('status', AdminMessage::STATUS_READ, ['user_id' => $this->authId]);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 	}
 	
@@ -537,16 +527,14 @@ class UserCenter extends FrontUserController
 	 */
 	public function userSetting()
 	{
-		$params = $this->params;
-		$method = $this->request()->getMethod();
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		$params = $this->param();
+		$method = $this->request()->getMethod();;
 		Log::getInstance()->info('params-' . json_encode($params));
 		// 类型 1notice 2push 3private
 		$type = empty($params['type']) ? 0 : intval($params['type']);
 		if ($type != 1 && $type != 2 && $type != 3) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 配置数据
-		$setting = AdminUserSetting::getInstance()->findOne(['user_id' => $authId]);
+		$setting = AdminUserSetting::getInstance()->findOne(['user_id' => $this->authId]);
 		if ($method == 'GET') {
 			if (empty($setting)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 			if ($type == 1) {
@@ -583,9 +571,9 @@ class UserCenter extends FrontUserController
 				!isset($tmp['see_my_information_comment'])) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		}
 		if (empty($setting)) {
-			AdminUserSetting::getInstance()->insert(['user_id' => $authId, $column => $value]);
+			AdminUserSetting::getInstance()->insert(['user_id' => $this->authId, $column => $value]);
 		} else {
-			AdminUserSetting::getInstance()->update([$column => $value], ['user_id' => $authId]);
+			AdminUserSetting::getInstance()->update([$column => $value], ['user_id' => $this->authId]);
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 	}
@@ -596,9 +584,7 @@ class UserCenter extends FrontUserController
 	 */
 	public function changePassword()
 	{
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
-		$params = $this->params;
+		$params = $this->param();
 		// 密码校验
 		$password = empty($params['new_pass']) ? null : trim($params['new_pass']);
 		if (empty($password)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -614,7 +600,7 @@ class UserCenter extends FrontUserController
 		// }
 		// 更新密码
 		$password = PasswordTool::getInstance()->generatePassword($password);
-		$isOk = AdminUser::getInstance()->setField('password_hash', $password, $authId);
+		$isOk = AdminUser::getInstance()->setField('password_hash', $password, $this->authId);
 		if ($isOk) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		$this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 	}
@@ -629,17 +615,15 @@ class UserCenter extends FrontUserController
 		$validator = new Validate();
 		$validator->addColumn('type')->required()->inArray(["1", "2", "3", "4", "5", "6"]);
 		$validator->addColumn('item_type')->required()->inArray([1, 2, 4]); //1帖子 2帖子评论 4资讯评论
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		}
-		$params = $this->params;
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		$params = $this->param();;
 		// 帖子数据
-		$posts = AdminUserOperate::getInstance()->func(function ($builder) use ($authId) {
+		$posts = AdminUserOperate::getInstance()->func(function ($builder) {
 			$builder->raw('select a.created_at,a.item_type,a.user_id,b.id,b.title ' .
 				'from admin_user_operates as a left join admin_user_posts as b on a.author_id=b.user_id ' .
-				'where a.item_id=b.id and a.type=1 and a.item_type=1 and a.author_id=?', [$authId]);
+				'where a.item_id=b.id and a.type=1 and a.item_type=1 and a.author_id=?', [$this->authId]);
 			return true;
 		});
 		if (!empty($posts)) {
@@ -660,11 +644,11 @@ class UserCenter extends FrontUserController
 			$posts = [];
 		}
 		//帖子评论
-		$postComments = AdminUserOperate::getInstance()->func(function ($builder) use ($authId) {
+		$postComments = AdminUserOperate::getInstance()->func(function ($builder) {
 			$builder->raw('select a.user_id,a.created_at,a.item_type,m.* ' .
 				'from admin_user_operates as a left join(select c.id,c.content,b.title ' .
 				'from admin_user_post_comments as c left join admin_user_posts as d on c.post_id=d.id) as b ' .
-				'on a.item_id=b.id where a.type=1 and a.item_type=2 and a.author_id=?', [$authId]);
+				'on a.item_id=b.id where a.type=1 and a.item_type=2 and a.author_id=?', [$this->authId]);
 			return true;
 		});
 		if (!empty($postComments)) {
@@ -685,11 +669,11 @@ class UserCenter extends FrontUserController
 			$postComments = [];
 		}
 		//资讯评论
-		$informationComments = AdminUserOperate::getInstance()->func(function ($builder) use ($authId) {
+		$informationComments = AdminUserOperate::getInstance()->func(function ($builder) {
 			$builder->raw('select m.*, o.user_id, o.created_at, o.item_type ' .
 				'from admin_user_operates as a left join(select c.id,c.content,i.title ' .
 				'from admin_information_comments as c left join admin_information as d on c.information_id=d.id) as b ' .
-				'on a.item_id=m.id where o.type=? and o.item_type=? and o.author_id=?', [1, 4, $authId]);
+				'on a.item_id=m.id where o.type=? and o.item_type=? and o.author_id=?', [1, 4, $this->authId]);
 			return true;
 		});
 		if (!empty($informationComments)) {
@@ -725,16 +709,14 @@ class UserCenter extends FrontUserController
 	 */
 	public function foulCenter()
 	{
-		$params = $this->params;
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		$params = $this->param();;
 		// 分页参数
-		$page = empty($params['page']) ? 1 : $params['page'];
-		$size = empty($params['size']) ? 10 : $params['size'];
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 10);
 		// 分页数据
 		$fields = 'id,reason,info,created_at,item_type,item_id,item_punish_type,user_punish_type';
 		$result = AdminUserFoulCenter::getInstance()
-			->findAll(['user_id' => $authId], $fields, 'created_at,desc', true, $page, $size);
+			->findAll(['user_id' => $this->authId], $fields, 'created_at,desc', true, $page, $size);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
@@ -744,7 +726,7 @@ class UserCenter extends FrontUserController
 	 */
 	public function foulItemInfo()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 违规数据
 		$id = empty($params['operate_id']) || intval($params['operate_id']) < 1 ? 0 : intval($params['operate_id']);
 		$operate = $id < 1 ? null : AdminUserFoulCenter::getInstance()->findOne($id);
@@ -782,17 +764,15 @@ class UserCenter extends FrontUserController
 	 */
 	public function drafts()
 	{
-		$params = $this->params;
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		$params = $this->param();;
 		// 分页参数
-		$page = empty($params['page']) ? 1 : $params['page'];
+		$page = $this->param('page', true, 1);
 		$size = empty($params['size']) ? 20 : $params['size'];
 		// 分页数据
-		$where = ['status' => AdminUserPost::NEW_STATUS_SAVE, 'user_id' => $authId];
+		$where = ['status' => AdminUserPost::NEW_STATUS_SAVE, 'user_id' => $this->authId];
 		[$list, $count] = AdminUserPost::getInstance()
 			->findAll($where, null, 'created_at,desc', true, $page, $size);
-		$list = empty($list) ? [] : FrontService::handPosts($list, $authId);
+		$list = empty($list) ? [] : FrontService::handPosts($list, $this->authId);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 	}
 	
@@ -802,28 +782,26 @@ class UserCenter extends FrontUserController
 	 */
 	public function delItem()
 	{
-		$params = $this->params;
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		$params = $this->param();;
 		// 类型
 		$type = empty($params['type']) ? 0 : intval($params['type']);
 		// 选项ID
 		$id = empty($params['item_id']) ? 0 : intval($params['item_id']);
 		if ($type != 1 && $type != 2 && $type != 3) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		if ($type == 1) { // 删除帖子
-			$post = AdminUserPost::getInstance()->findOne(['id' => $id, 'user_id' => $authId]);
+			$post = AdminUserPost::getInstance()->findOne(['id' => $id, 'user_id' => $this->authId]);
 			if (empty($post)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 			AdminUserPost::getInstance()->setField('status', AdminUserPost::NEW_STATUS_DELETED, $id);
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		}
 		if ($type == 2) { // 帖子评论
-			$postComment = AdminPostComment::getInstance()->findOne(['id' => $id, 'user_id' => $authId]);
+			$postComment = AdminPostComment::getInstance()->findOne(['id' => $id, 'user_id' => $this->authId]);
 			if (empty($postComment)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 			AdminPostComment::getInstance()->setField('status', AdminPostComment::STATUS_DEL, $id);
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		}
 		// 资讯评论
-		$informationComment = AdminInformationComment::getInstance()->findOne(['id' => $id, 'user_id' => $authId]);
+		$informationComment = AdminInformationComment::getInstance()->findOne(['id' => $id, 'user_id' => $this->authId]);
 		if (empty($informationComment)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		AdminInformationComment::getInstance()->setField('status', AdminInformationComment::STATUS_DELETE, $id);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
@@ -835,22 +813,21 @@ class UserCenter extends FrontUserController
 	 */
 	public function getAvailableTask()
 	{
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		;
 		// 任务清单
 		$tasks = AdminUserSerialPoint::USER_TASK;
 		foreach ($tasks as $k => $v) {
 			if ($v['status'] != AdminUserSerialPoint::TASK_STATUS_NORMAL) continue;
 			$id = intval($v['id']);
 			$times = $id < 1 ? 0 : AdminUserSerialPoint::getInstance()
-				->findOne(['task_id' => $id, 'created_at' => date('Y-m-d'), 'user_id' => $authId], 'count(*) total');
+				->findOne(['task_id' => $id, 'created_at' => date('Y-m-d'), 'user_id' => $this->authId], 'count(*) total');
 			$tasks[$k]['done_times'] = empty($times[0]['total']) ? 0 : intval($times);
 		}
 		// 用户数据
-		$user = AdminUser::getInstance()->findOne($authId, 'id,photo,level,is_offical,level,point');
+		$user = AdminUser::getInstance()->findOne($this->authId, 'id,photo,level,is_offical,level,point');
 		// 输出数据
 		$result = ['user_info' => $user, 'task_list' => $tasks];
-		$result['d_value'] = AppFunc::getPointsToNextLevel($authId);
+		$result['d_value'] = AppFunc::getPointsToNextLevel($this->authId);
 		$result ['t_value'] = AppFunc::getPointOfLevel($user['level']);
 		if (empty($user['third_wx_unionid'])) {
 			$result ['special'] = [
@@ -868,9 +845,7 @@ class UserCenter extends FrontUserController
 	 */
 	public function userDoTask()
 	{
-		$params = $this->params;
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
+		$params = $this->param();;
 		// 任务ID
 		$taskId = empty($params['task_id']) || intval($params['task_id']) < 1 ? 0 : intval($params['task_id']);
 		if (!in_array($taskId, [1, 4])) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -879,7 +854,7 @@ class UserCenter extends FrontUserController
 		$task = empty($task[$taskId]) ? [] : $task[$taskId];
 		if (empty($task)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		//
-		$where = ['user_id' => $authId, 'task_id' => $taskId, 'created_at' => date('Y-m-d')];
+		$where = ['user_id' => $this->authId, 'task_id' => $taskId, 'created_at' => date('Y-m-d')];
 		$times = AdminUserSerialPoint::getInstance()->findOne($where, 'count(*) total');
 		$times = empty($times[0]['total']) ? 0 : intval($times[0]['total']);
 		if ($task['times_per_day'] <= $times) $this->output(Status::CODE_TASK_LIMIT, Status::$msg[Status::CODE_TASK_LIMIT]);
@@ -890,12 +865,12 @@ class UserCenter extends FrontUserController
 				'type' => 1,
 				'point' => $times,
 				'task_id' => $taskId,
-				'user_id' => $authId,
+				'user_id' => $this->authId,
 				'task_name' => $task['name'],
 				'created_at' => date('Y-m-d'),
 			]);
-			$user = AdminUser::getInstance()->findOne($authId, 'point');
-			AdminUser::getInstance()->saveDataById($authId, [
+			$user = AdminUser::getInstance()->findOne($this->authId, 'point');
+			AdminUser::getInstance()->saveDataById($this->authId, [
 				'point' => QueryBuilder::inc($times),
 				'level' => AppFunc::getUserLvByPoint($user['point']),
 			]);
@@ -904,11 +879,11 @@ class UserCenter extends FrontUserController
 		} finally {
 			DbManager::getInstance()->commit();
 		}
-		$user = AdminUser::getInstance()->findOne($authId);
+		$user = AdminUser::getInstance()->findOne($this->authId);
 		// 输出数据
 		$result = [
 			'level' => $user['level'], 'point' => $user['point'],
-			'd_value' => AppFunc::getPointsToNextLevel($authId),
+			'd_value' => AppFunc::getPointsToNextLevel($this->authId),
 		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
@@ -919,16 +894,13 @@ class UserCenter extends FrontUserController
 	 */
 	public function getPointList()
 	{
-		$params = $this->params;
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
 		// 分页参数
-		$page = empty($params['page']) ? 1 : $params['page'];
-		$size = empty($params['size']) ? 10 : $params['size'];
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 10);
 		// 分页数据
 		$fields = 'id,task_name,type,point,created_at';
 		[$list, $count] = AdminUserSerialPoint::getInstance()
-			->findAll(['user_id' => $authId], $fields, 'created_at,desc', true, $page, $size);
+			->findAll(['user_id' => $this->authId], $fields, 'created_at,desc', true, $page, $size);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $count]);
 	}
 	
@@ -941,18 +913,16 @@ class UserCenter extends FrontUserController
 		// 参数校验
 		$validator = new Validate();
 		$validator->addColumn('content')->required();
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		// 当前登录用户ID
-		$authId = intval($this->auth['id']);
-		$params = $this->params;
+		};
+		$params = $this->param();
 		$imgs = trim($params['img']);
 		$content = trim($params['content']);
 		if (empty($content)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 插入数据
 		$data = [
-			'user_id' => $authId,
+			'user_id' => $this->authId,
 			'content' => addslashes(htmlspecialchars($content)),
 		];
 		if (!empty($imgs)) $data['img'] = $imgs;

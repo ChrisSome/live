@@ -12,6 +12,19 @@ abstract class BaseController extends Controller
 		if ($msg != 'request_end') echo $msg . PHP_EOL;
 	}
 	
+	protected function param(string $key = '', bool $isInt = false, $default = null)
+	{
+		if (empty($key)) return $this->request()->getRequestParam();
+		$param = $this->request()->getRequestParam($key);
+		if (is_null($param)) return $default;
+		if ($isInt) {
+			$value = intval($param);
+			if ($value < 1 && is_int($default) && $default > 0) $value = $default;
+			return $value < 1 ? 0 : $value;
+		}
+		return is_string($param) ? trim($param) : $param;
+	}
+	
 	/**
 	 * 返回请求结果
 	 * @param int  $statusCode

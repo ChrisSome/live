@@ -13,11 +13,6 @@ class AdminInformationComment extends BaseModel
 	const SHOW_IN_FRONT = [self::STATUS_REPORTED, self::STATUS_NORMAL, self::STATUS_ADMIN_DELETE];
 	protected $tableName = 'admin_information_comments';
 	
-	public function getLimit($page, $limit): AdminInformationComment
-	{
-		return $this->order('created_at', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * @return mixed
 	 * @throws

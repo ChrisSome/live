@@ -21,11 +21,6 @@ class AdminInformation extends BaseModel
 	];
 	protected $tableName = 'admin_information';
 	
-	public function getLimit($page, $limit): AdminInformation
-	{
-		return $this->order('created_at', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * @return mixed
 	 * @throws

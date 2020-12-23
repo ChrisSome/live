@@ -3,6 +3,7 @@
 namespace App\lib;
 
 use App\Common\AppFunc;
+use App\Model\AdminCompetition;
 use App\HttpController\Match\FootballApi;
 use App\Model\AdminInformation;
 use App\Model\AdminInterestMatches;
@@ -50,17 +51,17 @@ class  FrontService
 		
 		// 点赞/收藏数据映射
 		$where = ['type' => [[1, 2], 'in'], 'item_type' => 1, 'is_cancel' => 0, 'item_id' => [$postIds, 'in']];
-		$tmp = AdminUserOperate::getInstance()->findAll($where);
+		$tmp = empty($postIds) ? [] : AdminUserOperate::getInstance()->findAll($where);
 		foreach ($tmp as $v) {
 			$key = $v['item_id'] . '_' . $v['type'];
 			$operateMapper[$key] = 1;
 		}
 		// 最新发帖时间映射
-		$commentMapper = AdminPostComment::getInstance()->findAll(['post_id' => [$postIds, 'in']],
+		$commentMapper = empty($postIds) ? [] : AdminPostComment::getInstance()->findAll(['post_id' => [$postIds, 'in']],
 			'post_id,max(created_at) time', ['group' => 'post_id'],
 			false, 0, 0, 'post_id,time,true');
 		// 类型数据映射
-		$categoryMapper = AdminUserPostsCategory::getInstance()->findAll(['id' => [$categoryIds, 'in']], null, null,
+		$categoryMapper = empty($categoryIds) ? [] : AdminUserPostsCategory::getInstance()->findAll(['id' => [$categoryIds, 'in']], null, null,
 			false, 0, 0, 'id,*,true');
 		// 设置数据映射 & 用户数据映射
 		$settingMapper = $userMapper = [];
@@ -70,14 +71,14 @@ class  FrontService
 			$userMapper = AdminUser::getInstance()->findAll(['id' => [$userIds, 'in']], 'id,photo,nickname,level,is_offical',
 				null, false, 0, 0, 'id,*,true');
 		}
-		
 		$list = [];
 		foreach ($posts as $v) {
 			$postId = intval($v['id']);
 			$userId = intval($v['user_id']);
 			$setting = empty($settingMapper[$userId]) ? false : $settingMapper[$userId];
 			$categoryId = intval($v['cat_id']);
-			$category = in_array($categoryId, [1, 2]) && !empty($categoryMapper[$categoryId]) ? false : $categoryMapper[$categoryId];
+			$category = in_array($categoryId, [1, 2]) && !empty($categoryMapper[$categoryId]) ?
+				false : (empty($categoryMapper[$categoryId]) ? false : $categoryMapper[$categoryId]);
 			if (!empty($setting)) {
 				$setting = json_decode($setting, true);
 				$setting = empty($setting['see_my_post']) ? 0 : $setting['see_my_post'];
@@ -106,7 +107,7 @@ class  FrontService
 				'content' => base64_decode($v['content']),
 				'is_me' => $authId ? $userId == $authId : false,
 				'cat_name' => empty($category['name']) ? '' : $category['name'],
-				'cat_color' => empty($category['color']) ? '' : json_decode($category['color'], true),
+				'cat_color' => empty($category['color']) ? [] : $category['color'],
 				'imgs' => empty($v['imgs']) ? [] : json_decode($v['imgs'], true),
 				'user_info' => empty($userMapper[$userId]) ? [] : $userMapper[$userId], //发帖人信息
 				'is_follow' => $authId ? AppFunc::isFollow($authId, $userId) : false, //是否关注发帖人
@@ -176,18 +177,18 @@ class  FrontService
 			$list[] = [
 				'id' => $v['id'],
 				'post_id' => $postId,
-				'post_title' => $postTitle,
-				'parent_id' => $parentId,
-				'parent_content' => $parentContent,
-				'content' => $v['content'],
-				'created_at' => $v['created_at'],
-				'fabolus_number' => intval($v['fabolus_number']),
-				'is_fabolus' => $userId > 0 && !empty($operateMapper[$id . '_' . $userId]),
 				'user_info' => $user,
-				'is_follow' => AppFunc::isFollow($authId, $userId),
+				't_u_info' => $topUser,
+				'parent_id' => $parentId,
+				'post_title' => $postTitle,
+				'created_at' => $v['created_at'],
+				'parent_content' => $parentContent,
+				'content' => base64_decode($v['content']),
 				'respon_number' => intval($v['respon_number']),
 				'top_comment_id' => intval($v['top_comment_id']),
-				't_u_info' => $topUser,
+				'fabolus_number' => intval($v['fabolus_number']),
+				'is_follow' => AppFunc::isFollow($authId, $userId),
+				'is_fabolus' => $userId > 0 && !empty($operateMapper[$id . '_' . $userId]),
 			];
 		}
 		return $list;
@@ -310,113 +311,109 @@ class  FrontService
 	/**
 	 * 比赛格式化
 	 * @param      $matches
-	 * @param      $uid
-	 * @param bool $showWhenUserNotInterestCompetition
+	 * @param      $authId
+	 * @param bool $showNotInterest
 	 * @param bool $isLiving
-	 * @param bool $is_show 强制显示
+	 * @param bool $isShow 强制显示
 	 * @return array
 	 */
-	static function handMatch($matches, $uid, $showWhenUserNotInterestCompetition = false, $isLiving = false, $is_show = false)
+	static function handMatch($matches, $authId, $showNotInterest = false, $isLiving = false, $isShow = false): array
 	{
-		if (!$matches) {
-			return [];
-		} else {
-			//用户关注赛事
-			$userInterestCompetitiones = [];
-			if ($competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
-				$userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-			}
-			//            $userInterestCompetitiones = $competitiones ? json_decode($competitiones['competition_ids'], true) : [];
-			//用户关注比赛
-			$userInterestMatchIds = [];
-			
-			if ($userInterestMatchRes = AdminInterestMatches::getInstance()->where('uid', $uid)->get()) {
-				$userInterestMatchIds = json_decode($userInterestMatchRes->match_ids, true);
-			}
-			$in_competition_arr = [];
-			if ($recommand_competition_id_arr = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get()) {
-				$in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
-			}
-			
-			foreach ($matches as $match) {
-				$match_data_info = Cache::get('match_data_info' . $match->match_id);
-				$home_team = isset($match->home_team_id) ? $match->homeTeamName() : '';
-				$away_team = isset($match->away_team_id) ? $match->awayTeamName() : '';
-				$competition = $match->competitionName();
-				if (!$home_team || !$away_team || !$competition) {
-					continue;
+		if (!$matches) return [];
+		
+		//用户关注赛事
+		$userInterestCompetitionIds = [];
+		$tmp = AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $authId]);
+		if (!empty($tmp['competition_ids'])) $userInterestCompetitionIds = json_decode($tmp['competition_ids'], true);
+		
+		//用户关注比赛
+		$userInterestMatchIds = [];
+		$tmp = AdminInterestMatches::getInstance()->findOne(['uid' => $authId]);
+		if (!empty($tmp['match_ids'])) $userInterestMatchIds = json_decode($tmp['match_ids'], true);
+		
+		$configCompetitionIds = [];
+		$tmp = AdminSysSettings::getInstance()->where(['sys_key' => AdminSysSettings::COMPETITION_ARR], 'sys_value');
+		if (!empty($tmp['sys_value'])) $configCompetitionIds = json_decode($tmp['sys_value'], true);
+		
+		// 映射数据
+		$teamIds = $competitionIds = [];
+		array_walk($matches, function ($v) use (&$teamIds, &$competitionIds) {
+			$id = intval($v['home_team_id']);
+			if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
+			$id = intval($v['away_team_id']);
+			if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
+			$id = intval($v['competition_id']);
+			if ($id > 0 && !in_array($id, $competitionIds)) $competitionIds[] = $id;
+		});
+		// 球队映射
+		$teamMapper = empty($teamIds) ? [] : AdminTeam::getInstance()->findAll(['id' => [$teamIds, 'in']], null, null,
+			false, 0, 0, 'id,*,true');
+		// 赛事映射
+		$competitionMapper = empty($competitionIds) ? [] : AdminCompetition::getInstance()
+			->findAll(['id' => [$competitionIds, 'in']], null, null,
+				false, 0, 0, 'id,*,true');
+		
+		$list = [];
+		foreach ($matches as $v) {
+			$matchId = intval($v['match_id']);
+			$match = Cache::get('match_data_info' . $matchId);
+			$homeTeamId = intval($v['home_team_id']);
+			$homeTeam = empty($teamMapper[$homeTeamId]) ? null : $teamMapper[$homeTeamId];
+			$awayTeamId = intval($v['away_team_id']);
+			$awayTeam = empty($teamMapper[$awayTeamId]) ? null : $teamMapper[$awayTeamId];
+			$competitionId = intval($v['competition_id']);
+			$competition = empty($competitionMapper[$competitionId]) ? null : $competitionMapper[$competitionId];
+			if (empty($homeTeam) || empty($awayTeam) || empty($competition)) continue;
+			$hasLiving = 0;
+			$livingUrl = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
+			$livingMatch = !$isLiving ? null : AppFunc::getAlphaLiving(empty($homeTeam['name_en']) ? '' : $homeTeam['name_en'], empty($awayTeam['name_en']) ? '' : $awayTeam['name_en']);
+			if (!empty($livingMatch)) {
+				$hasLiving = intval($livingMatch['liveStatus']);
+				if (!empty($livingMatch['liveUrl']) || !empty($livingMatch['liveUrl2']) || !empty($livingMatch['liveUrl3'])) {
+					$livingUrl = [
+						'liveUrl' => $livingMatch['liveUrl'],
+						'liveUrl2' => $livingMatch['liveUrl2'],
+						'liveUrl3' => $livingMatch['liveUrl3'],
+					];
 				}
-				$has_living = 0;
-				$living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
-				if ($isLiving && $living_match = AppFunc::getAlphaLiving(isset($home_team->name_en) ? $home_team->name_en : '', isset($away_team->name_en) ? $away_team->name_en : '')) {
-					$has_living = $living_match['liveStatus'];
-					if ($living_match['liveUrl'] || $living_match['liveUrl2'] || $living_match['liveUrl3']) {
-						$living_url = [
-							'liveUrl' => $living_match['liveUrl'],
-							'liveUrl2' => $living_match['liveUrl2'],
-							'liveUrl3' => $living_match['liveUrl3'],
-						];
-					}
-				}
-				
-				if (!$is_show) {
-					if ($uid && !$showWhenUserNotInterestCompetition && !in_array($match->competition_id, $userInterestCompetitiones)) {
-						continue;
-					}
-					
-					if (!in_array($match->competition_id, $in_competition_arr)) {
-						continue;
-					}
-					// if (!AppFunc::isInHotCompetition($match->competition_id)) {
-					//     continue;
-					// }
-				}
-				
-				$is_start = false;
-				if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
-					$is_start = false;
-				} elseif (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
-					$is_start = true;
-				} elseif (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
-					$is_start = false;
-				}
-				
-				$item['home_team_name'] = $home_team['name_zh'];
-				$item['home_team_logo'] = $home_team['logo'];
-				$item['away_team_name'] = $away_team['name_zh'];
-				$item['away_team_logo'] = $away_team['logo'];
-				$item['group_num'] = json_decode($match->round, true)['group_num']; //第几组
-				$item['round_num'] = json_decode($match->round, true)['round_num']; //第几轮
-				//                $item['competition_type'] = $match->competitionName['type'];
-				$item['competition_name'] = $competition['short_name_zh'];
-				$item['competition_color'] = $competition['primary_color'];
-				$item['match_time'] = date('H:i', $match['match_time']);
-				$item['format_match_time'] = date('Y-m-d H:i', $match['match_time']); //开赛时间
-				$item['user_num'] = mt_rand(20, 50);
-				$item['match_id'] = $match->match_id;
-				$item['is_start'] = $is_start;
-				$item['status_id'] = $match->status_id;
-				$item['is_interest'] = in_array($match->match_id, $userInterestMatchIds) ? true : false;
-				$item['neutral'] = $match->neutral;  //1中立 0否
-				//                $item['competition_id'] = $match->competition_id;  //1中立 0否
-				$item['note'] = $match->note;  //备注   欧青连八分之一决赛
-				$item['home_scores'] = $match->home_scores;  //主队比分
-				$item['away_scores'] = $match->away_scores;  //主队比分
-				$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '';  //直播地址
-				$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
-				$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
-				//                $item['home_win'] = $homeWin;  //比赛输赢
-				$item['matching_time'] = AppFunc::getPlayingTime($match->match_id);  //比赛进行时间
-				$item['matching_info'] = json_decode($match_data_info, true);
-				$item['has_living'] = $has_living;
-				$item['living_url'] = $living_url;
-				
-				$data[] = $item;
-				
-				unset($item);
 			}
-			return isset($data) ? $data : [];
+			if (!$isShow) {
+				if ($authId && !$showNotInterest && !in_array($competitionId, $userInterestCompetitionIds)) continue;
+				if (!in_array($competitionId, $configCompetitionIds)) continue;
+			}
+			$isStart = false;
+			$statusId = intval($v['status_id']);
+			if (in_array($statusId, FootballApi::STATUS_PLAYING)) $isStart = true;
+			$list[] = [
+				'match_id' => $matchId,
+				'is_start' => $isStart,
+				'status_id' => $statusId,
+				'has_living' => $hasLiving,
+				'living_url' => $livingUrl,
+				'user_num' => mt_rand(20, 50),
+				'home_team_logo' => $homeTeam['logo'],
+				'away_team_logo' => $awayTeam['logo'],
+				'home_team_name' => $homeTeam['name_zh'],
+				'away_team_name' => $awayTeam['name_zh'],
+				'neutral' => $v['neutral'],  //1中立 0否
+				'home_scores' => $v['home_scores'],  //主队比分
+				'away_scores' => $v['away_scores'],  //主队比分
+				'note' => $v['note'],  //备注   欧青连八分之一决赛
+				'competition_name' => $competition['short_name_zh'],
+				'competition_color' => $competition['primary_color'],
+				'match_time' => date('H:i', $v['match_time']),
+				'matching_info' => json_decode($match, true),
+				'is_interest' => in_array($matchId, $userInterestMatchIds),
+				'matching_time' => AppFunc::getPlayingTime($matchId),  //比赛进行时间
+				'format_match_time' => date('Y-m-d H:i', $v['match_time']), //开赛时间
+				'group_num' => json_decode($v['round'], true)['group_num'], //第几组
+				'round_num' => json_decode($v['round'], true)['round_num'], //第几轮
+				'mlive' => json_decode($v['coverage'], true)['mlive'] ? true : false,  //动画
+				'line_up' => json_decode($v['coverage'], true)['lineup'] ? true : false,  //阵容
+				'steamLink' => !empty($v->steamLink()['mobile_link']) ? $v->steamLink()['mobile_link'] : '',  //直播地址
+			];
 		}
+		return $list;
 	}
 	
 	static function formatMatch($matches, $uid)
@@ -752,61 +749,87 @@ class  FrontService
 	}
 	
 	/**
-	 * @param $informations
+	 * @param $informationList
+	 * @param $authId
 	 * @return array
+	 * @throws
 	 */
-	public static function handInformation($informations, $uid)
+	public static function handInformation($informationList, $authId): array
 	{
-		if (!$informations) {
-			return [];
+		if (empty($informationList)) return [];
+		// 映射数据
+		$ids = $userIds = $competitionIds = [];
+		array_walk($informationList, function ($v) use (&$ids, &$userIds, &$competitionIds) {
+			$id = intval($v['id']);
+			if ($id > 0 && !in_array($id, $ids)) $ids[] = $id;
+			$id = intval($v['user_id']);
+			if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+			$id = intval($v['competition_id']);
+			if ($id > 0 && !in_array($id, $competitionIds)) $competitionIds[] = $id;
+		});
+		// 用户映射
+		$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
+			->findAll(['id' => [$userIds, 'in']], 'id,nickname,photo,is_offical,level', null,
+				false, 0, 0, 'id,*,true');
+		// 赛事映射
+		$competitionMapper = empty($competitionIds) ? [] : AdminCompetition::getInstance()
+			->findAll(['id' => [$competitionIds, 'in']], null, null,
+				false, 0, 0, 'id,*,true');
+		$where = ['item_id' => [$ids, 'in'], 'item_type' => 3, 'type' => 1, 'is_cancel' => 0];
+		$tmp = empty($ids) ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id,user_id');
+		$operateMapper = [];
+		array_walk($tmp, function ($v) use (&$operateMapper) {
+			$itemId = intval($v['item_id']);
+			$userId = intval($v['user_id']);
+			$operateMapper[$itemId . '_' . $userId] = 1;
+		});
+		$list = [];
+		foreach ($informationList as $v) {
+			if ($v['created_at'] > date('Y-m-d H:i:s')) continue;
+			$id = intval($v['user_id']);
+			$user = empty($userMapper[$id]) ? [] : $userMapper[$id];
+			if (empty($user)) continue;
+			$id = intval($v['competition_id']);
+			$competition = empty($competitionMapper[$id]) ? null : $competitionMapper[$id];
+			$list[] = [
+				'id' => $v['id'],
+				'user' => $user,
+				'img' => $v['img'],
+				'title' => $v['title'],
+				'competition_id' => $id,
+				'status' => $v['status'],
+				'is_title' => $v['type'] == 1,
+				'created_at' => $v['created_at'],
+				'respon_number' => intval($v['respon_number']),
+				'fabolus_number' => intval($v['fabolus_number']),
+				'is_fabolus' => $authId > 0 ? !empty($operateMapper[$v['id'] . '_' . $v['user_id']]) : false,
+				'competition_short_name_zh' => empty($competition['short_name_zh']) ? '' : $competition['short_name_zh'],
+			];
 		}
-		$format = [];
-		foreach ($informations as $item) {
-			if ($item->created_at > date('Y-m-d H:i:s')) continue;
-			$user = AdminUser::getInstance()->where('id', $item['user_id'])->get();
-			if (!$user) continue;
-			$operate = AdminUserOperate::getInstance()->where('user_id', $uid)->where('item_id', $item['id'])->where('item_type', 3)->where('type', 1)->where('is_cancel', 0)->get();
-			$competition = $item->getCompetition();
-			$data['id'] = $item['id'];
-			$data['title'] = $item['title'];
-			$data['img'] = $item['img'];
-			$data['status'] = $item['status'];
-			$data['is_fabolus'] = $uid ? ($operate ? true : false) : false;
-			$data['fabolus_number'] = $item['fabolus_number'];
-			$data['respon_number'] = $item['respon_number'];
-			$data['competition_id'] = $item['competition_id'];
-			$data['created_at'] = $item['created_at'];
-			$data['is_title'] = ($item['type'] == 1) ? true : false;
-			$data['competition_short_name_zh'] = isset($competition->short_name_zh) ? $competition->short_name_zh : '';
-			$data['user_info'] = ['id' => $user->id, 'nickname' => $user->nickname, 'photo' => $user->photo, 'level' => $user->level, 'is_offical' => $user->is_offical];
-			
-			$format[] = $data;
-			unset($data);
-		}
-		
-		return $format;
+		return $list;
 	}
 	
 	/**
 	 * @param $users
-	 * @param $uid
+	 * @param $authId
+	 * @return array
+	 * @throws
 	 */
-	public static function handUser($users, $uid)
+	public static function handUser($users, $authId): array
 	{
-		if (!$users) return [];
-		$format_users = [];
-		foreach ($users as $user) {
-			$data['id'] = $user['id'];
-			$data['nickname'] = $user['nickname'];
-			$data['is_offical'] = $user['is_offical'];
-			$data['level'] = $user['level'];
-			$data['photo'] = $user['photo'];
-			$data['fans_count'] = count(AppFunc::getUserFans($user->id));
-			$data['is_follow'] = AppFunc::isFollow($uid, $user['id']);
-			$format_users[] = $data;
-			unset($data);
+		if (empty($users)) return [];
+		$list = [];
+		foreach ($users as $v) {
+			$list[] = [
+				'id' => $v['id'],
+				'level' => $v['level'],
+				'photo' => $v['photo'],
+				'nickname' => $v['nickname'],
+				'is_offical' => $v['is_offical'],
+				//				'fans_count' => count(AppFunc::getUserFans($v->id)),
+				//				'is_follow' => AppFunc::isFollow($authId, $v['id']),
+			];
 		}
-		
-		return $format_users;
+		return $list;
 	}
 }

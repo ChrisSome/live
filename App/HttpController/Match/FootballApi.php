@@ -138,8 +138,6 @@ class FootballApi extends FrontUserController
 	 */
 	public function getCompetition()
 	{
-		// 当前登录用户ID
-		$authId = empty($this->auth['id']) ? 0 : $this->auth['id'];
 		// 配置数据
 		$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::RECOMMEND_COM], 'sys_value');
 		// 输出数据
@@ -147,7 +145,7 @@ class FootballApi extends FrontUserController
 		if (empty($result)) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
 		// 填充数据
 		$interest = [];
-		$tmp = $authId < 1 ? null : AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $authId], 'competition_ids');
+		$tmp = $this->authId < 1 ? null : AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $this->authId], 'competition_ids');
 		if (!empty($tmp['competition_ids'])) $interest = json_decode($tmp['competition_ids'], true);
 		foreach ($result as $k => $v) {
 			foreach ($v as $kk => $vv) {
@@ -163,8 +161,6 @@ class FootballApi extends FrontUserController
 	 */
 	public function frontMatchList()
 	{
-		// 当前登录用户ID
-		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
 		$todayTime = strtotime(date('Y-m-d', time()));
 		$tomorrowTime = strtotime(date('Y-m-d', strtotime('+1 day')));
 		$afterTomorrowTime = strtotime(date('Y-m-d', strtotime('+2 day')));
@@ -185,9 +181,9 @@ class FootballApi extends FrontUserController
 			'competition_id' => [$hotCompetition, 'in'], 'is_delete' => 0,
 		];
 		$tomorrowMatch = AdminMatch::getInstance()->findAll($where, 'match_time,asc');
-		$playing = FrontService::handMatch($playingMatch, $authId);
-		$today = FrontService::handMatch($todayMatch, $authId);
-		$tomorrow = FrontService::handMatch($tomorrowMatch, $authId);
+		$playing = FrontService::handMatch($playingMatch, $this->authId);
+		$today = FrontService::handMatch($todayMatch, $this->authId);
+		$tomorrow = FrontService::handMatch($tomorrowMatch, $this->authId);
 		// 输出数据
 		$result = ['playing' => $playing, 'today' => $today, 'tomorrow' => $tomorrow];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
@@ -199,12 +195,10 @@ class FootballApi extends FrontUserController
 	 */
 	public function matchListPlaying()
 	{
-		// 当前登录用户ID
-		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
-		$selectCompetitionIdArr = DbManager::getInstance()->invoke(function ($client) use ($authId) {
+		$selectCompetitionIdArr = DbManager::getInstance()->invoke(function ($client) {
 			$userInterestCompetitiones = $recommand_competition_id_arr = [];
-			if ($authId > 0) {
-				$competitiones = AdminUserInterestCompetition::invoke($client)->get(['user_id' => $authId]);
+			if ($this->authId > 0) {
+				$competitiones = AdminUserInterestCompetition::invoke($client)->get(['user_id' => $this->authId]);
 				$userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
 			}
 			$recommand_competition_id_arr = AdminSysSettings::invoke($client)
@@ -218,10 +212,10 @@ class FootballApi extends FrontUserController
 				->where('competition_id', $selectCompetitionIdArr, 'in')
 				->where('status_id', self::STATUS_PLAYING, 'in')->all();
 		});
-		$formatMatch = FrontService::formatMatchTwo($match, $authId);
+		$formatMatch = FrontService::formatMatchTwo($match, $this->authId);
 		//用户关注比赛数量
-		$userInterestMatchCount = DbManager::getInstance()->invoke(function ($client) use ($authId) {
-			return AdminInterestMatches::invoke($client)->get(['uid' => $authId]);
+		$userInterestMatchCount = DbManager::getInstance()->invoke(function ($client) {
+			return AdminInterestMatches::invoke($client)->get(['uid' => $this->authId]);
 		});
 		$count = 0;
 		if ($userInterestMatchCount > 0) $count = count(json_decode($userInterestMatchCount['match_ids']));
@@ -237,14 +231,14 @@ class FootballApi extends FrontUserController
 	public function userInterestMatchList()
 	{
 		// 当前登录用户ID
-		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
-		if ($authId < 1) $this->output(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
-		$params = $this->params;
+		
+		if ($this->authId < 1) $this->output(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
+		$params = $this->param();
 		// 分页参数
 		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
 		$size = empty($params['size']) || intval($params['page']) < 1 ? 20 : intval($params['size']);
 		//
-		$tmp = AdminInterestMatches::getInstance()->findOne(['uid' => $authId]);
+		$tmp = AdminInterestMatches::getInstance()->findOne(['uid' => $this->authId]);
 		if (empty($tmp['match_ids'])) {
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => [], 'count' => 0]);
 		}
@@ -256,7 +250,7 @@ class FootballApi extends FrontUserController
 		if (!empty($formatMatchId) && is_array($formatMatchId)) {
 			$where = ['match_id' => [$formatMatchId, 'in'], 'is_delete' => 0];
 			$matches = AdminMatch::getInstance()->findAll($where, null, 'match_time,asc');
-			$data = FrontService::formatMatchTwo($matches, $authId);
+			$data = FrontService::formatMatchTwo($matches, $this->authId);
 		} else {
 			$data = [];
 		}
@@ -270,11 +264,11 @@ class FootballApi extends FrontUserController
 	public function matchSchedule()
 	{
 		// 参数校验
-		$params = $this->params;
+		$params = $this->param();
 		$time = empty($params['time']) || intval($params['time']) < 1 ? 0 : intval($params['time']);
 		if ($time < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 当前登录用户ID
-		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
+		
 		// 分页参数
 		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
 		$size = empty($params['size']) || intval($params['page']) < 1 ? 20 : intval($params['size']);
@@ -285,7 +279,7 @@ class FootballApi extends FrontUserController
 		
 		$userInterestCompetitiones = [];
 		
-		if ($authId && $competitiones = AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $authId])) {
+		if ($this->authId && $competitiones = AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $this->authId])) {
 			$userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
 		}
 		
@@ -310,7 +304,7 @@ class FootballApi extends FrontUserController
 			'is_delete' => 0, 'competition_id' => [$selectCompetition, 'in'],
 		];
 		[$list, $count] = AdminMatch::getInstance()->findAll($where, null, 'match_time,asc', true, $page, $size);
-		$list = empty($list) ? [] : FrontService::formatMatchTwo($list, $authId);
+		$list = empty($list) ? [] : FrontService::formatMatchTwo($list, $this->authId);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}
 	
@@ -321,13 +315,13 @@ class FootballApi extends FrontUserController
 	public function matchResult()
 	{
 		// 参数校验
-		$params = $this->params;
+		$params = $this->param();
 		$time = empty($params['time']) || intval($params['time']) < 1 ? 0 : intval($params['time']);
 		if ($time < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 当前登录用户ID
-		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
+		
 		//需要展示的赛事id 以及用户关注的比赛
-		[$selectCompetitionIdArr, $interestMatchArr] = AdminUser::getUserShowCompetitionId($authId);
+		[$selectCompetitionIdArr, $interestMatchArr] = AdminUser::getUserShowCompetitionId($this->authId);
 		// 分页参数
 		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
 		$size = empty($params['size']) || intval($params['page']) < 1 ? 20 : intval($params['size']);
@@ -341,7 +335,7 @@ class FootballApi extends FrontUserController
 			'is_delete' => 0,
 		];
 		[$list, $count] = AdminMatch::getInstance()->findAll($where, null, 'match_time,desc', true, $page, $size);
-		$list = empty($list) ? [] : FrontService::formatMatchThree($list, $authId, $interestMatchArr);
+		$list = empty($list) ? [] : FrontService::formatMatchThree($list, $this->authId, $interestMatchArr);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}
 	
@@ -352,7 +346,7 @@ class FootballApi extends FrontUserController
 	public function lineUpDetail()
 	{
 		// 参数校验
-		$params = $this->params;
+		$params = $this->param();
 		$matchId = empty($params['match_id']) ? 0 : intval($params['match_id']);
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		//
@@ -422,7 +416,7 @@ class FootballApi extends FrontUserController
 				$awayTeamInfo['awayFormation'] = $awayFormation;
 			}
 			// 输出数据
-			$result = ['home' => $homeTeamInfo,'away' => $awayTeamInfo];
+			$result = ['home' => $homeTeamInfo, 'away' => $awayTeamInfo];
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 		}
 		$this->output(Status::CODE_MATCH_LINE_UP_ERR, Status::$msg[Status::CODE_MATCH_LINE_UP_ERR]);
@@ -434,7 +428,7 @@ class FootballApi extends FrontUserController
 	 */
 	public function getClashHistory()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 参数校验
 		$matchId = empty($params['match_id']) || intval($params['match_id']) < 1 ? 0 : intval($params['match_id']);
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -524,15 +518,13 @@ class FootballApi extends FrontUserController
 	 */
 	public function getMatchInfo()
 	{
-		// 当前登录用户ID
-		$authId = empty($this->auth['id']) ? 0 : intval($this->auth['id']);
 		// 参数校验
-		$params = $this->params;
+		$params = $this->param();
 		$matchId = empty($params['match_id']) || intval($params['match_id']) < 1 ? 0 : intval($params['match_id']);
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		$match = $matchId < 1 ? null : AdminMatch::getInstance()->findOne(['match_id' => $matchId]);
 		
-		$match = FrontService::formatMatchThree([$match], $authId, []);
+		$match = FrontService::formatMatchThree([$match], $this->authId, []);
 		$match = empty($match[0]) ? null : $match[0];
 		if (empty($match)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		

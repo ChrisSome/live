@@ -68,8 +68,7 @@ class InformationApi extends FrontUserController
 	public function competitionContent()
 	{
 		// 参数校验
-		$params = $this->params;
-		$competitionId = empty($params['competition_id']) || intval($params['competition_id']) < 1 ? 0 : intval($params['competition_id']);
+		$competitionId = $this->param('competition_id', true);
 		if ($competitionId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 比赛数据
 		$where = ['competition_id' => $competitionId, 'status_id' => FootballApi::STATUS_NO_START];
@@ -78,8 +77,8 @@ class InformationApi extends FrontUserController
 		// 输出数据
 		$result = ['matches' => $matches, 'information' => ['list' => [], 'count' => 0]];
 		// 分页参数
-		$page = empty($params['page']) ? 1 : $params['page'];
-		$size = empty($params['size']) ? 10 : $params['size'];
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 10);
 		$now = date('Y-m-d H:i:s');
 		$field = 'id,title,fabolus_number,respon_number,img';
 		$where = ['competition_id' => $competitionId, 'status' => AdminInformation::STATUS_NORMAL, 'created_at' => [$now, '>']];
@@ -106,11 +105,8 @@ class InformationApi extends FrontUserController
 	 */
 	public function informationInfo()
 	{
-		$params = $this->params;
-		// 当前登录用户ID
-		$authId = empty($this->auth['id']) || intval($this->auth['id']) < 1 ? 0 : intval($this->auth['id']); // 当前登录用户ID
 		// 资讯数据
-		$informationId = empty($params['information_id']) || intval($params['information_id']) < 1 ? 0 : intval($params['information_id']);
+		$informationId = $this->param('information_id', true);
 		$information = $informationId > 0 ? AdminInformation::getInstance()->findOne($informationId) : false;
 		if (empty($information)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 已被删除
@@ -121,45 +117,45 @@ class InformationApi extends FrontUserController
 		$fields = 'id,nickname,photo,is_offical,level';
 		$information['user_info'] = $userId < 1 ? [] : AdminUser::getInstance()->findOne($userId, $fields);
 		// 是否未被举报
-		$where = ['item_type' => 3, 'type' => 1, 'is_cancel' => 0, 'item_id' => $informationId, 'user_id' => $authId];
+		$where = ['item_type' => 3, 'type' => 1, 'is_cancel' => 0, 'item_id' => $informationId, 'user_id' => $this->authId];
 		$tmp = AdminUserOperate::getInstance()->findOne($where);
 		$information['is_fabolus'] = !empty($tmp);
 		// 是否已被收藏
-		$where = ['item_type' => 3, 'type' => 2, 'is_cancel' => 0, 'item_id' => $informationId, 'user_id' => $authId];
+		$where = ['item_type' => 3, 'type' => 2, 'is_cancel' => 0, 'item_id' => $informationId, 'user_id' => $this->authId];
 		$tmp = AdminUserOperate::getInstance()->findOne($where);
 		$information['is_collect'] = !empty($tmp);
 		// 分页参数
-		$page = empty($params['page']) ? 1 : $params['page'];
-		$size = empty($params['size']) ? 10 : $params['size'];
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 10);
 		// 类型 0:最热 1:最早 2:最新
-		$orderType = empty($params['order_type']) || intval($params['order_type']) < 1 ? 0 : intval($params['order_type']);
+		$orderType = $this->param('order_type', true);
 		// 评论/回复数据
 		$order = $orderType == 0 ? 'fabolus_number,desc' : ($orderType == 1 ? 'created_at,asc' : ($orderType == 2 ? 'created_at,desc' : null));
 		$where = ['information_id' => $informationId, 'top_comment_id' => 0, 'parent_id' => 0];
 		[$list, $count] = AdminInformationComment::getInstance()->findAll($where, null, $order, true, $page, $size);
 		if (!empty($list)) {
-			$commentIdsStr = join(',', array_column($list, 'id'));
-			$userIdsStr = join(',', array_unique(array_filter(array_column($list, 'user_id'))));
+			$commentIds = array_column($list, 'id');
+			$userIds = array_unique(array_filter(array_column($list, 'user_id')));
 			// 用户数据映射
-			$userMapper = empty($userIdsStr) ? [] : Utils::queryHandler(AdminUser::getInstance(),
-				'id in(' . $userIdsStr . ')', null,
-				'id,nickname,photo,is_offical,level', false, null, 'id,*,1');
+			$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
+				->findAll(['id' => [$userIds, 'in']], 'id,nickname,photo,is_offical,level', null,
+					false, 0, 0, 'id,*,true');
 			// 回复统计映射
-			$childCountMapper = Utils::queryHandler(AdminInformationComment::getInstance(),
-				'information_id=? and status=? and top_comment_id in (' . $commentIdsStr . ')', [$informationId, AdminInformationComment::STATUS_NORMAL],
-				'top_comment_id,count(*) total', false,
-				['group' => 'top_comment_id'], 'top_comment_id,total,1');
+			$where = ['information_id' => $informationId, 'status' => AdminInformationComment::STATUS_NORMAL, 'top_comment_id' => [$commentIds, 'in']];
+			$childCountMapper = empty($commentIds) ? [] : AdminInformationComment::getInstance()
+				->findAll($where, 'top_comment_id,count(*) total', ['group' => 'top_comment_id'],
+					false, 0, 0, 'top_comment_id,total,1');
 			// 点赞数据映射
-			$operateMapper = Utils::queryHandler(AdminUserOperate::getInstance(),
-				'item_type=4 and item_id in(' . $commentIdsStr . ') and type=1 and user_id=? and is_cancel=0', $authId,
-				'item_id', false, null, 'item_id,item_id,1');
+			$where = ['item_type' => 4, 'item_id' => [$commentIds, 'in'], 'type' => 1, 'user_id' => $this->authId, 'is_cancel' => 0];
+			$operateMapper = empty($commentIds) ? [] : AdminUserOperate::getInstance()
+				->findAll($where, 'item_id', null,
+					false, 0, 0, 'item_id,item_id,false');
 			// 回复数据映射
 			$childGroupMapper = [];
-			$subSql = 'select count(*)+1 from admin_information_comments x where x.top_comment_id=a.top_comment_id and x.information_id=? and x.status=? having (count(*)+1)<=3';
-			$tmp = Utils::queryHandler(AdminInformationComment::getInstance(),
-				'information_id=? and status=? and top_comment_id in(' . $commentIdsStr . ') and exists(' . $subSql . ')',
-				[$informationId, AdminInformationComment::STATUS_NORMAL, $informationId, AdminInformationComment::STATUS_NORMAL],
-				'*', false, 'a.created_at desc');
+			$subSql = 'select count(*)+1 from admin_information_comments x where x.top_comment_id=a.top_comment_id and x.information_id=' . $informationId .
+				' and x.status=' . AdminInformationComment::STATUS_NORMAL . ' having (count(*)+1)<=3';
+			$where = ['information_id' => $informationId, 'status' => AdminInformationComment::STATUS_NORMAL, 'top_comment_id' => [$commentIds, 'in'], 'exists' => $subSql];
+			$tmp = empty($commentIds) ? [] : AdminInformationComment::getInstance()->findAll($where, null, 'created_at desc');
 			foreach ($tmp as $v) {
 				$id = intval($v['top_comment_id']);
 				$childGroupMapper[$id][] = $v;
@@ -180,8 +176,8 @@ class InformationApi extends FrontUserController
 					'fabolus_number' => $v['fabolus_number'],
 					'content' => base64_decode($v['content']),
 					'is_fabolus' => !empty($operateMapper[$id]),
-					'is_follow' => AppFunc::isFollow($authId, $userId),
-					'child_comment_list' => FrontService::handInformationComment($children, $authId),
+					'is_follow' => AppFunc::isFollow($this->authId, $userId),
+					'child_comment_list' => FrontService::handInformationComment($children, $this->authId),
 				];
 			}
 			$list = $comments;
@@ -219,14 +215,13 @@ class InformationApi extends FrontUserController
 	public function informationComment()
 	{
 		// 登录状态判断
-		$authId = empty($this->auth['id']) || intval($this->auth['id']) < 1 ? 0 : intval($this->auth['id']); // 当前登录用户ID
-		if ($authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
+		if ($this->authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 		// 用户状态校验
 		if ($this->auth['status'] == AdminUser::STATUS_FORBIDDEN) {
 			$this->output(Status::CODE_STATUS_FORBIDDEN, Status::$msg[Status::CODE_STATUS_FORBIDDEN]);
 		}
 		// 防止频繁操作
-		if (Cache::get('user_comment_information_' . $authId)) {
+		if (Cache::get('user_comment_information_' . $this->authId)) {
 			$this->output(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
 		}
 		// 参数校验
@@ -236,35 +231,34 @@ class InformationApi extends FrontUserController
 		$validator->addColumn('parent_id')->required()->min(0);
 		$validator->addColumn('t_u_id')->required()->min(1);
 		$validator->addColumn('content')->required()->notEmpty();
-		if (!$validator->validate($this->params)) {
+		if (!$validator->validate($this->param())) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		}
-		$params = $this->params;
 		// 资讯数据
-		$informationId = intval($params['information_id']);
+		$informationId = $this->param('information_id', true);
 		$information = AdminInformation::getInstance()->findOne($informationId);
 		if (empty($information)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 敏感词校验
 		$words = $sensitiveWords = AdminSensitive::getInstance()->findAll(['status' => AdminSensitive::STATUS_NORMAL], 'word');
 		foreach ($words as $v) {
-			if (!empty($v['word']) && strstr($params['content'], $v['word'])) {
+			if (!empty($v['word']) && strstr($this->param('content'), $v['word'])) {
 				$msg = sprintf(Status::$msg[Status::CODE_ADD_POST_SENSITIVE], $v['word']);
 				$this->output(Status::CODE_ADD_POST_SENSITIVE, $msg);
 			}
 		}
 		// 插入数据
 		$commentId = AdminInformationComment::getInstance()->insert([
-			'user_id' => $authId,
-			't_u_id' => $params['t_u_id'],
-			'parent_id' => $params['parent_id'],
-			'information_id' => $params['information_id'],
-			'top_comment_id' => $params['top_comment_id'],
-			'content' => base64_encode(addslashes(htmlspecialchars($params['content']))),
+			'user_id' => $this->authId,
+			't_u_id' => $this->param('t_u_id', true),
+			'parent_id' => $this->param('parent_id', true),
+			'information_id' => $this->param('information_id', true),
+			'top_comment_id' => $this->param('top_comment_id', true),
+			'content' => base64_encode(addslashes(htmlspecialchars($this->param('content')))),
 		]);
 		// 插入失败
 		if ($commentId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 关联数据处理
-		$parentId = intval($params['parent_id']);
+		$parentId = $this->param('parent_id', true);
 		// 回复数累加
 		TaskManager::getInstance()->async(function () use ($parentId, $informationId) {
 			if ($parentId > 0) {
@@ -274,9 +268,9 @@ class InformationApi extends FrontUserController
 			// 资讯回复数累加
 			AdminInformation::getInstance()->update(['respon_number' => QueryBuilder::inc(1)], $informationId);
 		});
-		TaskManager::getInstance()->async(new SerialPointTask(['task_id' => 4, 'user_id' => $authId]));
+		TaskManager::getInstance()->async(new SerialPointTask(['task_id' => 4, 'user_id' => $this->authId]));
 		// 防频繁操作
-		Cache::set('user_comment_information_' . $authId, 1, 5);
+		Cache::set('user_comment_information_' . $this->authId, 1, 5);
 		// 用户消息
 		if ($parentId > 0) {
 			$comment = AdminInformationComment::getInstance()->where($parentId);
@@ -285,14 +279,14 @@ class InformationApi extends FrontUserController
 				'item_type' => 4,
 				'title' => '资讯回复通知',
 				'item_id' => $commentId,
-				'did_user_id' => $authId,
+				'did_user_id' => $this->authId,
 				'status' => AdminMessage::STATUS_UNREAD,
 				'user_id' => empty($comment['user_id']) ? 0 : intval($comment['user_id']),
 			]);
 		}
 		// 输出封装
 		$comment = AdminInformationComment::getInstance()->findOne($commentId);
-		$comment = FrontService::handInformationComment([$comment], $authId);
+		$comment = FrontService::handInformationComment([$comment], $this->authId);
 		$comment = empty($comment[0]) ? [] : $comment[0];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $comment);
 	}
@@ -305,16 +299,15 @@ class InformationApi extends FrontUserController
 	{
 		// 登录状态判断
 		$authId = empty($this->auth['id']) || intval($this->auth['id']) < 1 ? 0 : intval($this->auth['id']); // 当前登录用户ID
-		$params = $this->params;
 		// 顶级评论数据
-		$topCommentId = empty($params['top_comment_id']) || intval($params['top_comment_id']) < 1 ? 0 : intval($params['top_comment_id']);
+		$topCommentId = $this->param('top_comment_id', true);
 		$topComment = $topCommentId < 1 ? null : AdminInformationComment::getInstance()->findOne($topCommentId);
 		if (empty($topComment)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		$topComment = FrontService::handInformationComment([$topComment], $authId);
 		$topComment = empty($topComment[0]) ? [] : $topComment[0];
 		// 分页参数
-		$page = empty($params['page']) ? $params['page'] : 1;
-		$size = isset($params['size']) ? $params['size'] : 1;
+		$page = $this->param('page', true, 1);
+		$size = $this->param('page', true, 10);
 		[$list, $count] = AdminInformationComment::getInstance()
 			->findAll(['top_comment_id' => $topCommentId], null, 'created_at,desc', true, $page, $size);
 		// 封装数据
@@ -330,16 +323,13 @@ class InformationApi extends FrontUserController
 	 */
 	public function getCategoryInformation()
 	{
-		// 登录状态判断
-		$authId = empty($this->auth['id']) || intval($this->auth['id']) < 1 ? 0 : intval($this->auth['id']); // 当前登录用户ID
-		$params = $this->params;
 		// 类型
-		$type = empty($params['type']) || intval($params['type']) < 1 ? 1 : intval($params['type']);
+		$type = $this->param('type', true, 1);
 		// 赛事ID
-		$competitionId = empty($params['competition_id']) || intval($params['competition_id']) < 1 ? 0 : intval($params['competition_id']);
+		$competitionId = $this->param('competition_id', true);
 		// 分页数据
-		$page = empty($params['page']) ? 1 : $params['page'];
-		$size = empty($params['size']) ? 10 : $params['size'];
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 10);
 		if ($type == 1) {
 			// 配置数据
 			$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::SETTING_TITLE_BANNER], 'sys_value');
@@ -362,7 +352,7 @@ class InformationApi extends FrontUserController
 			// 分页数据
 			$where = ['type' => 1, 'status' => AdminInformation::STATUS_NORMAL];
 			[$list, $count] = AdminInformation::getInstance()->findAll($where, null, 'created_at,desc', true, $page, $size);
-			$list = empty($list) ? [] : FrontService::handInformation($list, $authId);
+			$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
 			// 输出数据
 			$result = [
 				'banner' => $banners,
@@ -375,7 +365,7 @@ class InformationApi extends FrontUserController
 			// 转会数据
 			$where = ['type' => 2, 'status' => AdminInformation::STATUS_NORMAL];
 			[$list, $count] = AdminInformation::getInstance()->findAll($where, 'type', 'created_at,desc', true, $page, $size);
-			$list = empty($list) ? [] : FrontService::handInformation($list, $authId);
+			$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
 			// 输出数据
 			$result = ['banner' => [], 'matches' => [], 'information' => ['list' => $list, 'count' => $count]];
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
@@ -390,7 +380,7 @@ class InformationApi extends FrontUserController
 		$where = ['competition_id' => $competitionId, 'status_id' => AdminInformation::STATUS_NORMAL];
 		[$list, $count] = AdminInformation::getInstance()
 			->findAll($where, null, 'created_at,desc', true, $page, $size);
-		$list = empty($list) ? [] : FrontService::handInformation($list, $authId);
+		$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
 		// 输出数据
 		$result = ['banner' => [], 'matches' => $matches, 'information' => ['list' => $list, 'count' => $count]];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);

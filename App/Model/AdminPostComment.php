@@ -15,11 +15,6 @@ class AdminPostComment extends BaseModel
 	protected $relationT = 'admin_user';
 	protected $tableName = 'admin_user_post_comments';
 	
-	public function getAll($page, $limit): AdminPostComment
-	{
-		return $this->order('created_at', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * 回复用户信息
 	 * @return mixed

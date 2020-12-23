@@ -57,7 +57,7 @@ class EasySwooleEvent implements Event
 		// 连接池对象最大闲置时间(秒)
 		$mysqlConfig->setMaxIdleTime(15);
 		// 设置最小连接池存在连接对象数量
-		$mysqlConfig->setMinObjectNum(15);
+		$mysqlConfig->setMinObjectNum(18);
 		// 设置最大连接池存在连接对象数量
 		$mysqlConfig->setMaxObjectNum(100);
 		// 设置获取连接池对象超时时间

@@ -26,9 +26,8 @@ class System extends FrontUserController
 	function hotreload()
 	{
 		// 参数校验
-		$params = $this->params;
-		$version = empty($params['version']) ? null : $this->params['version'];
-		$phoneType = empty($params['phone_type']) ? null : $this->params['phone_type'];
+		$version = $this->param('version');
+		$phoneType = $this->param('phone_type');
 		if (empty($version) || empty($phoneType)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取配置
 		$config = AdminSysSettings::getInstance()->findOne(['sys_key' => self::SYS_KEY_HOT_RELOAD]);
@@ -69,9 +68,8 @@ class System extends FrontUserController
 	 */
 	public function advertisement()
 	{
-		$params = $this->params;
 		// 参数校验
-		$categoryId = empty($params['cat_id']) || intval($params['cat_id']) < 1 ? 0 : intval($params['cat_id']);
+		$categoryId = $this->param('cat_id', 0);
 		if ($categoryId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取清单
 		$where = ['status' => AdminAdvertisement::STATUS_NORMAL, 'cat_id' => $categoryId];
@@ -96,9 +94,8 @@ class System extends FrontUserController
 	 */
 	public function index(): bool
 	{
-		$params = $this->params;
-		$page = empty($params['page']) ? 1 : $params['page'];
-		$size = empty($params['offset']) ? 10 : $params['offset'];
+		$page = $this->param('page', true, 1);
+		$size = $this->param('offset', true, 10);
 		$where = ['cate_id' => AdminCategory::CATEGORY_ANNOUNCEMENT, 'status' => 1];
 		[$list, $count] = MessageModel::getInstance()->findAll($where,
 			'id,title,cate_name,status,created_at', 'created_at,asc', true, $page, $size);
@@ -112,15 +109,14 @@ class System extends FrontUserController
 	public function detail()
 	{
 		// 获取详情
-		$id = empty($this->params['id']) || intval($this->params['id']) < 1 ? 0 : intval($this->params['id']);
-		$info = MessageModel::getInstance()->findOne($id);
+		$id = $this->param('id', true);
+		$info = $id < 1 ? null : MessageModel::getInstance()->findOne($id);
 		if (empty($info)) $this->output(Status::CODE_ERR, '对应公告不存在');
 		//写异步task记录已读
-		$auth = $this->auth;
-		if (!empty($auth)) TaskManager::getInstance()->async(function ($taskId, $workerIndex) use ($info, $auth) {
+		if (!empty($auth)) TaskManager::getInstance()->async(function ($taskId, $workerIndex) use ($info) {
 			$messageTask = new MessageTask([
-				'user_id' => $auth['id'],
-				'mobile' => $auth['mobile'],
+				'user_id' => $this->auth['id'],
+				'mobile' => $this->auth['mobile'],
 				'message_id' => $info['id'],
 				'message_title' => $info['title'],
 			]);

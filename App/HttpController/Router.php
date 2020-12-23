@@ -5,7 +5,6 @@ namespace App\HttpController;
 use EasySwoole\Http\AbstractInterface\AbstractRouter;
 use EasySwoole\Http\Request;
 use EasySwoole\Http\Response;
-use EasySwoole\Template\Render;
 use FastRoute\RouteCollector;
 
 class Router extends AbstractRouter
@@ -15,13 +14,17 @@ class Router extends AbstractRouter
 		// 未找到路由对应的方法
 		$this->setMethodNotAllowCallBack(function (Request $request, Response $response) {
 			$path = $request->getUri()->getPath();
+			$response->withHeader('Content-type', 'application/json;charset=utf-8');
 			$response->write('未找到路由对应的方法: ' . $path);
 			$response->withStatus(404);
+			$response->end();
 		});
 		// 未找到路由匹配
 		$this->setRouterNotFoundCallBack(function (Request $request, Response $response) {
+			$response->withHeader('Content-type', 'application/json;charset=utf-8');
 			$response->write('未找到路由匹配: ' . $request->getUri()->getPath());
 			$response->withStatus(404);
+			$response->end();
 		});
 		// 路由分组
 		$routeCollector->addGroup('/api', function (RouteCollector $r) {
@@ -37,10 +40,7 @@ class Router extends AbstractRouter
 			$r->addRoute(['POST'], '/user/logon', '/User/Login/logon'); //注册
 			$r->addRoute(['GET'], '/user/logout', '/User/Login/doLogout'); //退出接口
 			$r->addRoute(['POST'], '/user/info', '/User/User/info'); //用户详情
-			
-			//$r->addRoute(['GET'], '/user/personal', '/User/Personal/index');
 			$r->addRoute(['GET'], '/user/websocket', 'User/WebSocket');
-			
 			$r->addRoute(['GET'], '/system/adImgs', '/User/System/adImgs'); //启动后广告页
 			$r->addRoute(['GET'], '/system/hotreload', '/User/System/hotreload'); //热重载
 			$r->addRoute(['GET'], '/system/sensitiveWord', '/User/system/sensitiveWord'); //敏感词
@@ -56,7 +56,6 @@ class Router extends AbstractRouter
 			$r->addRoute(['GET'], '/user/checkUser', '/User/User/checkUserStatus'); //检查用户状态
 			
 			//社区部分
-			//$r->addRoute(['GET'], '/community/mess', '/User/Community/messAndRefinePosts');
 			$r->addRoute(['GET'], '/community/getContent', '/User/Community/getContent'); //社区首页内容
 			$r->addRoute(['GET'], '/community/getContentByKeyWord', '/User/Community/getContentByKeyWord'); //搜索
 			$r->addRoute(['GET'], '/community/myFollowUserPosts', '/User/Community/myFollowUserPosts'); //我关注的人的帖子列表
@@ -86,15 +85,12 @@ class Router extends AbstractRouter
 			$r->addRoute(['GET'], '/footBall/playerChangeClubHistory', '/Match/FootballMatch/playerChangeClubHistory'); //转会记录
 			$r->addRoute(['GET'], '/footBall/teamHonor', '/Match/FootballMatch/teamHonor'); //球队荣誉
 			$r->addRoute(['GET'], '/footBall/honorList', '/Match/FootballMatch/honorList'); //更新赛季
-			//$r->addRoute(['GET'], '/footBall/allStat', '/Match/FootballMatch/allStat'); //更新赛季
 			$r->addRoute(['GET'], '/footBall/stageList', '/Match/FootballMatch/stageList'); //更新阶段列表
 			$r->addRoute(['GET'], '/footBall/managerList', '/Match/FootballMatch/managerList'); //更新教练列表
 			$r->addRoute(['GET'], '/footBall/getLineUp', '/Match/FootballMatch/getLineUp'); //更新阵容列表
 			$r->addRoute(['GET'], '/footBall/playerHonorList', '/Match/FootballMatch/playerHonorList'); //更新球员荣誉列表
-			//$r->addRoute(['GET'], '/footBall/matchBroadcast', '/Match/FootballMatch/matchBroadcast'); //更新比赛直播
 			$r->addRoute(['GET'], '/footBall/competitionRule', '/Match/FootballMatch/competitionRule'); //更新赛制列表
 			$r->addRoute(['GET'], '/footBall/updateAlphaMatch', '/Match/FootballMatch/updateAlphaMatch');
-			//$r->addRoute(['GET'], '/footBall/seasonAllStatDetail', '/Match/FootballMatch/seasonAllStatDetail');
 			$r->addRoute(['GET'], '/footBall/updateMatchSeason', '/Match/FootballMatch/updateMatchSeason'); //更新赛季比赛列表
 			$r->addRoute(['GET'], '/footBall/updateYesterdayMatch', '/Match/FootballMatch/updateYesterdayMatch'); //更新赛季比赛
 			$r->addRoute(['GET'], '/footBall/updateSeasonTeamPlayer', '/Match/FootballMatch/updateSeasonTeamPlayer'); //更新赛季比赛
@@ -134,9 +130,6 @@ class Router extends AbstractRouter
 			$r->addRoute(['GET'], '/user/myFabolusInfo', '/User/UserCenter/myFabolusInfo'); //用户被点赞的帖子及评论列表
 			$r->addRoute(['GET'], '/user/foulCenter', '/User/UserCenter/foulCenter'); //违规中心
 			$r->addRoute(['GET'], '/user/foulItemInfo', '/User/UserCenter/foulItemInfo'); //违规中心
-			//$r->addRoute(['GET'], '/user/myMessageCenter', '/User/UserCenter/myMessageCenter'); //消息中心
-			//$r->addRoute(['GET'], '/user/myBlackList', '/User/UserCenter/myBlackList'); //黑名单
-			//$r->addRoute(['GET'], '/user/addInBlackList', '/User/UserCenter/addInBlackList'); //黑名单
 			$r->addRoute(['GET'], '/user/drafts', '/User/UserCenter/drafts'); //草稿箱
 			$r->addRoute(['POST'], '/user/delItem', '/User/UserCenter/delItem'); //删除
 			$r->addRoute(['GET'], '/user/getAvailableTask', '/User/UserCenter/getAvailableTask'); // 获取每日任务

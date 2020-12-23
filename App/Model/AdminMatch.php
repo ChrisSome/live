@@ -8,11 +8,6 @@ class AdminMatch extends BaseModel
 {
 	protected $tableName = 'admin_match_list';
 	
-	public function getLimit($page, $limit): AdminMatch
-	{
-		return $this->order('match_time', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * 获取主队名称
 	 * @return mixed

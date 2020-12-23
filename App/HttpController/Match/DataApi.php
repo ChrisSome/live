@@ -63,7 +63,7 @@ class DataApi extends FrontUserController
 	public function competitionByCid()
 	{
 		// 获取赛事信息
-		$countryId = empty($this->params['country_id']) || intval($this->params['country_id']) < 1 ? 0 : intval($this->params['country_id']);
+		$countryId = $this->param('country_id', true);
 		$where = ['country_id' => $countryId, 'type' => [[1, 2], 'in']];
 		$result = AdminCompetition::getInstance()->findAll($where, 'competition_id,short_name_zh,logo');
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
@@ -75,10 +75,9 @@ class DataApi extends FrontUserController
 	 */
 	public function FIFAMaleRank()
 	{
-		$params = $this->params;
 		//区域id，1-欧洲足联、2-南美洲足联、3-中北美洲及加勒比海足协、4-非洲足联、5-亚洲足联、6-大洋洲足联
-		$regionId = empty($params['region_id']) || intval($params['region_id']) < 1 ? 0 : intval($params['region_id']);
-		$isMale = empty($params['is_male']) || intval($params['is_male']) < 1 ? 0 : 1;
+		$regionId = $this->param('region_id', true);
+		$isMale = $this->param('is_male', true);
 		$url = sprintf($isMale ? $this->fifaMaleRankURL : $this->fifaFemaleRankURL, $this->user, $this->secret);
 		$tmp = Tool::getInstance()->postApi($url);
 		$tmp = empty($tmp) ? null : json_decode($tmp, true);
@@ -99,7 +98,6 @@ class DataApi extends FrontUserController
 	 */
 	public function competitionInfo()
 	{
-		$params = $this->params;
 		// 配置数据
 		$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::SETTING_DATA_COMPETITION], 'sys_value');
 		$config = empty($config['sys_value']) ? [] : json_decode($config['sys_value'], true);
@@ -111,6 +109,7 @@ class DataApi extends FrontUserController
 		if (empty($competition)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		//
 		$selectSeasonId = intval($competition['cur_season_id']);
+		$params = $this->param();
 		if (!empty($params['season_id']) && intval($params['season_id']) > 0) $selectSeasonId = intval($params['season_id']);
 		// 类型
 		$type = empty($params['type']) || intval($params['type']) < 0 ? 0 : intval($params['type']); //0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队
@@ -122,8 +121,8 @@ class DataApi extends FrontUserController
 			// 赛事描述
 			$competitionDescribe = Cache::get('competition_describe_' . $selectSeasonId);
 			if (empty($competitionDescribe)) {
-				$competitionDescribe = Utils::queryHandler(AdminCompetitionRuleList::getInstance(),
-					"json_contains(season_ids,'{$selectSeasonId}') and competition_id=?", $competitionId, 'text');
+				$where = ["json_contains(season_ids,'{$selectSeasonId}')", 'competition_id' => $competitionId];
+				$competitionDescribe = AdminCompetitionRuleList::getInstance()->findOne($where, 'text');
 				$competitionDescribe = empty($competitionDescribe['text']) ? '' : $competitionDescribe['text'];
 				Cache::set('competition_describe_' . $selectSeasonId, $competitionDescribe, 60 * 60 * 24);
 			}
@@ -146,9 +145,9 @@ class DataApi extends FrontUserController
 						$id = intval($v['team_id']);
 						if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
 					});
-					if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
-						'team_id in (' . join(',', $teamIds) . ')', null,
-						'team_id,name_zh,logo', false, null, 'team_id,*,1');
+					if (!empty($teamIds)) $teamMapper = AdminTeam::getInstance()
+						->findAll(['team_id' => [$teamIds, 'in']], 'team_id,name_zh,logo', null,
+							false, 0, 0, 'team_id,*,true');
 					// 数据填充
 					foreach ($rows as $v) {
 						$tid = intval($v['team_id']);
@@ -193,9 +192,9 @@ class DataApi extends FrontUserController
 						$list[] = ['list' => $items, 'group' => $v['group']];
 					}
 					// 填充数据
-					if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
-						'team_id in (' . join(',', $teamIds) . ')', null,
-						'team_id,name_zh,logo', false, null, 'team_id,*,1');
+					if (!empty($teamIds)) $teamMapper = AdminTeam::getInstance()
+						->findAll(['team_id' => [$teamIds, 'in']], 'team_id,name_zh,logo', null,
+							false, 0, 0, 'team_id,*,true');
 					foreach ($list as $k => $v) {
 						foreach ($v['list'] as $kk => $vv) {
 							$id = intval($vv['team_id']);
@@ -220,18 +219,16 @@ class DataApi extends FrontUserController
 				'cur_round' => $competition['cur_round'],
 				'cur_stage_id' => $competition['cur_stage_id'],
 			];
-			$result['stage'] = Utils::queryHandler(AdminStageList::getInstance(),
-				'season_id=?', $selectSeasonId,
-				'name_zh,stage_id,round_count,group_count', false);
+			$result['stage'] = AdminStageList::getInstance()->findAll(['season_id' => $selectSeasonId], 'name_zh,stage_id,round_count,group_count');
 			$firstStage = empty($result['stage']) ? [] : $result['stage'][0];
 			$stageId = $selectSeasonId == $competition['cur_season_id'] ?
 				intval($competition['cur_stage_id']) : (empty($firstStage['stage_id']) ? 0 : intval($firstStage['stage_id']));
-			if (!empty($this->params['stage_id']) && intval($this->params['stage_id']) > 0) $stageId = intval($this->params['stage_id']);
+			if (!empty($params['stage_id']) && intval($params['stage_id']) > 0) $stageId = intval($params['stage_id']);
 			$roundId = $selectSeasonId == $competition['cur_season_id'] ?
 				intval($competition['cur_round']) : (empty($firstStage['round_count']) ? 0 : intval($firstStage['round_count']));
-			if (!empty($this->params['round_id']) && intval($this->params['round_id']) > 0) $roundId = intval($this->params['round_id']);
+			if (!empty($params['round_id']) && intval($params['round_id']) > 0) $roundId = intval($params['round_id']);
 			$groupId = 1;
-			if (!empty($this->params['group_id']) && intval($this->params['group_id']) > 0) $groupId = intval($this->params['group_id']);
+			if (!empty($params['group_id']) && intval($params['group_id']) > 0) $groupId = intval($params['group_id']);
 			// 比赛信息
 			$tmp = SeasonMatchList::getInstance()->findAll(['season_id' => $selectSeasonId]);
 			foreach ($tmp as $v) {
@@ -304,23 +301,22 @@ class DataApi extends FrontUserController
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $result]);
 	}
 	
-	
 	/**
 	 * 数据中心推荐热门赛事
+	 * @throws
 	 */
 	public function getHotCompetition()
 	{
-		$hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
+		$hot_competition = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::SETTING_DATA_COMPETITION]);
 		$competitionIds = json_decode($hot_competition['sys_value'], true);
 		$return = $res = [];
-		if ($season = AdminSeason::create()->where('competition_id', $competitionIds, 'in')->all()) {
+		if ($season = AdminSeason::getInstance()->findAll(['competition_id' => [$competitionIds, 'in']])) {
 			foreach ($season as $itemSeason) {
 				$res[$itemSeason->competition_id][] = $itemSeason;
-				
 			}
 		}
 		//做映射
-		$competition = AdminCompetition::create()->where('competition_id', $competitionIds, 'in')->all();
+		$competition = AdminCompetition::getInstance()->findAll(['competition_id' => [$competitionIds, 'in']]);
 		foreach ($competition as $itemCompetition) {
 			$data['competition_id'] = $itemCompetition['competition_id'];
 			$data['logo'] = $itemCompetition['logo'];
@@ -329,8 +325,7 @@ class DataApi extends FrontUserController
 			$return[] = $data;
 			unset($data);
 		}
-		
-		return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 	}
 	
 	/**
@@ -340,7 +335,7 @@ class DataApi extends FrontUserController
 	public function getPlayerInfo()
 	{
 		// 参数校验
-		$params = $this->params;
+		$params = $this->param();
 		$playerId = empty($params['player_id']) || intval($params['player_id']) < 1 ? 0 : intval($params['player_id']);
 		if ($playerId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 球员信息
@@ -381,7 +376,8 @@ class DataApi extends FrontUserController
 			$country = $player->getCountry();
 			if (!empty($country)) $result['country_info'] = ['name_zh' => $country['name_zh'], 'logo' => $country['logo']];
 			// 转会历史
-			$tmp = AdminPlayerChangeClub::getInstance()->findAll(['player_id' => $playerId], 'player_id,from_team_id,to_team_id,transfer_type');
+			$tmp = AdminPlayerChangeClub::getInstance()
+				->findAll(['player_id' => $playerId], 'player_id,from_team_id,to_team_id,transfer_type', 'transfer_time,desc');
 			if (!empty($tmp)) {
 				foreach ($tmp as $v) {
 					$toTeam = $v->ToTeamInfo();
@@ -462,7 +458,7 @@ class DataApi extends FrontUserController
 	 */
 	public function teamInfo()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 类型校验
 		$type = empty($params['type']) || intval($params['type']) < 1 ? 1 : intval($params['type']);
 		if (!in_array($type, [1, 2, 3, 4, 5])) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
@@ -511,9 +507,8 @@ class DataApi extends FrontUserController
 					if ($id > 0 && !in_array($id, $honorIds)) $honorIds[] = $id;
 				}
 				// 球队荣誉信息映射
-				if (!empty($honorIds)) $honorMapper = Utils::queryHandler(AdminHonorList::getInstance(),
-					'id IN (' . join(',', $honorIds) . ')', null,
-					'id,logo', false, null, 'id,logo,1');
+				if (!empty($honorIds)) $honorMapper = AdminHonorList::getInstance()
+					->findAll(['id' => [$honorIds, 'in']], 'id,logo', null, false, 0, 0, 'id,logo,true');
 				// 球队荣誉信息 分组统计 & 补充数据
 				foreach ($tmp as $v) {
 					$honor = $v['honor'];
@@ -561,9 +556,9 @@ class DataApi extends FrontUserController
 							$id = intval($v['team_id']);
 							if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
 						}
-						if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
-							'team_id in (' . join(',', $teamIds) . ')', null,
-							'*', false, null, 'team_id,*,1');
+						if (!empty($teamIds)) $teamMapper = AdminTeam::getInstance()
+							->findAll(['team_id' => [$teamIds, 'in']], null, null,
+								false, 0, 0, 'team_id,*,true');
 						foreach ($rows as $v) {
 							$id = intval($v['team_id']);
 							$promotionId = intval($v['promotion_id']);
@@ -593,9 +588,9 @@ class DataApi extends FrontUserController
 								if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
 							}
 						}
-						if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
-							'team_id in (' . join(',', $teamIds) . ')', null,
-							'*', false, null, 'team_id,*,1');
+						if (!empty($teamIds)) $teamMapper = AdminTeam::getInstance()
+							->findAll(['team_id' => [$teamIds, 'in']], null, null,
+								false, 0, 0, 'team_id,*,true');
 						foreach ($tables as $v) {
 							$rows = empty($v['rows']) || !is_array($v['rows']) ? [] : $v['rows'];
 							$items = [];
@@ -620,8 +615,8 @@ class DataApi extends FrontUserController
 					}
 				}
 				//赛制说明
-				$competitionDescribe = Utils::queryHandler(AdminCompetitionRuleList::getInstance(),
-					"json_contains(season_ids,'{$selectSeasonId}') and competition_id=?", $competitionId, 'text');
+				$competitionDescribe = AdminCompetitionRuleList::getInstance()
+					->findOne(["json_contains(season_ids,'{$selectSeasonId}')", 'competition_id' => $competitionId], 'text');
 				$competitionDescribe = empty($competitionDescribe['text']) ? '' : $competitionDescribe['text'];
 				// 输出数据
 				$result = [
@@ -634,9 +629,7 @@ class DataApi extends FrontUserController
 			case 3:
 				// 输出数据
 				$result = [];
-				$tmp = Utils::queryHandler(SeasonMatchList::getInstance(),
-					'season_id=? and (home_team_id=? or away_team_id=?)', [$selectSeasonId, $teamId, $teamId],
-					'*', false);
+				$tmp = SeasonMatchList::getInstance()->findAll(['season_id' => $selectSeasonId, 'home_team_id|away_team_id' => $teamId]);
 				if (!empty($tmp)) {
 					$competitionIds = $teamIds = [];
 					array_walk($tmp, function ($v, $k) use (&$competitionIds, &$teamIds) {
@@ -647,12 +640,11 @@ class DataApi extends FrontUserController
 						$id = intval($v['away_team_id']);
 						if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
 					});
-					$competitionMapper = empty($competitionIds) ? [] : Utils::queryHandler(AdminCompetition::getInstance(),
-						'competition_id in (' . join(',', $competitionIds) . ')', null,
-						'competition_id,short_name_zh', false, null, 'competition_id,short_name_zh,1');
-					$teamMapper = empty($teamIds) ? [] : Utils::queryHandler(AdminTeam::getInstance(),
-						'team_id in (' . join(',', $teamIds) . ')', null,
-						'team_id,name_zh', false, null, 'team_id,name_zh,1');
+					$competitionMapper = empty($competitionIds) ? [] : AdminCompetition::getInstance()
+						->findAll(['competition_id' => [$competitionIds, 'in']], 'competition_id,short_name_zh', 'competition_id,asc',
+							false, 0, 0, 'competition_id,short_name_zh,true');
+					$teamMapper = empty($teamIds) ? [] : AdminTeam::getInstance()->findAll(['team_id' => [$teamIds, 'in']], 'team_id,name_zh', null,
+						false, 0, 0, 'team_id,name_zh,true');
 					foreach ($tmp as $v) {
 						$cid = intval($v['competition_id']);
 						$htId = intval($v['home_team_id']);
@@ -784,9 +776,9 @@ class DataApi extends FrontUserController
 					];
 				}
 				$playerMapper = [];
-				if (!empty($playerIds)) $playerMapper = Utils::queryHandler(AdminPlayer::getInstance(),
-					'player_id in (' . join(',', $playerIds) . ')', null,
-					'player_id,market_value,logo,age,weight,height,nationality', false, null, 'player_id,*,1');
+				if (!empty($playerIds)) $playerMapper = AdminPlayer::getInstance()
+					->findAll(['player_id' => [$playerIds, 'in']], 'player_id,market_value,logo,age,weight,height,nationality', null,
+						false, 0, 0, 'player_id,*,true');
 				// 输出数据
 				$result = [];
 				foreach ($players as $k => $v) {
@@ -820,7 +812,7 @@ class DataApi extends FrontUserController
 	 */
 	public function contentByKeyWord()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 关键字
 		$keywords = isset($params['key_word']) ? trim($params['key_word']) : '';
 		if (empty($keywords)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -851,7 +843,7 @@ class DataApi extends FrontUserController
 	 */
 	public function teamChangeClubHistory()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 类型校验
 		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
 		if ($type != 1 && $type != 2) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -896,7 +888,7 @@ class DataApi extends FrontUserController
 	 */
 	public function getCompetitionByCountry()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		// 分类ID
 		$categoryId = empty($params['category_id']) || intval($params['category_id']) < 1 ? 0 : intval($params['category_id']);
 		// 类型
@@ -926,7 +918,7 @@ class DataApi extends FrontUserController
 	 */
 	public function getContinentCompetition()
 	{
-		$params = $this->params;
+		$params = $this->param();
 		$categoryId = empty($params['category_id']) || intval($params['category_id']) < 1 ? 0 : intval($params['category_id']);
 		if ($categoryId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取清单

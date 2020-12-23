@@ -8,11 +8,6 @@ class SeasonMatchList extends BaseModel
 {
 	protected $tableName = 'match_season_list';
 	
-	public function getLimit($page, $limit): SeasonMatchList
-	{
-		return $this->order('match_time', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * 获取主队名称
 	 * @return mixed

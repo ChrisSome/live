@@ -130,13 +130,16 @@ abstract class BaseModel extends AbstractModel
 	}
 	
 	/**
-	 * @param null   $where
+	 * @param null   $where        条件格式:键值对,
+	 *                             键->查询字段(可以是多字段|分割,仅限模糊查询使用), 若键名为or则键值为局部或关系查询, 查询条件也可以为纯字符串
+	 *                             值->1数组时(in,like,between等时第一个元素为范围或搜索词,第二个元素为类型(like,in,between)) 2数字/字符串(字段匹配的值)
 	 * @param null   $fields
-	 * @param null   $orderOrGroup
-	 * @param bool   $isPager
+	 * @param null   $orderOrGroup 1排序:参数为数组且中包含order的部分 或 参数是一个字符串(格式:字段,desc/asc)   2分组:参数为数组,其包含group部分
+	 * @param bool   $isPager      是否分页
 	 * @param int    $page
 	 * @param int    $size
-	 * @param string $keyAndValue
+	 * @param string $keyAndValue  搜索后的数据集按指定字段的值做键
+	 *                             格式:以值作键的字段名,键值对应的字段清单(*或空为全部字段,只有一个字段时键值为该字段的值,否则为数组),是否将键名转为数字类型
 	 * @return array
 	 * @throws
 	 */
@@ -151,48 +154,57 @@ abstract class BaseModel extends AbstractModel
 		if (!empty($where)) {
 			if (is_array($where)) {
 				foreach ($where as $field => $v) {
+					if (empty($v)) continue;
+					
 					if ($field == 'or') {
 						if (is_array($v)) $self->where('(' . join(' or ', $v) . ')');
 						continue;
 					}
-					$field = trim(strtolower($field), ' |');
-					$field = preg_replace('/\s/', '', $field);
-					if (empty($field)) continue;
-					if (is_string($v)) $v = [$v];
-					if (!is_array($v)) continue;
-					$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
-					$isInOrLike = $extra == 'like' || $extra == 'in';
-					$isFieldsOrLike = strpos($field, '|') > 0;
-					if ($isInOrLike) {
+					
+					if (is_int($field) && is_string($v)) {
+						$self = $self->where($v);
+						continue;
+					}
+					
+					if (is_string($field)) {
+						$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
 						if ($extra == 'like') {
-							$v[0] = '%' . trim($v[0], '% ') . '%';
-						} elseif (is_string($v[0])) {
-							$str = trim($v[0]);
-							$v[0] = array_filter(array_unique(array_filter(explode(',', $str))));
-							if (preg_match('/^\d+(,\d+)*$/', $str)) {
-								$v[0] = array_map(function ($x) {
-									return intval($x);
-								}, $v[0]);
+							$strArr = [];
+							$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
+							foreach ($fieldsTmp as $f) {
+								$strArr[] = $f . ' like "%' . $v[0] . '%"';
 							}
-							if (empty($v[0])) $v = ['-1'];
+							$strArr = join(' or ', $strArr);
+							$self = $self->where('(' . $strArr . ')');
+							continue;
 						}
-						if ($isFieldsOrLike) {
-							$orLikeStr = [];
-							foreach (explode('|', $field) as $f) {
-								$f = trim($f);
-								$orLikeStr[] = $f . ' like "' . $v[0] . '"';
+						if (!empty($extra)) {
+							if (!is_array($v)) return $isPager ? [[], 0] : [];
+							if ($extra == 'in') foreach ($v[0] as $kk => $vv) {
+								$v[0][$kk] = intval($vv);
 							}
-							$self = $self->where('(' . join(' or ', $orLikeStr) . ')');
-						} else {
 							$self = $self->where($field, ...$v);
+						} else {
+							if (is_array($v)) return $isPager ? [[], 0] : [];
+							$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
+							if (isset($fieldsTmp[1])) {
+								$fqs = [];
+								foreach ($fieldsTmp as $f) {
+									$fqs[] = $f . '="' . $v . '"';
+								}
+								$self = $self->where('(' . join(' or ', $fqs) . ')');
+							} else {
+								$self = $self->where($field, $v);
+							}
 						}
 					} else {
-						$self = $self->where($field, ...$v);
+						return $isPager ? [[], 0] : [];
 					}
 				}
 			} elseif (is_string($where)) {
 				$where = trim($where);
-				if (!empty($where)) $self = $self->where($where);
+				if (empty($where)) return $isPager ? [[], 0] : [];
+				$self = $self->where($where);
 			}
 		}
 		// 查询字段
@@ -243,18 +255,18 @@ abstract class BaseModel extends AbstractModel
 			foreach ($list as $v) {
 				$key = !empty($v[$keyField]) ? $v[$keyField] : '';
 				if (empty($key)) continue;
-				$valueFields = empty($valueFields) || $valueFields == '*' ? '' : explode('.', $valueFields);
+				$valueFieldsTmp = empty($valueFields) || $valueFields == '*' ? '' : explode('.', $valueFields);
 				$item = $v;
-				if (!empty($valueFields)) {
+				if (!empty($valueFieldsTmp)) {
 					$item = [];
-					foreach ($valueFields as $vv) {
+					foreach ($valueFieldsTmp as $vv) {
 						if (empty($vv)) continue;
 						$item[$vv] = empty($v[$vv]) ? '' : $v[$vv];
 					}
 				}
-				$keyField = $v[$keyField];
-				if ($isIntKey) $keyField = intval($keyField);
-				$items[$keyField] = $item;
+				$keyFieldValue = $v[$keyField];
+				if ($isIntKey) $keyFieldValue = intval($keyFieldValue);
+				$items[$keyFieldValue] = is_array($valueFieldsTmp) && count($valueFieldsTmp) == 1 ? $item[$valueFieldsTmp[0]] : $item;
 			}
 			$list = $items;
 		}

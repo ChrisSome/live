@@ -7,11 +7,6 @@ use App\Base\BaseModel;
 class AdminRule extends BaseModel
 {
 	protected $tableName = 'admin_rule';
-	//	public function findAll($page, $limit)
-	//	{
-	//		$list = $this->order('created_at', 'ASC')->limit(($page - 1) * $limit, $limit)->all();
-	//		return empty($list) ? [] : $list;
-	//	}
 	
 	/**
 	 * @param array $ids

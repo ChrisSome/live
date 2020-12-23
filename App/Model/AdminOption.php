@@ -8,17 +8,6 @@ use App\Base\BaseModel;
 class AdminOption extends BaseModel
 {
 	protected $tableName = 'admin_user_options';
-	/**
-	 * @param $page
-	 * @param $limit
-	 * @return array
-	 * @throws
-	 */
-	//	public function findAll($page, $limit): array
-	//	{
-	//		$list = $this->order('created_at', 'DESC')->order('status', 'ASC')->limit(($page - 1) * $limit, $limit)->all();
-	//		return empty($list) ? [] : $list;
-	//	}
 	
 	/**
 	 * 通过微信token以及openid获取用户信息

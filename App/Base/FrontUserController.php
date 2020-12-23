@@ -10,7 +10,7 @@ use App\Model\AdminLog as LogModel;
 
 class FrontUserController extends BaseController
 {
-	protected $params = []; // 请求参数清单
+	protected $authId = 0; // 当前登录用户ID
 	protected $auth = null; // 登录用户信息
 	protected $role = null; // 登录用户角色
 	protected $isCheckSign = false;    // 是否校验签名
@@ -49,17 +49,20 @@ class FrontUserController extends BaseController
 	 */
 	private function checkToken(): bool
 	{
+		$this->authId = 0;
+		$this->auth = null;
 		// 参数校验
 		$request = $this->request();
 		$authId = $request->getCookieParams('front_id');
-		if (empty($authId) || intval($authId) < 1) return false;
-		
-		$this->auth = null;
-		$authId = intval($authId);
+		$authId = empty($authId) ? 0 : intval($authId);
+		if ($authId < 1) return false;
 		$timestamp = $request->getCookieParams('front_time');
 		$token = md5($authId . Config::getInstance()->getConf('app.token') . $timestamp);
 		if ($request->getCookieParams('front_token') == $token) {
-			$this->auth = AdminUser::getInstance()->findOne($authId);
+			$auth = AdminUser::getInstance()->findOne($authId);
+			if (empty($auth)) return false;
+			$this->auth = $auth;
+			$this->authId = intval($auth['id']);
 			return true;
 		}
 		$token = $request->getHeaderLine('authorization');
@@ -68,7 +71,10 @@ class FrontUserController extends BaseController
 		$tmp = AppFunc::redisGetKey($key);
 		if (empty($tmp)) return false;
 		AppFunc::redisSetStr($key, $tmp);
-		$this->auth = json_decode($tmp, true);
+		$auth = json_decode($tmp, true);
+		if (empty($auth)) return false;
+		$this->auth = $auth;
+		$this->authId = intval($auth['id']);
 		return true;
 	}
 	
@@ -95,15 +101,12 @@ class FrontUserController extends BaseController
 	 */
 	public function onRequest(?string $action): ?bool
 	{
-		$request = $this->request();
-		$params = $request->getRequestParam();
-		$this->params = empty($params) ? [] : $params;
-		
 		$this->needCheckToken = false;
 		if ($this->needCheckToken & !$this->checkToken()) {
 			$this->output(Status::CODE_VERIFY_ERR, '登录令牌缺失或者已过期');
 		}
-		$route = $request->getUri()->getPath();
+		$route = $this->request()->getUri()->getPath();
+		$params = $this->request()->getRequestParam();
 		if ($this->isCheckSign && !in_array($route, $this->ignoreCheckRoutes) && !empty($params)) {
 			return $this->checkSign($params);
 		}

@@ -25,9 +25,4 @@ class AdminPlayer extends BaseModel
 	{
 		return $this->hasOne(AdminCountryList::class, null, 'country_id', 'country_id');
 	}
-	
-	public function getLimit($page, $limit): AdminPlayer
-	{
-		return $this->order('market_value', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
 }

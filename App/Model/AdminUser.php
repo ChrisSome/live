@@ -17,11 +17,6 @@ class AdminUser extends BaseModel
 	const STATUS_PRE_INIT = 1; //用户信息审核状态
 	protected $tableName = 'admin_user';
 	
-	public function getLimit(int $page, int $limit): AdminUser
-	{
-		return $this->order('created_at', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * 通过微信token以及openid获取用户信息
 	 * @param $accessToken
@@ -101,5 +96,4 @@ class AdminUser extends BaseModel
 		
 		return [array_values($selectCompetitionIdArr), $interestMatchArr];
 	}
-	
 }

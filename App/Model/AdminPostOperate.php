@@ -14,15 +14,6 @@ class AdminPostOperate extends BaseModel
 	const ACTION_TYPE_FABOLUS = 1; // 点赞
 	const ACTION_TYPE_COLLECT = 2; // 点赞
 	protected $tableName = 'admin_post_operates';
-	//	public function findAll($page, $limit): AdminPostOperate
-	//	{
-	//		return $this->order('created_at', 'DESC')->limit(($page - 1) * $limit, $limit);
-	//	}
-	
-	public function getLimit($page, $limit): AdminPostOperate
-	{
-		return $this->order('created_at', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
 	
 	public function limitData($page, $limit): AdminPostOperate
 	{

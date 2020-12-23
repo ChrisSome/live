@@ -12,11 +12,6 @@ class AdminUserOperate extends BaseModel
 	const TYPE_RES_USER_FORBIDDEN = 1; //禁言
 	protected $tableName = 'admin_user_operates';
 	
-	public function getLimit($page, $limit): AdminUserOperate
-	{
-		return $this->order('created_at', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * @return mixed
 	 * @throws

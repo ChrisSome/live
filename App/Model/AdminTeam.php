@@ -26,11 +26,6 @@ class AdminTeam extends BaseModel
 		return $this->hasOne(AdminCompetition::class, null, 'competition_id', 'competition_id');
 	}
 	
-	public function getLimit($page, $limit): AdminTeam
-	{
-		return $this->order('market_value', 'DESC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * @return mixed
 	 * @throws

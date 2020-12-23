@@ -21,11 +21,6 @@ class AdminUserPost extends BaseModel
 	const SHOW_IN_FRONT = [self::NEW_STATUS_NORMAL, self::NEW_STATUS_REPORTED, self::NEW_STATUS_LOCK]; //前端展示的帖子
 	protected $tableName = 'admin_user_posts';
 	
-	public function getLimit(int $page, int $limit, string $order = 'created_at', string $desc = 'DESC'): AdminUserPost
-	{
-		return $this->order($order, $desc)->limit(($page - 1) * $limit, $limit)->withTotalCount();
-	}
-	
 	/**
 	 * 发帖人信息
 	 * @return mixed
