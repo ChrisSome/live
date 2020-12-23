@@ -83,7 +83,7 @@ class Login extends FrontUserController
 		}
 		// 更新用户手机cid
 		$cid = $this->param('cid');
-		if (!empty($cid)) $user->setField('cid', $cid);
+		if (!empty($cid)) AdminUser::getInstance()->setField('cid', $cid, $user['id']);
 		// 缓存登录标识
 		$timestamp = time();
 		$userId = $user['id'];
