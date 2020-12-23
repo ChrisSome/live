@@ -502,9 +502,8 @@ class FootballApi extends FrontUserController
 		
 		$match['competition_type'] = 0;
 		$competitionId = $match['competition_id'];
-		if ($competition = AdminCompetition::create()->findOne(['competition_id' => $competitionId])) {
-			$match['competition_type'] = $competition['type'];
-		}
+		$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $competitionId]);
+		if (!empty($competition['type'])) $match['competition_type'] = $competition['type'];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $match);
 	}
 }

@@ -501,7 +501,6 @@ class  FrontService
 		$data = [];
 		
 		//用户关注比赛
-		
 		$userInterestMatchIds = $interestMatchArr;
 		foreach ($matches as $match) {
 			//用户关注比赛
