@@ -611,14 +611,6 @@ class UserCenter extends FrontUserController
 	 */
 	public function myFabolusInfo()
 	{
-		// 参数校验
-		$validator = new Validate();
-		$validator->addColumn('type')->required()->inArray(["1", "2", "3", "4", "5", "6"]);
-		$validator->addColumn('item_type')->required()->inArray([1, 2, 4]); //1帖子 2帖子评论 4资讯评论
-		if (!$validator->validate($this->param())) {
-			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
-		$params = $this->param();;
 		// 帖子数据
 		$posts = AdminUserOperate::getInstance()->func(function ($builder) {
 			$builder->raw('select a.created_at,a.item_type,a.user_id,b.id,b.title ' .
@@ -645,8 +637,8 @@ class UserCenter extends FrontUserController
 		}
 		//帖子评论
 		$postComments = AdminUserOperate::getInstance()->func(function ($builder) {
-			$builder->raw('select a.user_id,a.created_at,a.item_type,m.* ' .
-				'from admin_user_operates as a left join(select c.id,c.content,b.title ' .
+			$builder->raw('select a.user_id,a.created_at,a.item_type,b.* ' .
+				'from admin_user_operates as a left join(select c.id,c.content,d.title ' .
 				'from admin_user_post_comments as c left join admin_user_posts as d on c.post_id=d.id) as b ' .
 				'on a.item_id=b.id where a.type=1 and a.item_type=2 and a.author_id=?', [$this->authId]);
 			return true;
@@ -670,10 +662,10 @@ class UserCenter extends FrontUserController
 		}
 		//资讯评论
 		$informationComments = AdminUserOperate::getInstance()->func(function ($builder) {
-			$builder->raw('select m.*, o.user_id, o.created_at, o.item_type ' .
-				'from admin_user_operates as a left join(select c.id,c.content,i.title ' .
+			$builder->raw('select a.user_id,a.created_at,a.item_type,b.* ' .
+				'from admin_user_operates as a left join(select c.id,c.content,d.title ' .
 				'from admin_information_comments as c left join admin_information as d on c.information_id=d.id) as b ' .
-				'on a.item_id=m.id where o.type=? and o.item_type=? and o.author_id=?', [1, 4, $this->authId]);
+				'on a.item_id=b.id where a.type=? and a.item_type=? and a.author_id=?', [1, 4, $this->authId]);
 			return true;
 		});
 		if (!empty($informationComments)) {
