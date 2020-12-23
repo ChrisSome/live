@@ -365,8 +365,12 @@ class UserCenter   extends FrontUserController{
                 $data['user_info'] = $user_info ? $user_info : [];
 
                 if ($item['item_type'] == 1) { //赞我的帖子
-                    $post = AdminUserPost::getInstance()->where('id', $item['item_id'])->get();
-                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => base64_decode($post->content)] : [];
+                    if ($post = AdminUserPost::getInstance()->where('id', $item['item_id'])->get()) {
+                        $data['post_info'] = ['id' => $post->id, 'title' => $post->title, 'content' => base64_decode($post->content)];
+
+                    } else {
+                        continue;
+                    }
                 } else if ($item['item_type'] == 2) { //赞帖子回复
                     $post_comment = AdminPostComment::getInstance()->where('id', $item['item_id'])->get();
 
@@ -375,15 +379,18 @@ class UserCenter   extends FrontUserController{
                         $data['post_comment_info'] = $post_comment ? ['id' => $post_comment->id, 'content' => $post_comment->content] : [];
                         $data['post_info'] = ['id' => $post->id, 'title' => $post->title, 'content' => base64_decode($post->content)];
                     } else {
-                        $data['post_comment_info'] = [];
-                        $data['post_info'] = [];
+                        continue;
                     }
 
                 } else if ($item['item_type'] == 4) { //赞资讯回复
-                    $information_commnet = AdminInformationComment::getInstance()->where('id', $item['item_id'])->get();
-                    $information = $information_commnet->getInformation();
-                    $data['information_comment_info'] = $information_commnet ? ['id' => $information_commnet->id, 'content' => mb_substr($information_commnet->content, 0, 20)] : [];
-                    $data['information_info'] = $information ? ['id' => $information->id, 'title' => $information->title, 'content' => mb_substr($information->content, 0, 20)] : [];
+                    if ($information_commnet = AdminInformationComment::getInstance()->where('id', $item['item_id'])->get()) {
+                        $information = $information_commnet->getInformation();
+                        $data['information_comment_info'] = $information_commnet ? ['id' => $information_commnet->id, 'content' => mb_substr($information_commnet->content, 0, 20)] : [];
+                        $data['information_info'] = $information ? ['id' => $information->id, 'title' => $information->title, 'content' => mb_substr($information->content, 0, 20)] : [];
+                    } else {
+                        continue;
+                    }
+
                 } else {
                     continue;
                 }

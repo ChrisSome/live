@@ -79,7 +79,7 @@ class  FrontService {
             $userId = intval($v['user_id']);
             $setting = empty($settingMapper[$userId]) ? false : $settingMapper[$userId];
             $categoryId = intval($v['cat_id']);
-            $category = in_array($categoryId, [1, 2]) && !empty($categoryMapper[$categoryId]) ? false : $categoryMapper[$categoryId];
+            $category = in_array($categoryId, [1, 2]) && !empty($categoryMapper[$categoryId]) ? false : (isset($categoryMapper[$categoryId]) ? $categoryMapper[$categoryId] : []);
             if (!empty($setting)) {
                 $setting = json_decode($setting, true);
                 $setting = empty($setting['see_my_post']) ? 0 : $setting['see_my_post'];
