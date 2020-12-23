@@ -193,32 +193,11 @@ class FootballApi extends FrontUserController
 	 */
 	public function matchListPlaying()
 	{
-		$selectCompetitionIdArr = DbManager::getInstance()->invoke(function ($client) {
-			$userInterestCompetitiones = $recommand_competition_id_arr = [];
-			if ($this->authId > 0) {
-				$competitiones = AdminUserInterestCompetition::invoke($client)->get(['user_id' => $this->authId]);
-				$userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-			}
-			$recommand_competition_id_arr = AdminSysSettings::invoke($client)
-				->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
-			$in_competition_arr = json_decode($recommand_competition_id_arr['sys_value'], true);
-			return array_intersect($userInterestCompetitiones, $in_competition_arr);
-		});
-		if (empty($selectCompetitionIdArr)) $this->output(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-		$match = DbManager::getInstance()->invoke(function ($client) use ($selectCompetitionIdArr) {
-			return AdminMatch::invoke($client)->where('is_delete', 0)
-				->where('competition_id', $selectCompetitionIdArr, 'in')
-				->where('status_id', self::STATUS_PLAYING, 'in')->all();
-		});
-		$formatMatch = FrontService::formatMatchTwo($match, $this->authId);
-		//用户关注比赛数量
-		$userInterestMatchCount = DbManager::getInstance()->invoke(function ($client) {
-			return AdminInterestMatches::invoke($client)->get(['uid' => $this->authId]);
-		});
-		$count = 0;
-		if ($userInterestMatchCount > 0) $count = count(json_decode($userInterestMatchCount['match_ids']));
-		// 输出数据
-		$result = ['list' => $formatMatch, 'user_interest_count' => $count, 'count' => count($formatMatch)];
+		[$selectCompetitionIdArr, $interestMatchArr] = AdminUser::getUserShowCompetitionId($this->authId);
+		$where = ['is_delete' => 0, 'competition_id' => [$selectCompetitionIdArr, 'in'], 'status_id' => [self::STATUS_PLAYING, 'in']];
+		$playingMatch = AdminMatch::getInstance()->findAll($where);
+		$formatMatch = empty($selectCompetitionIdArr) ? [] : FrontService::formatMatchThree($playingMatch, $this->authId, $interestMatchArr);
+		$result = ['list' => $formatMatch, 'user_interest_count' => count($interestMatchArr)];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
