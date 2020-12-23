@@ -37,7 +37,7 @@ class Match extends Base
             return;
         }
         if (!OnlineUser::getInstance()->get($fd)) {
-            $this->response()->setMessage($tool->writeJson(406, '服务错误，请重新连接'));
+            $this->response()->setMessage($tool->writeJson(407, '服务错误，请重新连接'));
             return;
         }
         //用户进入房间
