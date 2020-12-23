@@ -519,13 +519,13 @@ class  FrontService
 			$has_living = 0;
 			$living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
 			
-			$round = json_decode($match->round, true);
+			$round = json_decode($match['round'], true);
 			$item['home_team_name'] = $match->home_team_name;
 			$item['home_team_logo'] = $match->home_team_logo;
 			$item['away_team_name'] = $match->away_team_name;
 			$item['away_team_logo'] = $match->away_team_logo;
-			$item['group_num'] = $round['group_num']; //第几组
-			$item['round_num'] = $round['round_num']; //第几轮
+			$item['group_num'] = empty($round['group_num']) ? 0 : $round['group_num']; //第几组
+			$item['round_num'] = empty($round['round_num']) ? 0 : $round['round_num']; //第几轮
 			$item['competition_id'] = $match->competition_id;
 			$item['competition_name'] = $match->competition_name;
 			$item['competition_color'] = $match->competition_color;

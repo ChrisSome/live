@@ -287,7 +287,7 @@ class FootballApi extends FrontUserController
 		$end = $start + 60 * 60 * 24;
 		$where = [
 			'status_id' => [self::STATUS_SCHEDULE, 'in'],
-			'match_time' => [[$isToday ? time() : $start, $end], 'between'],
+			'match_time' => [[$isToday ? time() : $start, $end - 1], 'between'],
 			'is_delete' => 0, 'competition_id' => [$selectCompetition, 'in'],
 		];
 		[$list, $count] = AdminMatch::getInstance()->findAll($where, null, 'match_time,asc', true, $page, $size);
@@ -313,7 +313,7 @@ class FootballApi extends FrontUserController
 		$start = strtotime($time);
 		$end = $start + 60 * 60 * 24;
 		$where = [
-			'match_time' => [[$start - 1, $end], 'between'],
+			'match_time' => [[$start, $end - 1], 'between'],
 			'status_id' => [self::STATUS_RESULT, 'in'],
 			'competition_id' => [$selectCompetitionIdArr, 'in'],
 			'is_delete' => 0,
