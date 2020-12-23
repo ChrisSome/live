@@ -313,7 +313,7 @@ class FootballApi extends FrontUserController
 		$start = strtotime($time);
 		$end = $start + 60 * 60 * 24;
 		$where = [
-			'match_time' => [[$start, $end], 'between'],
+			'match_time' => [[$start - 1, $end], 'between'],
 			'status_id' => [self::STATUS_RESULT, 'in'],
 			'competition_id' => [$selectCompetitionIdArr, 'in'],
 			'is_delete' => 0,
@@ -343,7 +343,7 @@ class FootballApi extends FrontUserController
 		} else {
 			$tmp = Tool::getInstance()->postApi(sprintf($this->lineUpDetail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $matchId));
 			$tmp = empty($tmp) ? [] : json_decode($tmp, true);
-			if (empty($tmp['results'])) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+			if (!empty($tmp['code']) || empty($tmp['results'])) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
 			$homeFormation = $tmp['results']['home_formation'];
 			$awayFormation = $tmp['results']['away_formation'];
 			$home = $tmp['results']['home'];
@@ -496,6 +496,7 @@ class FootballApi extends FrontUserController
 		$matchId = $this->param('match_id', true);
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		$match = $matchId < 1 ? null : AdminMatch::getInstance()->findOne(['match_id' => $matchId]);
+		if (empty($match)) $this->output(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
 		$match = empty($match) ? null : FrontService::formatMatchThree([$match], $this->authId, []);
 		$match = empty($match[0]) ? null : $match[0];
 		if (empty($match)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);

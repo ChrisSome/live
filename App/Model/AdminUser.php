@@ -75,25 +75,25 @@ class AdminUser extends BaseModel
 	/**
 	 * 需要给用户展示的赛事id以及用户关注的比赛id
 	 * @param $uid
-	 * @return array
-	 * @throws \Throwable
+	 * @return mixed
+	 * @throws
 	 */
-	public static function getUserShowCompetitionId($uid)
+	public static function getUserShowCompetitionId($uid): array
 	{
 		//默认赛事
-		$recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
-		$default = json_decode($recommandCompetitionId->sys_value, true);
+		$config = AdminSysSettings::create()->findOne(['sys_key' => AdminSysSettings::COMPETITION_ARR], 'sys_value');
+		$config = empty($config['sys_value']) ? [] : json_decode($config['sys_value'], true);
 		//用户关注赛事 与 比赛
-		$res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
-		$interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
-		
-		$userInterestCompetition = json_decode($res->competition_ids, true);
-		if ($userInterestCompetition) {
-			$selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
+		$res = AdminUserInterestCompetition::create()->alias('c')
+			->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')
+			->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
+		$interestMatchArr = empty($res['match_ids']) ? [] : json_decode($res['match_ids'], true);
+		$userInterestCompetition = empty($res['competition_ids']) ? [] : json_decode($res['competition_ids'], true);
+		if (!empty($userInterestCompetition)) {
+			$selectCompetitionIdArr = array_intersect($config, $userInterestCompetition);
 		} else {
-			$selectCompetitionIdArr = $default;
+			$selectCompetitionIdArr = $config;
 		}
-		
 		return [array_values($selectCompetitionIdArr), $interestMatchArr];
 	}
 }
