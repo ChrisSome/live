@@ -112,7 +112,7 @@ class Base extends Controller
      */
     public function actionParseError()
     {
-        $this->response()->setMessage(Tool::getInstance()->writeJson(406, '请检查json格式'));
+        $this->response()->setMessage(Tool::getInstance()->writeJson(410, '请检查json格式'));
 
         return ;
     }
