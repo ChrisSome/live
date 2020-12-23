@@ -266,32 +266,14 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
 
         }
-        $page = !empty($this->params['page']) ? (int)$this->params['page']: 1;
-        $limit = !empty($this->params['size']) ? (int)$this->params['size']: 20;
         $res = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->get();
-        $count = 0;
-
-        if (!$res) {
-            $data = [];
-        } else {
-            $matchIds = json_decode($res->match_ids, true);
-            if (!$matchIds) {
-                $data = [];
-            } else {
-                $formatMatchId = array_slice($matchIds, ($page - 1) * $limit, $limit);
-                $count = count($matchIds);
-                if ($formatMatchId && is_array($formatMatchId)) {
-                    $matches = AdminMatch::getInstance()->where('match_id', $formatMatchId, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-                    $data = FrontService::formatMatchTwo($matches, $this->auth['id']);
-                } else {
-                    $data = [];
-                }
-
-
-            }
-        }
+        $matchIds = json_decode($res->match_ids, true);
+        $matches = AdminMatch::getInstance()->where('match_id', $matchIds, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
+        $data = FrontService::formatMatchThree($matches, $this->auth['id'], $matchIds);
+        $count = count($data);
         $response = ['list' => $data, 'count' => $count];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $response);
+
 
     }
 
