@@ -72,10 +72,8 @@ class System extends FrontUserController
     {
 
         if (isset($this->params['version']) && isset($this->params['phone_type'])) {
-            $package = DbManager::getInstance()->invoke(function ($client){
-                $packageModel = AdminSysSettings::invoke($client)->get(['sys_key' => self::SYS_KEY_HOT_RELOAD]);
-                return $packageModel;
-            });
+            $package = AdminSysSettings::create()->get(['sys_key' => self::SYS_KEY_HOT_RELOAD]);
+
             if (!$package) {
                 $data['is_new'] = 1;
             } else {
@@ -85,11 +83,7 @@ class System extends FrontUserController
                 $idff = version_compare($version, $sysVer);
                 $data['is_new'] = $idff;
                 $data['accoucement'] = $value['accoucement'];
-
-                $shield_live = DbManager::getInstance()->invoke(function ($client){
-                    $shieldModel = AdminSysSettings::invoke($client)->get(['sys_key' => self::SYS_KEY_SHIELD_LIVE]);
-                    return $shieldModel;
-                });
+                $shield_live = AdminSysSettings::create()->get(['sys_key' => self::SYS_KEY_SHIELD_LIVE]);
                 $phoneType = $this->params['phone_type'];
                 $sys_value_decode = json_decode($shield_live['sys_value'], true);
                 $phoneTypeSetting = isset($sys_value_decode[$phoneType]) ? $sys_value_decode[$phoneType] : '';

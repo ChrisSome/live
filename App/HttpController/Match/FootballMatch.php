@@ -1580,6 +1580,10 @@ class FootBallMatch extends FrontUserController
 
     function test() {
         $res = AdminTeamLineUp::create()->where('match_id')->get();
+
+        $model = new \TestModel(1);
+
+
     }
 
 
