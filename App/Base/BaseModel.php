@@ -122,7 +122,6 @@ abstract class BaseModel extends AbstractModel
 					}
 					$self = $self->where($field, ...$v);
 				} else {
-					
 					$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
 					if (isset($fieldsTmp[1])) {
 						$fqs = [];
@@ -130,15 +129,21 @@ abstract class BaseModel extends AbstractModel
 							$fqs[] = $f . '="' . $v . '"';
 						}
 						$self = $self->where('(' . join(' or ', $fqs) . ')');
-					}else{
+					} else {
 						$self = $self->where($field, $v);
 					}
-					
 				}
 			}
-		} elseif (is_string($where)) {
-			$where = trim($where);
-			if (empty($where)) return null;
+		} elseif (!is_array($where)) {
+			$where = trim($where . '');
+			if (preg_match('/^[\d\s]+$/', $where)) {
+				$id = intval(preg_replace('/\s/', '', $where));
+				$self = $self->where('id', $id);
+			} elseif (!empty($where)) {
+				$self = $self->where($where);
+			} else {
+				return null;
+			}
 			$self = $self->where($where);
 		}
 		$data = $self->get();
@@ -170,7 +175,6 @@ abstract class BaseModel extends AbstractModel
 		// 查询条件
 		if (!empty($where)) {
 			if (is_array($where)) {
-				
 				foreach ($where as $field => $v) {
 					if (is_array($v) && empty($v)) continue;
 					
@@ -198,7 +202,6 @@ abstract class BaseModel extends AbstractModel
 						}
 						$self = $self->where($field, ...$v);
 					} else {
-						
 						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
 						if (isset($fieldsTmp[1])) {
 							$fqs = [];
@@ -206,15 +209,21 @@ abstract class BaseModel extends AbstractModel
 								$fqs[] = $f . '="' . $v . '"';
 							}
 							$self = $self->where('(' . join(' or ', $fqs) . ')');
-						}else{
+						} else {
 							$self = $self->where($field, $v);
 						}
-						
 					}
 				}
-			} elseif (is_string($where)) {
-				$where = trim($where);
-				if (empty($where)) return $isPager ? [[], 0] : [];
+			} elseif (!is_array($where)) {
+				$where = trim($where . '');
+				if (preg_match('/^[\d\s]+$/', $where)) {
+					$id = intval(preg_replace('/\s/', '', $where));
+					$self = $self->where('id', $id);
+				} elseif (!empty($where)) {
+					$self = $self->where($where);
+				} else {
+					return $isPager ? [[], 0] : [];
+				}
 				$self = $self->where($where);
 			}
 		}
