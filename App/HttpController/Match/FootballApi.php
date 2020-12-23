@@ -11,6 +11,7 @@ use App\Model\AdminCompetition;
 use App\Model\AdminSysSettings;
 use App\Utility\Message\Status;
 use App\Model\AdminClashHistory;
+use App\Model\SignalMatchLineUp;
 use App\Base\FrontUserController;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminInterestMatches;
@@ -261,40 +262,29 @@ class FootballApi extends FrontUserController
 	public function matchSchedule()
 	{
 		// 参数校验
-		$params = $this->param();
-		$time = empty($params['time']) || intval($params['time']) < 1 ? 0 : intval($params['time']);
+		$time = $this->param('time', true);
 		if ($time < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		// 当前登录用户ID
-		
 		// 分页参数
-		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
-		$size = empty($params['size']) || intval($params['page']) < 1 ? 20 : intval($params['size']);
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 20);
 		
+		$competitionIds = [];
+		$tmp = $this->authId < 1 ? null : AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $this->authId]);
+		if (!empty($tmp['competition_ids'])) $competitionIds = json_decode($tmp['competition_ids'], true);
+		
+		//后台推荐赛事
+		$competitionIdsTmp = [];
+		$tmp = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::COMPETITION_ARR], 'sys_value');
+		if (!empty($tmp['sys_value'])) $competitionIdsTmp = json_decode($tmp['sys_value'], true);
+		
+		$selectCompetition = $competitionIdsTmp;
+		if ($competitionIds) $selectCompetition = array_intersect($competitionIdsTmp, $competitionIds);
+		$selectCompetition = array_values($selectCompetition);
+		if (empty($selectCompetition)) $this->output(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
+		// 分页数据
 		$isToday = $time == date('Y-m-d');
 		$start = strtotime($time);
 		$end = $start + 60 * 60 * 24;
-		
-		$userInterestCompetitiones = [];
-		
-		if ($this->authId && $competitiones = AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $this->authId])) {
-			$userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
-		}
-		
-		//后台推荐赛事
-		$in_competition_arr = [];
-		
-		if ($recommand_competition_id_arr = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::COMPETITION_ARR])) {
-			$in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
-		}
-		
-		if ($userInterestCompetitiones) {
-			$selectCompetition = array_intersect($in_competition_arr, $userInterestCompetitiones);
-		} else {
-			$selectCompetition = $in_competition_arr;
-		}
-		$selectCompetition = array_values($selectCompetition);
-		if (!$selectCompetition) $this->output(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-		// 分页数据
 		$where = [
 			'status_id' => [self::STATUS_SCHEDULE, 'in'],
 			'match_time' => [[$isToday ? time() : $start, $end], 'between'],
@@ -312,16 +302,13 @@ class FootballApi extends FrontUserController
 	public function matchResult()
 	{
 		// 参数校验
-		$params = $this->param();
-		$time = empty($params['time']) || intval($params['time']) < 1 ? 0 : intval($params['time']);
+		$time = $this->param('time', true);
 		if ($time < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		// 当前登录用户ID
-		
 		//需要展示的赛事id 以及用户关注的比赛
 		[$selectCompetitionIdArr, $interestMatchArr] = AdminUser::getUserShowCompetitionId($this->authId);
 		// 分页参数
-		$page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
-		$size = empty($params['size']) || intval($params['page']) < 1 ? 20 : intval($params['size']);
+		$page = $this->param('page', true, 1);
+		$size = $this->param('size', true, 20);
 		// 分页数据
 		$start = strtotime($time);
 		$end = $start + 60 * 60 * 24;
@@ -338,54 +325,47 @@ class FootballApi extends FrontUserController
 	
 	/**
 	 * 单场比赛阵容详情
-	 * @return bool
 	 * @throws
 	 */
 	public function lineUpDetail()
 	{
-		$match_id = $this->params['match_id'] ?: 0;
-		if (!$match_id) {
-			return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		}
+		// 参数校验
+		$matchId = $this->param('match_id', true);
+		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		
 		$homeFirstPlayers = $homeAlternatePlayers = $awayFirstPlayers = $awayAlternatePlayers = [];
-		
-		if ($signalMatchLineUp = SignalMatchLineUp::getInstance()->where('match_id', $match_id)->get()) {
-			$homeFormation = json_decode($signalMatchLineUp->home_formation, true);
-			$awayFormation = json_decode($signalMatchLineUp->away_formation, true);
-			$home = json_decode($signalMatchLineUp->home, true);
-			$away = json_decode($signalMatchLineUp->away, true);
+		$signalMatchLineUp = SignalMatchLineUp::getInstance()->findOne(['match_id' => $matchId]);
+		if (!empty($signalMatchLineUp)) {
+			$homeFormation = json_decode($signalMatchLineUp['home_formation'], true);
+			$awayFormation = json_decode($signalMatchLineUp['away_formation'], true);
+			$home = json_decode($signalMatchLineUp['home'], true);
+			$away = json_decode($signalMatchLineUp['away'], true);
 		} else {
-			$res = Tool::getInstance()->postApi(sprintf($this->lineUpDetail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $match_id));
-			$decode = json_decode($res, true);
-			
-			if ($decode['code'] == 0 && $decode['results']) {
-				$homeFormation = $decode['results']['home_formation'];
-				$awayFormation = $decode['results']['away_formation'];
-				$home = $decode['results']['home'];
-				$away = $decode['results']['away'];
-				//入库
-				$signalMatchLineUp = SignalMatchLineUp::create();
-				$signalMatchLineUp->home_formation = json_encode($homeFormation);
-				$signalMatchLineUp->away_formation = json_encode($awayFormation);
-				$signalMatchLineUp->home = json_encode($home);
-				$signalMatchLineUp->away = json_encode($away);
-				$signalMatchLineUp->match_id = $match_id;
-				$signalMatchLineUp->confirmed = $decode['results']['confirmed'];
-				$signalMatchLineUp->save();
-			} else {
-				return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
-			}
+			$tmp = Tool::getInstance()->postApi(sprintf($this->lineUpDetail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $matchId));
+			$tmp = empty($tmp) ? [] : json_decode($tmp, true);
+			if (empty($tmp['results'])) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+			$homeFormation = $tmp['results']['home_formation'];
+			$awayFormation = $tmp['results']['away_formation'];
+			$home = $tmp['results']['home'];
+			$away = $tmp['results']['away'];
+			//入库
+			SignalMatchLineUp::getInstance()->insert([
+				'match_id' => $matchId,
+				'home' => json_encode($home),
+				'away' => json_encode($away),
+				'confirmed' => $tmp['results']['confirmed'],
+				'home_formation' => json_encode($homeFormation),
+				'away_formation' => json_encode($awayFormation),
+			]);
 		}
-		
 		if (!empty($home)) {
-			foreach ($home as $homeItem) {
-				$homePlayer['player_id'] = $homeItem['id'];
-				$homePlayer['name'] = $homeItem['name'];
-				$homePlayer['logo'] = isset($home['logo']) ? $this->playerLogo . $homeItem['logo'] : '';
-				$homePlayer['position'] = $homeItem['position'];
-				$homePlayer['shirt_number'] = $homeItem['shirt_number'];
-				if ($homeItem['first']) {
+			foreach ($home as $v) {
+				$homePlayer['player_id'] = $v['id'];
+				$homePlayer['name'] = $v['name'];
+				$homePlayer['logo'] = isset($home['logo']) ? $this->playerLogo . $v['logo'] : '';
+				$homePlayer['position'] = $v['position'];
+				$homePlayer['shirt_number'] = $v['shirt_number'];
+				if ($v['first']) {
 					$homeFirstPlayers[] = $homePlayer; //首发
 				} else {
 					$homeAlternatePlayers[] = $homePlayer; //替补
@@ -393,15 +373,14 @@ class FootballApi extends FrontUserController
 				unset($homePlayer);
 			}
 		}
-		
 		if (!empty($away)) {
-			foreach ($away as $awayItem) {
-				$awayPlayer['player_id'] = $awayItem['id'];
-				$awayPlayer['name'] = $awayItem['name'];
-				$awayPlayer['logo'] = $awayItem['logo'] ? $this->playerLogo . $awayItem['logo'] : '';
-				$awayPlayer['position'] = $awayItem['position'];
-				$awayPlayer['shirt_number'] = $awayItem['shirt_number'];
-				if ($awayItem['first']) {
+			foreach ($away as $v) {
+				$awayPlayer['player_id'] = $v['id'];
+				$awayPlayer['name'] = $v['name'];
+				$awayPlayer['logo'] = $v['logo'] ? $this->playerLogo . $v['logo'] : '';
+				$awayPlayer['position'] = $v['position'];
+				$awayPlayer['shirt_number'] = $v['shirt_number'];
+				if ($v['first']) {
 					$awayFirstPlayers[] = $awayPlayer; //首发
 				} else {
 					$awayAlternatePlayers[] = $awayPlayer; //替补
@@ -409,20 +388,13 @@ class FootballApi extends FrontUserController
 				unset($awayPlayer);
 			}
 		}
-		
 		$homeTeamInfo['firstPlayers'] = $homeFirstPlayers;
 		$homeTeamInfo['alternatePlayers'] = $homeAlternatePlayers;
 		$homeTeamInfo['homeFormation'] = $homeFormation;
-		
 		$awayTeamInfo['firstPlayers'] = $awayFirstPlayers;
 		$awayTeamInfo['alternatePlayers'] = $awayAlternatePlayers;
 		$awayTeamInfo['awayFormation'] = $awayFormation;
-		
-		$data = [
-			'home' => $homeTeamInfo,
-			'away' => $awayTeamInfo,
-		];
-		return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['home' => $homeTeamInfo, 'away' => $awayTeamInfo]);
 	}
 	
 	/**
@@ -431,9 +403,8 @@ class FootballApi extends FrontUserController
 	 */
 	public function getClashHistory()
 	{
-		$params = $this->param();
 		// 参数校验
-		$matchId = empty($params['match_id']) || intval($params['match_id']) < 1 ? 0 : intval($params['match_id']);
+		$matchId = $this->param('match_id', true);
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		$senses = AdminClashHistory::getInstance()->findOne(['match_id' => $matchId]);
 		$match = AdminMatch::getInstance()->findOne(['match_id' => $matchId, 'is_delete' => 0]);
@@ -465,8 +436,8 @@ class FootballApi extends FrontUserController
 				$intRank = [];
 			}
 		}
-		$homeTid = $match->home_team_id;
-		$awayTid = $match->away_team_id;
+		$homeTid = $match['home_team_id'];
+		$awayTid = $match['away_team_id'];
 		//历史交锋
 		$matches = AdminMatch::getInstance()->where('status_id', 8)
 			->where('((home_team_id=' . $homeTid . ' and away_team_id=' . $awayTid . ') or (home_team_id=' . $awayTid . ' and away_team_id=' . $homeTid . '))')
@@ -497,8 +468,8 @@ class FootballApi extends FrontUserController
 			'history' => $formatHistoryMatches, //历史交锋
 			'homeRecent' => FrontService::handMatch($homeRecentMatches, 0, true),//主队近期战绩
 			'awayRecent' => FrontService::handMatch($awayRecentMatches, 0, true),//客队近期战绩
-			'homeRecentSchedule' => FrontService::handMatch($homeRecentSchedule, $this->auth['id'] ? $this->auth['id'] : 0, true),//主队近期赛程
-			'awayRecentSchedule' => FrontService::handMatch($awayRecentSchedule, $this->auth['id'] ? $this->auth['id'] : 0, true),//客队近期赛程
+			'homeRecentSchedule' => FrontService::handMatch($homeRecentSchedule, $this->authId, true),//主队近期赛程
+			'awayRecentSchedule' => FrontService::handMatch($awayRecentSchedule, $this->authId, true),//客队近期赛程
 		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
@@ -522,17 +493,15 @@ class FootballApi extends FrontUserController
 	public function getMatchInfo()
 	{
 		// 参数校验
-		$params = $this->param();
-		$matchId = empty($params['match_id']) || intval($params['match_id']) < 1 ? 0 : intval($params['match_id']);
+		$matchId = $this->param('match_id', true);
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		$match = $matchId < 1 ? null : AdminMatch::getInstance()->findOne(['match_id' => $matchId]);
-		
-		$match = FrontService::formatMatchThree([$match], $this->authId, []);
+		$match = empty($match) ? null : FrontService::formatMatchThree([$match], $this->authId, []);
 		$match = empty($match[0]) ? null : $match[0];
 		if (empty($match)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		
-		$competitionId = $match['competition_id'];
 		$match['competition_type'] = 0;
+		$competitionId = $match['competition_id'];
 		if ($competition = AdminCompetition::create()->findOne(['competition_id' => $competitionId])) {
 			$match['competition_type'] = $competition['type'];
 		}
