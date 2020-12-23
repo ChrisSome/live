@@ -83,6 +83,7 @@ class AdminUser extends BaseModel
 		//默认赛事
 		$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::COMPETITION_ARR], 'sys_value');
 		$config = empty($config['sys_value']) ? [] : json_decode($config['sys_value'], true);
+		if ($uid < 1) return [$config, []];
 		//用户关注赛事 与 比赛
 		$tmp = AdminUserInterestCompetition::create()->alias('c')
 			->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')
