@@ -263,7 +263,7 @@ class FootballApi extends FrontUserController
 	{
 		// 参数校验
 		$time = $this->param('time');
-		if ($time < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		if (empty($time)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 分页参数
 		$page = $this->param('page', true, 1);
 		$size = $this->param('size', true, 20);
@@ -303,7 +303,7 @@ class FootballApi extends FrontUserController
 	{
 		// 参数校验
 		$time = $this->param('time');
-		if ($time < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		if (empty($time)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		//需要展示的赛事id 以及用户关注的比赛
 		[$selectCompetitionIdArr, $interestMatchArr] = AdminUser::getUserShowCompetitionId($this->authId);
 		// 分页参数
@@ -320,6 +320,7 @@ class FootballApi extends FrontUserController
 		];
 		[$list, $count] = empty($selectCompetitionIdArr) ? [[], 0] : AdminMatch::getInstance()
 			->findAll($where, null, 'match_time,desc', true, $page, $size);
+		
 		$list = empty($list) ? [] : FrontService::formatMatchThree($list, $this->authId, $interestMatchArr);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}

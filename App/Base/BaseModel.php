@@ -90,6 +90,7 @@ abstract class BaseModel extends AbstractModel
 				$self = $self->order(...explode(',', $order));
 			}
 		}
+		
 		// 查询条件
 		if (empty($where)) return null;
 		if (!empty($fields)) $self = $self->field($fields);
@@ -98,7 +99,7 @@ abstract class BaseModel extends AbstractModel
 				if (empty($v)) continue;
 				
 				if ($field == 'or') {
-					if (is_array($v)) $self->where('(' . join(' or ', $v) . ')');
+					if (is_array($v)) $self = $self->where('(' . join(' or ', $v) . ')');
 					continue;
 				}
 				
@@ -107,39 +108,37 @@ abstract class BaseModel extends AbstractModel
 					continue;
 				}
 				
-				if (is_string($field)) {
-					$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
-					if ($extra == 'like') {
-						$strArr = [];
-						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
-						foreach ($fieldsTmp as $f) {
-							$strArr[] = $f . ' like "%' . $v[0] . '%"';
-						}
-						$strArr = join(' or ', $strArr);
-						$self = $self->where('(' . $strArr . ')');
-						continue;
+				if (!is_string($field)) return null;
+				
+				$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
+				if ($extra == 'like') {
+					$strArr = [];
+					$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
+					foreach ($fieldsTmp as $f) {
+						$strArr[] = $f . ' like "%' . $v[0] . '%"';
 					}
-					if (!empty($extra)) {
-						if (!is_array($v)) return null;
-						if ($extra == 'in') foreach ($v[0] as $kk => $vv) {
-							$v[0][$kk] = intval($vv);
-						}
-						$self = $self->where($field, ...$v);
-					} else {
-						if (is_array($v)) return null;
-						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
-						if (isset($fieldsTmp[1])) {
-							$fqs = [];
-							foreach ($fieldsTmp as $f) {
-								$fqs[] = $f . '="' . $v . '"';
-							}
-							$self = $self->where('(' . join(' or ', $fqs) . ')');
-						} else {
-							$self = $self->where($field, $v);
-						}
+					$strArr = join(' or ', $strArr);
+					$self = $self->where('(' . $strArr . ')');
+					continue;
+				}
+				if (!empty($extra)) {
+					if (!is_array($v)) $v = [$v];
+					if ($extra == 'in' || $extra == 'between') foreach ($v[0] as $kk => $vv) {
+						$v[0][$kk] = intval($vv);
 					}
+					$self = $self->where($field, ...$v);
 				} else {
-					return null;
+					if (!is_array($v)) return null;
+					$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
+					if (isset($fieldsTmp[1])) {
+						$fqs = [];
+						foreach ($fieldsTmp as $f) {
+							$fqs[] = $f . '="' . $v . '"';
+						}
+						$self = $self->where('(' . join(' or ', $fqs) . ')');
+					} else {
+						$self = $self->where($field, $v);
+					}
 				}
 			}
 		} elseif (is_string($where)) {
@@ -172,6 +171,7 @@ abstract class BaseModel extends AbstractModel
 		$page = $isPager && (empty($page) || intval($page) < 1) ? 0 : intval($page);
 		$size = empty($size) || intval($size) < 1 ? 10 : intval($size);
 		$self = $this;
+		
 		// 查询条件
 		if (!empty($where)) {
 			if (is_array($where)) {
@@ -188,39 +188,37 @@ abstract class BaseModel extends AbstractModel
 						continue;
 					}
 					
-					if (is_string($field)) {
-						$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
-						if ($extra == 'like') {
-							$strArr = [];
-							$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
-							foreach ($fieldsTmp as $f) {
-								$strArr[] = $f . ' like "%' . $v[0] . '%"';
-							}
-							$strArr = join(' or ', $strArr);
-							$self = $self->where('(' . $strArr . ')');
-							continue;
+					if (!is_string($field)) return $isPager ? [[], 0] : [];
+					
+					$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
+					if ($extra == 'like') {
+						$strArr = [];
+						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
+						foreach ($fieldsTmp as $f) {
+							$strArr[] = $f . ' like "%' . $v[0] . '%"';
 						}
-						if (!empty($extra)) {
-							if (!is_array($v)) return $isPager ? [[], 0] : [];
-							if ($extra == 'in') foreach ($v[0] as $kk => $vv) {
-								$v[0][$kk] = intval($vv);
-							}
-							$self = $self->where($field, ...$v);
-						} else {
-							if (is_array($v)) return $isPager ? [[], 0] : [];
-							$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
-							if (isset($fieldsTmp[1])) {
-								$fqs = [];
-								foreach ($fieldsTmp as $f) {
-									$fqs[] = $f . '="' . $v . '"';
-								}
-								$self = $self->where('(' . join(' or ', $fqs) . ')');
-							} else {
-								$self = $self->where($field, $v);
-							}
+						$strArr = join(' or ', $strArr);
+						$self = $self->where('(' . $strArr . ')');
+						continue;
+					}
+					if (!empty($extra)) {
+						if (!is_array($v)) $v = [$v];
+						if ($extra == 'in' || $extra == 'between') foreach ($v[0] as $kk => $vv) {
+							$v[0][$kk] = intval($vv);
 						}
+						$self = $self->where($field, ...$v);
 					} else {
-						return $isPager ? [[], 0] : [];
+						if (!is_array($v)) return $isPager ? [[], 0] : [];
+						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
+						if (isset($fieldsTmp[1])) {
+							$fqs = [];
+							foreach ($fieldsTmp as $f) {
+								$fqs[] = $f . '="' . $v . '"';
+							}
+							$self = $self->where('(' . join(' or ', $fqs) . ')');
+						} else {
+							$self = $self->where($field, $v);
+						}
 					}
 				}
 			} elseif (is_string($where)) {

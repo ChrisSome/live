@@ -497,9 +497,9 @@ class  FrontService
 	
 	static function formatMatchThree($matches, $uid, $interestMatchArr)
 	{
-		if (!$matches) return [];
+		if (empty($matches)) return [];
+
 		$data = [];
-		
 		//用户关注比赛
 		$userInterestMatchIds = $interestMatchArr;
 		foreach ($matches as $match) {
