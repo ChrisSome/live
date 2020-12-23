@@ -31,8 +31,6 @@ use App\Model\SeasonTeamPlayer;
 use App\Utility\Message\Status;
 use App\Model\AdminClashHistory;
 use App\Base\FrontUserController;
-use App\Model\SeasonMatchListOne;
-use App\Model\SeasonTeamPlayerBak;
 use App\WebSocket\WebSocketStatus;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminPlayerHonorList;
@@ -1237,44 +1235,6 @@ class FootBallMatch extends FrontUserController
 				]);
 			}
 		}
-	}
-	
-	/**
-	 * 获取赛季球队球员统计详情-全量 1week/次 [已废]
-	 * @throws
-	 */
-	public function updateSeasonTeamPlayer()
-	{
-		$seasonId = Cache::get('select_season_id');
-		$seasonId = intval($seasonId) < 1 ? 0 : intval($seasonId);
-		$list = AdminSeason::getInstance()->findOne(['season_id' => [$seasonId, '>']], 'season_id');
-		foreach ($list as $v) {
-			$id = intval($v['season_id']);
-			$url = sprintf($this->allStat, $this->user, $this->secret, $id);
-			$tmp = Tool::getInstance()->postApi($url);
-			$tmp = empty($tmp) ? null : json_decode($tmp, true);
-			$data = empty($tmp['results']) ? null : $tmp['results'];
-			if (empty($data)) continue;
-			$tmp = $id < 1 ? null : SeasonTeamPlayerBak::getInstance()->findOne(['season_id' => $id]);
-			if (empty($tmp)) {
-				SeasonTeamPlayerBak::getInstance()->insert([
-					'season_id' => $id,
-					'shooters' => json_encode($data['shooters']),
-					'updated_at' => json_encode($data['updated_at']),
-					'teams_stats' => json_encode($data['teams_stats']),
-					'players_stats' => json_encode($data['players_stats']),
-				]);
-			} else {
-				SeasonTeamPlayerBak::getInstance()->update([
-					'shooters' => json_encode($data['shooters']),
-					'updated_at' => json_encode($data['updated_at']),
-					'teams_stats' => json_encode($data['teams_stats']),
-					'players_stats' => json_encode($data['players_stats']),
-				], ['season_id' => $id]);
-			}
-			Cache::set('select_season_id', $id);
-		}
-		$this->output(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN], 1);
 	}
 	
 	/**
