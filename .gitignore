@@ -3,7 +3,9 @@
 /composer.lock
 /Temp/esCache/*
 /Temp/logs/*
+/produce.php
 /mysql/data
 /.metadata/
+/dev.php
 /vendor/
 /.idea/
