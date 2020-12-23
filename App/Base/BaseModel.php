@@ -105,7 +105,8 @@ abstract class BaseModel extends AbstractModel
 				
 				if (is_int($field) && is_array($v)) return null;
 				
-				$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
+				$extra = is_array($v) && !empty($v[1]) ? strtolower(trim($v[1])) : '';
+				
 				if ($extra == 'like') {
 					$strArr = [];
 					$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
@@ -120,6 +121,8 @@ abstract class BaseModel extends AbstractModel
 					foreach ($v[0] as $kk => $vv) {
 						$v[0][$kk] = intval($vv);
 					}
+					$self = $self->where($field, ...$v);
+				} elseif (!empty($extra)) {
 					$self = $self->where($field, ...$v);
 				} else {
 					$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
@@ -185,7 +188,8 @@ abstract class BaseModel extends AbstractModel
 					
 					if (is_int($field) && is_array($v)) return $isPager ? [[], 0] : [];
 					
-					$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
+					$extra = is_array($v) && !empty($v[1]) ? strtolower(trim($v[1])) : '';
+					
 					if ($extra == 'like') {
 						$strArr = [];
 						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
@@ -200,6 +204,8 @@ abstract class BaseModel extends AbstractModel
 						foreach ($v[0] as $kk => $vv) {
 							$v[0][$kk] = intval($vv);
 						}
+						$self = $self->where($field, ...$v);
+					} elseif (!empty($extra)) {
 						$self = $self->where($field, ...$v);
 					} else {
 						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
