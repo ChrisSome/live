@@ -88,7 +88,7 @@ class AdminUser extends BaseModel
 			->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')
 			->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
 		$interestMatchArr = empty($tmp['match_ids']) ? [] : json_decode($tmp['match_ids'], true);
-		$userInterestCompetition = empty($tmp['competition_ids']) ? [] : json_decode($tmp['competition_ids'], true);
+		$userInterestCompetition = empty($tmp['competition_ids']) ? null : json_decode($tmp['competition_ids'], true);
 		if (!empty($userInterestCompetition)) {
 			$selectCompetitionIdArr = array_intersect($config, $userInterestCompetition);
 		} else {

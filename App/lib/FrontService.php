@@ -508,13 +508,12 @@ class  FrontService
 			if ($userInterestMatchIds && $uid && in_array($match->match_id, $userInterestMatchIds)) {
 				$is_interest = true;
 			}
-			
 			$is_start = false;
 			if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
 				$is_start = false;
-			} elseif (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
+			} else if (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
 				$is_start = true;
-			} elseif (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
+			} else if (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
 				$is_start = false;
 			}
 			$has_living = 0;
@@ -545,12 +544,11 @@ class  FrontService
 			$item['note'] = $match->note;  //备注   欧青连八分之一决赛
 			$item['home_scores'] = $match->home_scores;  //主队比分
 			$item['away_scores'] = $match->away_scores;  //主队比分
-			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '';  //直播地址
+			$item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '' ;  //直播地址
 			$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
 			$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
 			
 			$data[] = $item;
-			
 			unset($item);
 		}
 		return $data;
