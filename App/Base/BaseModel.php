@@ -103,7 +103,7 @@ abstract class BaseModel extends AbstractModel
 					continue;
 				}
 				
-				if (is_int($field) && is_array($v)) return $isPager ? [[], 0] : [];
+				if (is_int($field) && is_array($v)) return null;
 				
 				$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
 				if ($extra == 'like') {
@@ -116,7 +116,7 @@ abstract class BaseModel extends AbstractModel
 					$self = $self->where('(' . $strArr . ')');
 					continue;
 				} elseif ($extra == 'in' || $extra == 'between') {
-					if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return $isPager ? [[], 0] : [];
+					if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return null;
 					foreach ($v[0] as $kk => $vv) {
 						$v[0][$kk] = intval($vv);
 					}
