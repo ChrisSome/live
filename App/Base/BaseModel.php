@@ -91,41 +91,63 @@ abstract class BaseModel extends AbstractModel
 			}
 		}
 		// 查询条件
-		if (!empty($where)) {
-			if (!empty($fields)) $self = $self->field($fields);
-			if (is_array($where)) {
-				foreach ($where as $field => $v) {
-					if (is_string($v)) $v = [$v];
-					if (!is_array($v)) continue;
-					if (isset($v[1])) {
-						$type = strtolower($v[1]);
-						if ($type == 'like') {
-							$v[0] = '%' . trim($v[0], '% ') . '%';
-						} elseif ($type == 'in' && is_string($v[0])) {
-							$str = trim($v[0]);
-							$v[0] = array_filter(array_unique(array_filter(explode(',', $str))));
-							if (preg_match('/^\d+(,\d+)*$/', $str)) {
-								$v[0] = array_map(function ($x) {
-									return intval($x);
-								}, $v[0]);
+		if (empty($where)) return null;
+		if (!empty($fields)) $self = $self->field($fields);
+		if (is_array($where)) {
+			foreach ($where as $field => $v) {
+				if (empty($v)) continue;
+				
+				if ($field == 'or') {
+					if (is_array($v)) $self->where('(' . join(' or ', $v) . ')');
+					continue;
+				}
+				
+				if (is_int($field) && is_string($v)) {
+					$self = $self->where($v);
+					continue;
+				}
+				
+				if (is_string($field)) {
+					$extra = empty($v[1]) ? '' : strtolower(trim($v[1]));
+					if ($extra == 'like') {
+						$strArr = [];
+						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
+						foreach ($fieldsTmp as $f) {
+							$strArr[] = $f . ' like "%' . $v[0] . '%"';
+						}
+						$strArr = join(' or ', $strArr);
+						$self = $self->where('(' . $strArr . ')');
+						continue;
+					}
+					if (!empty($extra)) {
+						if (!is_array($v)) return null;
+						if ($extra == 'in') foreach ($v[0] as $kk => $vv) {
+							$v[0][$kk] = intval($vv);
+						}
+						$self = $self->where($field, ...$v);
+					} else {
+						if (is_array($v)) return null;
+						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
+						if (isset($fieldsTmp[1])) {
+							$fqs = [];
+							foreach ($fieldsTmp as $f) {
+								$fqs[] = $f . '="' . $v . '"';
 							}
-							if (empty($v[0])) $v = ['-1'];
+							$self = $self->where('(' . join(' or ', $fqs) . ')');
+						} else {
+							$self = $self->where($field, $v);
 						}
 					}
-					$self = $self->where($field, ...$v);
-				}
-			} elseif (is_string($where) || is_integer($where)) {
-				$where = trim($where . '');
-				if (preg_match('/^\d+$/', $where)) {
-					$where = intval($where);
-					if ($where > 0) $data = $self->get($where);
-					return empty($data) ? null : $data;
-				} elseif (!empty($where)) {
-					$self = $self->where($where);
+				} else {
+					return null;
 				}
 			}
-			$data = $self->get();
+		} elseif (is_string($where)) {
+			$where = trim($where);
+			if (empty($where)) return null;
+			$self = $self->where($where);
 		}
+		$data = $self->get();
 		return empty($data) ? null : $data;
 	}
 	
