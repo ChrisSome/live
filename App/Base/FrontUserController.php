@@ -101,7 +101,7 @@ class FrontUserController extends BaseController
 	 */
 	public function onRequest(?string $action): ?bool
 	{
-		$this->needCheckToken = false;
+		$this->response()->withHeader('Access-Control-Allow-Origin', '*');
 		if ($this->needCheckToken & !$this->checkToken()) {
 			$this->output(Status::CODE_VERIFY_ERR, '登录令牌缺失或者已过期');
 		}
