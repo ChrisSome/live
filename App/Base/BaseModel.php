@@ -120,15 +120,14 @@ abstract class BaseModel extends AbstractModel
 					$strArr = join(' or ', $strArr);
 					$self = $self->where('(' . $strArr . ')');
 					continue;
-				}
-				if (!empty($extra)) {
-					if (!is_array($v)) $v = [$v];
-					if ($extra == 'in' || $extra == 'between') foreach ($v[0] as $kk => $vv) {
+				} elseif ($extra == 'in' || $extra == 'between') {
+					if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return null;
+					foreach ($v[0] as $kk => $vv) {
 						$v[0][$kk] = intval($vv);
 					}
 					$self = $self->where($field, ...$v);
 				} else {
-					if (!is_array($v)) return null;
+					if (!is_array($v)) $v = [$v];
 					$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
 					if (isset($fieldsTmp[1])) {
 						$fqs = [];
@@ -200,15 +199,14 @@ abstract class BaseModel extends AbstractModel
 						$strArr = join(' or ', $strArr);
 						$self = $self->where('(' . $strArr . ')');
 						continue;
-					}
-					if (!empty($extra)) {
-						if (!is_array($v)) $v = [$v];
-						if ($extra == 'in' || $extra == 'between') foreach ($v[0] as $kk => $vv) {
+					} elseif ($extra == 'in' || $extra == 'between') {
+						if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return $isPager ? [[], 0] : [];
+						foreach ($v[0] as $kk => $vv) {
 							$v[0][$kk] = intval($vv);
 						}
 						$self = $self->where($field, ...$v);
 					} else {
-						if (!is_array($v)) return $isPager ? [[], 0] : [];
+						if (!is_array($v)) $v = [$v];
 						$fieldsTmp = explode('|', trim(preg_replace('/\s/', '', strtolower($field)), ' |'));
 						if (isset($fieldsTmp[1])) {
 							$fqs = [];
