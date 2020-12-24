@@ -228,7 +228,7 @@ class InformationApi extends FrontUserController
 		$validator->addColumn('information_id')->required()->min(1);
 		$validator->addColumn('top_comment_id')->required()->min(0);
 		$validator->addColumn('parent_id')->required()->min(0);
-		$validator->addColumn('t_u_id')->required()->min(1);
+		$validator->addColumn('t_u_id')->required()->min(0);
 		$validator->addColumn('content')->required()->notEmpty();
 		if (!$validator->validate($this->param())) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -240,30 +240,28 @@ class InformationApi extends FrontUserController
 		// 敏感词校验
 		$words = $sensitiveWords = AdminSensitive::getInstance()->findAll(['status' => AdminSensitive::STATUS_NORMAL], 'word');
 		foreach ($words as $v) {
-			if (!empty($v['word']) && strstr($this->param('content'), $v['word'])) {
+			if (!empty($v['word']) && strpos($this->param('content'), $v['word']) !== false) {
 				$msg = sprintf(Status::$msg[Status::CODE_ADD_POST_SENSITIVE], $v['word']);
 				$this->output(Status::CODE_ADD_POST_SENSITIVE, $msg);
 			}
 		}
 		// 插入数据
+		$parentId = $this->param('parent_id', true);
 		$commentId = AdminInformationComment::getInstance()->insert([
+			'parent_id' => $parentId,
 			'user_id' => $this->authId,
+			'information_id' => $informationId,
 			't_u_id' => $this->param('t_u_id', true),
-			'parent_id' => $this->param('parent_id', true),
-			'information_id' => $this->param('information_id', true),
 			'top_comment_id' => $this->param('top_comment_id', true),
 			'content' => base64_encode(addslashes(htmlspecialchars($this->param('content')))),
 		]);
 		// 插入失败
 		if ($commentId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 关联数据处理
-		$parentId = $this->param('parent_id', true);
 		// 回复数累加
 		TaskManager::getInstance()->async(function () use ($parentId, $informationId) {
-			if ($parentId > 0) {
-				// 父评论回复数累加
-				AdminInformationComment::getInstance()->update(['respon_number' => QueryBuilder::inc()], $parentId);
-			}
+			// 父评论回复数累加
+			if ($parentId > 0) AdminInformationComment::getInstance()->update(['respon_number' => QueryBuilder::inc()], $parentId);
 			// 资讯回复数累加
 			AdminInformation::getInstance()->update(['respon_number' => QueryBuilder::inc()], $informationId);
 		});
