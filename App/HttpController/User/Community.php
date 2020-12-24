@@ -219,7 +219,7 @@ class Community extends FrontUserController
 			$this->output(Status::CODE_W_PARAM, $validate->getError()->__toString());
 		}
 		$imgs = $this->param('imgs');
-		$postId = $this->param('pid');
+		$postId = $this->param('pid', true);
 		$title = $this->param('title');
 		$content = $this->param('content');
 		$categoryId = $this->param('cat_id', true);
