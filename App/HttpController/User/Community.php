@@ -509,11 +509,11 @@ class Community extends FrontUserController
 			$user['is_me'] = $this->authId == $userId;
 			$user['is_follow'] = AppFunc::isFollow($this->authId, $userId);
 		}
-		$tmp = AdminUserPost::getInstance()->findOne(['user_id' => $userId, 'status' => AdminUserPost::NEW_STATUS_NORMAL], 'count(*) total');
+		$tmp = AdminUserPost::getInstance()->findOne(['user_id' => $userId, 'status' => AdminUserPost::NEW_STATUS_NORMAL], 'count');
 		$postCount = empty($tmp[0]['total']) ? 0 : intval($tmp[0]['total']);
-		$tmp = AdminUserPost::getInstance()->findOne(['user_id' => $userId, 'status' => [AdminPostComment::STATUS_DEL, '<>']], 'count(*) total');
+		$tmp = AdminUserPost::getInstance()->findOne(['user_id' => $userId, 'status' => [AdminPostComment::STATUS_DEL, '<>']], 'count');
 		$postCommentCount = empty($tmp[0]['total']) ? 0 : intval($tmp[0]['total']);
-		$tmp = AdminInformationComment::getInstance()->findOne(['user_id' => $userId, 'status' => [AdminInformationComment::STATUS_DELETE, '<>']], 'count(*) total');
+		$informationCommentCount = AdminInformationComment::getInstance()->findOne(['user_id' => $userId, 'status' => [AdminInformationComment::STATUS_DELETE, '<>']], 'count');
 		$informationCommentCount = empty($tmp[0]['total']) ? 0 : intval($tmp[0]['total']);
 		$user['item_total'] = [
 			'post_total' => $postCount,

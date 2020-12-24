@@ -42,8 +42,7 @@ class UserCenter extends FrontUserController
 		// 关注数
 		$followCount = count(AppFunc::getUserFollowing($this->authId));
 		// 获赞数
-		$fabolusNumber = AdminUserOperate::getInstance()->findOne(['author_id' => $this->authId, 'type' => 1], 'count(*) total');
-		$fabolusNumber = empty($fabolusNumber['total']) ? 0 : intval($fabolusNumber['total']);
+		$fabolusNumber = AdminUserOperate::getInstance()->findOne(['author_id' => $this->authId, 'type' => 1], 'count');
 		// 输出数据
 		$result = [
 			'user_info' => $userInfo,
@@ -219,17 +218,13 @@ class UserCenter extends FrontUserController
 				'interest_un_read_count' => 0,//关注未读
 			];
 			$where = ['user_id' => $this->authId, 'type' => 1, 'status' => AdminMessage::STATUS_UNREAD];
-			$total = AdminMessage::getInstance()->findOne($where, 'count(*) total');
-			$result['sys_un_read_count'] = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
+			$result['sys_un_read_count'] = AdminMessage::getInstance()->findOne($where, 'count');
 			$where = ['user_id' => $this->authId, 'type' => 2, 'status' => AdminMessage::STATUS_UNREAD];
-			$total = AdminMessage::getInstance()->findOne($where, 'count(*) total');
-			$result['fabolus_un_read_count'] = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
+			$result['fabolus_un_read_count'] = AdminMessage::getInstance()->findOne($where, 'count');
 			$where = ['user_id' => $this->authId, 'type' => 3, 'status' => AdminMessage::STATUS_UNREAD];
-			$total = AdminMessage::getInstance()->findOne($where, 'count(*) total');
-			$result['comment_un_read_count'] = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
+			$result['comment_un_read_count'] = AdminMessage::getInstance()->findOne($where, 'count');
 			$where = ['user_id' => $this->authId, 'type' => 4, 'status' => AdminMessage::STATUS_UNREAD];
-			$total = AdminMessage::getInstance()->findOne($where, 'count(*) total');
-			$result['interest_un_read_count'] = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
+			$result['interest_un_read_count'] = AdminMessage::getInstance()->findOne($where, 'count');
 			// 首条通知
 			$where = ['status' => [AdminMessage::STATUS_DEL, '<>'], 'type' => 1, 'user_id' => $this->authId];
 			$result['last_sys_message'] = AdminMessage::getInstance()
@@ -817,9 +812,8 @@ class UserCenter extends FrontUserController
 		foreach ($tasks as $k => $v) {
 			if ($v['status'] != AdminUserSerialPoint::TASK_STATUS_NORMAL) continue;
 			$id = intval($v['id']);
-			$times = $id < 1 ? 0 : AdminUserSerialPoint::getInstance()
-				->findOne(['task_id' => $id, 'created_at' => date('Y-m-d'), 'user_id' => $this->authId], 'count(*) total');
-			$tasks[$k]['done_times'] = empty($times[0]['total']) ? 0 : intval($times);
+			$tasks[$k]['done_times'] = $id < 1 ? 0 : AdminUserSerialPoint::getInstance()
+				->findOne(['task_id' => $id, 'created_at' => date('Y-m-d'), 'user_id' => $this->authId], 'count');
 		}
 		// 用户数据
 		$user = AdminUser::getInstance()->findOne($this->authId, 'id,photo,level,is_offical,level,point');
@@ -853,8 +847,7 @@ class UserCenter extends FrontUserController
 		if (empty($task)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		//
 		$where = ['user_id' => $this->authId, 'task_id' => $taskId, 'created_at' => date('Y-m-d')];
-		$times = AdminUserSerialPoint::getInstance()->findOne($where, 'count(*) total');
-		$times = empty($times[0]['total']) ? 0 : intval($times[0]['total']);
+		$times = AdminUserSerialPoint::getInstance()->findOne($where, 'count');
 		if ($task['times_per_day'] <= $times) $this->output(Status::CODE_TASK_LIMIT, Status::$msg[Status::CODE_TASK_LIMIT]);
 		try {
 			$times = intval($task['points_per_time']);

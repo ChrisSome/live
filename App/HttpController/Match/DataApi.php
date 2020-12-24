@@ -3,7 +3,6 @@
 namespace App\HttpController\Match;
 
 use App\lib\Tool;
-use App\lib\Utils;
 use App\Common\AppFunc;
 use App\Model\AdminTeam;
 use App\lib\FrontService;

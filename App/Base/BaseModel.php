@@ -91,9 +91,11 @@ abstract class BaseModel extends AbstractModel
 			}
 		}
 		
+		$fields = trim(strtolower($fields));
+		if (!empty($fields) && $fields != 'count') $self = $self->field($fields);
+		
 		// 查询条件
-		if (empty($where)) return null;
-		if (!empty($fields)) $self = $self->field($fields);
+		if (empty($where)) return $fields == 'count' ? 0 : null;
 		if (is_array($where)) {
 			foreach ($where as $field => $v) {
 				if (is_array($v) && empty($v)) continue;
@@ -108,7 +110,7 @@ abstract class BaseModel extends AbstractModel
 					continue;
 				}
 				
-				if (is_int($field) && is_array($v)) return null;
+				if (is_int($field) && is_array($v)) return $fields == 'count' ? 0 : null;
 				
 				$extra = is_array($v) && !empty($v[1]) ? strtolower(trim($v[1])) : '';
 				
@@ -122,7 +124,7 @@ abstract class BaseModel extends AbstractModel
 					$self = $self->where('(' . $strArr . ')');
 					continue;
 				} elseif ($extra == 'in' || $extra == 'between') {
-					if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return null;
+					if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return $fields == 'count' ? 0 : null;
 					foreach ($v[0] as $kk => $vv) {
 						$v[0][$kk] = intval($vv);
 					}
@@ -150,10 +152,11 @@ abstract class BaseModel extends AbstractModel
 			} elseif (!empty($where)) {
 				$self = $self->where($where);
 			} else {
-				return null;
+				return $fields == 'count' ? 0 : null;
 			}
 			$self = $self->where($where);
 		}
+		if ($fields == 'count') return $self->count();
 		$data = $self->get();
 		return empty($data) ? null : $data;
 	}

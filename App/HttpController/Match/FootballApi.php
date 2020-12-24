@@ -6,7 +6,6 @@ use App\lib\Tool;
 use App\Model\AdminUser;
 use App\lib\FrontService;
 use App\Model\AdminMatch;
-use EasySwoole\ORM\DbManager;
 use App\Model\AdminCompetition;
 use App\Model\AdminSysSettings;
 use App\Utility\Message\Status;

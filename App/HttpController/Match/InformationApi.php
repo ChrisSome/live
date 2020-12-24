@@ -2,7 +2,6 @@
 
 namespace App\HttpController\Match;
 
-use App\lib\Utils;
 use App\Common\Time;
 use App\Common\AppFunc;
 use App\Model\AdminUser;
