@@ -374,7 +374,7 @@ class InformationApi extends FrontUserController
 		$matches = AdminMatch::getInstance()->findAll($where, null, 'match_time,asc', false, 1, 2);
 		$matches = empty($matches) ? [] : FrontService::handMatch($matches, 0, true);
 		// 资讯数据
-		$where = ['competition_id' => $competitionId, 'status_id' => AdminInformation::STATUS_NORMAL];
+		$where = ['competition_id' => $competitionId, 'status' => AdminInformation::STATUS_NORMAL];
 		[$list, $count] = AdminInformation::getInstance()
 			->findAll($where, null, 'created_at,desc', true, $page, $size);
 		$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
