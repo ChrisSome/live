@@ -50,22 +50,21 @@ class User extends FrontUserController
 	{
 		// 参数校验
 		$validator = new Validate();
-		$validator->addColumn('follow_id')->required();
+		$validator->addColumn('follow_id')->required()->min(1);
 		$validator->addColumn('action_type')->required()->inArray(['add', 'del']);
 		if (!$validator->validate($this->param())) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		}
-		$params = $this->param();
 		// 登录用户ID
 		if ($this->authId < 1) $this->output(Status::CODE_WRONG_USER, Status::$msg[Status::CODE_WRONG_USER], 3);
 		// 关注用户ID
-		$followUserId = intval($params['follow_id']);
+		$followUserId = $this->param('follow_id', true);
 		if ($this->authId == $followUserId) $this->output(Status::CODE_WRONG_USER, Status::$msg[Status::CODE_WRONG_USER], 3);
 		// 获取关注人信息
 		$user = AdminUser::getInstance()->findOne($followUserId, 'id,nickname,photo');
 		if (empty($user)) $this->output(Status::CODE_WRONG_USER, Status::$msg[Status::CODE_WRONG_USER], 3);
 		// 是否为关注
-		$isAdd = $params['action_type'] == 'add';
+		$isAdd = $this->param('action_type') == 'add';
 		if ($isAdd) {
 			// 已关注的,忽略
 			if (AppFunc::isFollow($this->authId, $followUserId)) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
@@ -77,7 +76,7 @@ class User extends FrontUserController
 			if (!empty($message)) {
 				$message->saveDataById($message['id'], ['status' => AdminMessage::STATUS_UNREAD, 'created_at' => date('Y-m-d H:i:s')]);
 			} else {
-				$data = [
+				AdminMessage::getInstance()->insert([
 					'type' => 4,
 					'item_type' => 5,
 					'title' => '关注通知',
@@ -85,8 +84,7 @@ class User extends FrontUserController
 					'user_id' => $followUserId,
 					'did_user_id' => $this->auth['id'],
 					'status' => AdminMessage::STATUS_UNREAD,
-				];
-				AdminMessage::getInstance()->insert($data);
+				]);
 			}
 		} else {
 			// 取消关注操作
@@ -107,15 +105,11 @@ class User extends FrontUserController
 	 */
 	public function informationOperate()
 	{
-		var_dump('param_data -> :');
-		print_r($this->param());
-		
 		if ($this->authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 		// 参数校验
 		$validate = new Validate();
 		$validate->addColumn('item_id')->required()->min(1);
 		$validate->addColumn('author_id')->required()->min(1);
-		$validate->addColumn('is_cancel')->required();
 		$validate->addColumn('type')->required()->inArray([1, 2, 3]); // 1点赞 2收藏 3举报
 		$validate->addColumn('item_type')->required()->inArray([1, 2, 3, 4, 5]); // 1帖子 2帖子评论 3资讯 4资讯评论 5直播间发言
 		if (!$validate->validate($this->param())) $this->output(Status::CODE_ERR, $validate->getError()->__toString());
@@ -133,13 +127,13 @@ class User extends FrontUserController
 		$itemId = $this->param('item_id', true);
 		$itemType = $this->param('item_type', true);
 		$authorId = $this->param('author_id', true);
-		$isCancel = $this->param('is_cancel', true) < 1 ? 0 : 1;
 		$operate = AdminUserOperate::getInstance()->findOne(['item_id' => $itemId, 'item_type' => $itemType, 'user_id' => $this->authId, 'type' => $type]);
+		$isCancel = empty($operate) || $operate['is_cancel'] > 0 ? 0 : 1;
 		if (!empty($operate)) {
 			if ($isCancel == $operate['is_cancel']) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 			AdminUserOperate::getInstance()->setField('is_cancel', $isCancel, $operate['id']);
 		} else {
-			$data = [
+			AdminUserOperate::getInstance()->insert([
 				'type' => $type,
 				'item_id' => $itemId,
 				'item_type' => $itemType,
@@ -147,8 +141,7 @@ class User extends FrontUserController
 				'user_id' => $this->authId,
 				'remark' => empty($remark) ? '' : addslashes(htmlspecialchars(trim($remark))),
 				'content' => empty($content) ? '' : addslashes(htmlspecialchars(trim($content))),
-			];
-			AdminUserOperate::getInstance()->insert($data);
+			]);
 		}
 		$taskData = [
 			'type' => $type,
@@ -158,9 +151,6 @@ class User extends FrontUserController
 			'is_cancel' => $isCancel,
 			'author_id' => $authorId,
 		];
-		var_dump('task_data -> :');
-		print_r($taskData);
-		
 		TaskManager::getInstance()->async(new UserOperateTask(['payload' => $taskData]));
 		//		TaskManager::getInstance()->async(function () use ($itemType, $type, $itemId, $authorId, $isCancel) {
 		//			if ($itemType == 1) {

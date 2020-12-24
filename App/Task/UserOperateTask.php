@@ -52,12 +52,8 @@ class UserOperateTask implements TaskInterface
 		$type = $this->taskData['type'];
 		$itemId = $this->taskData['item_id'];
 		$itemType = $this->taskData['item_type'];
-		$isCancel = $this->taskData['is_cancel'];
 		$authorId = $this->taskData['author_id'];
-		
-		
-		var_dump('task_inside_data -> :');
-		print_r($this->taskData);
+		$isCancel = $this->taskData['is_cancel'] > 0;
 		
 		if ($itemType == 1) {
 			$model = AdminUserPost::getInstance();
@@ -77,6 +73,7 @@ class UserOperateTask implements TaskInterface
 		} else {
 			return false;
 		}
+		
 		switch ($type) {
 			case 1:
 				$tmp = $model->findOne($itemId, 'fabolus_number');
