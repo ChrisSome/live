@@ -71,7 +71,7 @@ class UserCenter extends FrontUserController
 			if (!empty($keywords)) {
 				$sqlTemplate = 'select %s ' .
 					'from admin_user_operates as a inner join admin_user_posts as b on a.item_id=b.id ' .
-					'where a.item_type=1 and a.type=2 and b.user_id=%b and b.status in(1,2,6) and b.title like "%s"';
+					'where a.item_type=1 and a.type=2 and b.user_id=%s and b.status in(1,2,6) and b.title like "%s"';
 				$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
 					$fields = 'b.id,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
 					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
@@ -105,7 +105,7 @@ class UserCenter extends FrontUserController
 		if (!empty($keywords)) {
 			$sqlTemplate = 'select %s ' .
 				'from admin_user_operates as a inner join admin_information as b on a.item_id=b.id ' .
-				'where a.item_type=3 and a.type=2 and b.user_id=%b and b.title like "%s"';
+				'where a.item_type=3 and a.type=2 and b.user_id=%s and b.title like "%s"';
 			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
 				$fields = 'b.id,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
 				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
@@ -685,8 +685,6 @@ class UserCenter extends FrontUserController
 		}
 		// 清单排序
 		$result = array_merge($posts, $postComments, $informationComments);
-		print_r($result);
-		
 		usort($result, function ($av, $bv) {
 			$as = $av['created_at'];
 			$bs = $bv['created_at'];
