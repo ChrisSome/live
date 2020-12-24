@@ -3,6 +3,7 @@
 namespace App\Base;
 
 use App\Model\AdminUser;
+use App\Utility\Log\Log;
 use EasySwoole\EasySwoole\Config;
 
 use App\Model\AdminLog as LogModel;

@@ -14,7 +14,7 @@ use App\Utility\Log\Log;
 
 class Upload extends FrontUserController
 {
-    public $needCheckToken = true;
+    public $needCheckToken = false;
     public $isCheckSign = false;
     function index()
     {
@@ -65,7 +65,6 @@ class Upload extends FrontUserController
     public function ossUpload()
     {
 
-
         $request = $this->request();
         $file = $request->getUploadedFile('file');
         $tempFile = $file->getTempName();
@@ -79,8 +78,11 @@ class Upload extends FrontUserController
         $fileName = $file->getClientFileName();
 
         $extension = pathinfo($fileName)['extension'];
-        $baseName = Utils::getFileKey($fileName) . '.' .$extension;
+        if (!in_array($extension, ['jpg', 'png', 'gif', 'jpeg', 'ico'])) {
+            return $this->writeJson(Status::CODE_ERR, '不支持的类型');
 
+        }
+        $baseName = Utils::getFileKey($fileName) . '.' .$extension;
 
         $ossClient = new OssService($sUploadType);
         $res = $ossClient->uploadFile($baseName, $tempFile);
