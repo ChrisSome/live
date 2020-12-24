@@ -289,21 +289,27 @@ class UserCenter extends FrontUserController
 			$postCommentMapper = empty($postCommentIds) ? [] : AdminPostComment::getInstance()
 				->findAll(['id' => [$postCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v) use (&$postIds) {
+			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v, $k) use (&$postIds) {
 				$id = intval($v['post_id']);
+				$postCommentMapper[$k]['content'] = empty($v['content']) ? '' : base64_decode($v['content']);
 				if ($id > 0 && !in_array($id, $postIds)) $postIds[] = $id;
 			});
 			// 帖子映射
 			$fields = 'id,title,content';
 			$postMapper = empty($postIds) ? [] : AdminUserPost::getInstance()
 				->findAll(['id' => [$postIds, 'in']], $fields, null, false, 0, 0, 'id,*,true');
+			$postMapper = empty($postMapper) ? [] : array_map(function ($v) {
+				$v['content'] = empty($v['content']) ? '' : base64_decode($v['content']);
+				return $v;
+			}, $postMapper);
 			// 资讯回复映射
 			$fields = 'id,content';
 			$informationCommentMapper = empty($informationCommentIds) ? [] : AdminInformationComment::getInstance()
 				->findAll(['id' => [$informationCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($informationCommentMapper)) array_walk($informationCommentMapper, function ($v) use (&$informationIds) {
+			if (!empty($informationCommentMapper)) array_walk($informationCommentMapper, function ($v, $k) use (&$informationIds) {
 				$id = intval($v['information_id']);
+				$informationCommentMapper[$k]['content'] = empty($v['content']) ? '' : base64_decode($v['content']);
 				if ($id > 0 && !in_array($id, $informationIds)) $informationIds[] = $id;
 			});
 			// 资讯映射
@@ -320,7 +326,7 @@ class UserCenter extends FrontUserController
 				$userId = intval($v['did_user_id']);
 				$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 				// 帖子数据
-				$post = ($itemType != 1 && $itemType != 2) || empty($postMapper[$itemId]) ? [] : $postMapper[$itemId];
+				$post = $itemType != 1 || empty($postMapper[$itemId]) ? [] : $postMapper[$itemId];
 				if (!empty($post)) $post['content'] = base64_decode($post['content']);
 				// 帖子回复数据
 				$postComment = $itemType != 2 || empty($postCommentMapper[$itemId]) ? [] : $postCommentMapper[$itemId];
@@ -687,6 +693,8 @@ class UserCenter extends FrontUserController
 		}
 		// 清单排序
 		$result = array_merge($posts, $postComments, $informationComments);
+		print_r($result);
+		
 		usort($result, function ($av, $bv) {
 			$as = $av['created_at'];
 			$bs = $bv['created_at'];
