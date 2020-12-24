@@ -3,6 +3,7 @@ namespace App\lib;
 
 use App\Common\AppFunc;
 use App\HttpController\Match\FootballApi;
+use App\Model\AdminCompetition;
 use App\Model\AdminInformation;
 use App\Model\AdminInterestMatches;
 use App\Model\AdminInterestMatchesBak;
@@ -777,6 +778,71 @@ class  FrontService {
 
         return $format;
     }
+
+
+    /**
+     * @param $informationList
+     * @param $authId
+     * @return array
+     * @throws
+     */
+    public static function handInformation2($informationList, $authId): array
+    {
+        if (empty($informationList)) return [];
+        // 映射数据
+        $ids = $userIds = $competitionIds = [];
+        array_walk($informationList, function ($v) use (&$ids, &$userIds, &$competitionIds) {
+            $id = intval($v['id']);
+            if ($id > 0 && !in_array($id, $ids)) $ids[] = $id;
+            $id = intval($v['user_id']);
+            if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+            $id = intval($v['competition_id']);
+            if ($id > 0 && !in_array($id, $competitionIds)) $competitionIds[] = $id;
+        });
+        // 用户映射
+        $userMapper = empty($userIds) ? [] : AdminUser::getInstance()
+            ->findAll(['id' => [$userIds, 'in']], 'id,nickname,photo,is_offical,level', null,
+                false, 0, 0, 'id,*,true');
+
+        // 赛事映射
+        $competitionMapper = empty($competitionIds) ? [] : AdminCompetition::getInstance()
+            ->findAll(['id' => [$competitionIds, 'in']], null, null,
+                false, 0, 0, 'id,*,true');
+        $where = ['item_id' => [$ids, 'in'], 'item_type' => 3, 'type' => 1, 'is_cancel' => 0];
+        $tmp = empty($ids) ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id,user_id');
+        $operateMapper = [];
+        array_walk($tmp, function ($v) use (&$operateMapper, $authId) {
+            $itemId = intval($v['item_id']);
+            $operateMapper[$itemId . '_' . $authId] = 1;
+        });
+
+        $list = [];
+        foreach ($informationList as $v) {
+            if ($v['created_at'] > date('Y-m-d H:i:s')) continue;
+            $id = intval($v['id']);
+            $userId = intval($v['user_id']);
+            $user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
+            if (empty($user)) continue;
+            $competitionId = intval($v['competition_id']);
+            $competition = empty($competitionMapper[$competitionId]) ? null : $competitionMapper[$competitionId];
+            $list[] = [
+                'id' => $id,
+                'user' => $user,
+                'img' => $v['img'],
+                'title' => $v['title'],
+                'status' => $v['status'],
+                'is_title' => $v['type'] == 1,
+                'created_at' => $v['created_at'],
+                'competition_id' => $competitionId,
+                'respon_number' => intval($v['respon_number']),
+                'fabolus_number' => intval($v['fabolus_number']),
+                'is_fabolus' => $authId > 0 ? !empty($operateMapper[$id . '_' . $authId]) : false,
+                'competition_short_name_zh' => empty($competition['short_name_zh']) ? '' : $competition['short_name_zh'],
+            ];
+        }
+        return $list;
+    }
+
 
     /**
      * @param $users

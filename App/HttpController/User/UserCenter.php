@@ -13,6 +13,7 @@ use App\Model\AdminPostComment;
 use App\Model\AdminUser;
 use App\Model\AdminUserFeedBack;
 use App\Model\AdminUserFoulCenter;
+use App\Model\AdminUserInterestCompetition;
 use App\Model\AdminUserOperate;
 use App\Model\AdminUserPhonecode;
 use App\Model\AdminUserPost;
@@ -70,20 +71,18 @@ class UserCenter   extends FrontUserController{
      * 收藏夹
      * @return bool
      */
-    public function userBookMark()
+    public function userBookMark1()
     {
 
         $uid = $this->auth['id'];
         if (!$uid) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
         }
         $key_word = $this->params['key_word'];
         $page = $this->params['page'] ?: 1;
         $size = $this->params['size'] ?: 10;
         $type = $this->params['type'] ?: 1;
         if ($type == 1) {
-
             if ($key_word) {
                 $queryBuild = new QueryBuilder();
                 $queryBuild->raw("select i.id, i.title, i.content, i.user_id, i.fabolus_number, i.`collect_number`, i.respon_number, i.created_at, i.status from admin_user_operates o inner join `admin_user_posts` i on o.item_id=i.id  where o.item_type=1 and i.status in (1, 2, 6)  and o.user_id=? and o.type=2 and i.title like '%" . $key_word . "%'",[$uid, $key_word]);
@@ -111,22 +110,19 @@ class UserCenter   extends FrontUserController{
                 } else {
                     $format_posts = [];
                 }
-
                 $return_data = ['list' => $format_posts, 'count' => $total];
             }
 
         } else if ($type == 2) {//资讯
             if ($key_word) {
-
-
                 $queryBuild = new QueryBuilder();
-                $queryBuild->raw("select i.id, i.title, i.content, i.user_id, i.fabolus_number, i.`collect_number`, i.respon_number, i.created_at, i.status from admin_user_operates o inner join `admin_information` i on o.item_id=i.id  where o.item_type=3  and o.user_id=? and o.type=2 and i.title like '%" . $key_word . "%'",[$uid, $key_word]);
+                $queryBuild->raw("select i.id, i.title, i.user_id, i.img, i.fabolus_number, i.`collect_number`, i.respon_number, i.created_at, i.status, i.competition_id, i.type, i.img from admin_user_operates o inner join `admin_information` i on o.item_id=i.id  where o.item_type=3  and o.user_id=? and o.type=2 and i.title like '%" . $key_word . "%'",[$uid, $key_word]);
                 $data = DbManager::getInstance()->query($queryBuild, true, 'default')->toArray();
 
                 $queryBuild->raw("select count(*) total from admin_user_operates o inner join `admin_information` i on o.item_id=i.id  where o.item_type=3  and o.user_id=? and o.type=2 and i.title like '%" . $key_word . "%'",[$uid, $key_word]);
                 $count = DbManager::getInstance()->query($queryBuild, true, 'default')->toArray();
                 $total = $count['result'][0]['total'];
-
+                //相关的user
                 if ($data['result']) {
                     foreach ($data['result'] as $ik => $information) {
                         $user = AdminUser::getInstance()->where('id', $information['user_id'])->field(['id', 'photo', 'nickname', 'level', 'is_offical'])->get()->toArray();
@@ -161,6 +157,43 @@ class UserCenter   extends FrontUserController{
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_data);
 
+
+    }
+
+    public function userBookMark()
+    {
+        $user_id = (int)$this->auth['id'];
+        $key_word = trim($this->params['key_word']);
+        $page = !empty($this->params['page']) ? (int)$this->params['page'] : 1;
+        $size = !empty($this->params['size']) ? (int)$this->params['size'] : 10;
+        $type = !empty($this->params['type']) ? (int)$this->params['type'] : 1;
+
+        if ($type == 1) { //收藏的帖子
+            $model = AdminUserOperate::getInstance()->alias('o')->join('admin_user_posts as p', 'o.item_id=p.id and o.author_id=p.user_id', 'inner')
+                ->field(['p.*'])->where('o.user_id', $user_id)->where('o.type', 2)->where('item_type', 1)->where('o.is_cancel', 0);
+            if ($key_word) {
+                $model = $model->where('p.title', '%' . $key_word . '%', 'like');
+            }
+            $model = $model->getLimit($page, $size);
+            $postList = $model->all();
+            $total = $model->lastQueryResult()->getTotalCount();
+            if (!$postList) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+            $formatPost = FrontService::handPosts($postList, $user_id);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $formatPost, 'count' => $total]);
+        } else { //收藏的资讯
+            $model = AdminUserOperate::getInstance()->alias('o')->join('admin_information as i', 'o.item_id=i.id and o.author_id=i.user_id', 'inner')
+                ->field(['i.*'])->where('o.user_id', $user_id)->where('o.type', 2)->where('item_type', 3)->where('o.is_cancel', 0);
+            if ($key_word) {
+                $model = $model->where('i.title', '%' . $key_word . '%', 'like');
+            }
+            $model = $model->getLimit($page, $size);
+            $operates = $model->all();
+            $informationIds = array_column($operates, 'id');
+            $informations = AdminInformation::create()->where('id', $informationIds, 'in')->all();
+            $formatInformation = FrontService::handInformation($informations, $user_id);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatInformation);
+
+        }
 
     }
 
@@ -667,15 +700,6 @@ class UserCenter   extends FrontUserController{
     public function myFabolusInfo()
     {
 
-        $params = $this->params;
-        $valitor = new Validate();
-
-        $valitor->addColumn('type')->required()->inArray(["1", "2", "3", "4", "5" , "6"]);
-        $valitor->addColumn('item_type')->required()->inArray([1,2,4]); //1帖子 2帖子评论 4资讯评论
-        if (!$valitor->validate($params)) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-        }
         $uid = $this->auth['id'];
         //帖子
         $posts = AdminUserOperate::getInstance()->func(function ($builder) use($uid){

@@ -35,12 +35,12 @@ class AdminUserPost extends BaseModel
 //        return base64_decode($data['content']);
 //
 //    }
-    public function findAll($page, $limit)
-    {
-        return $this->order('created_at', 'DESC')
-            ->limit(($page - 1) * $limit, $limit)
-            ->all();
-    }
+//    public function findAll($page, $limit)
+//    {
+//        return $this->order('created_at', 'DESC')
+//            ->limit(($page - 1) * $limit, $limit)
+//            ->all();
+//    }
 
     public function getLimit($page, $limit, $order = 'created_at', $desc = 'DESC')
     {
