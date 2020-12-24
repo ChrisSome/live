@@ -146,7 +146,7 @@ class FootballApi extends FrontUserController
 		if (!empty($tmp['competition_ids'])) $interest = json_decode($tmp['competition_ids'], true);
 		foreach ($result as $k => $v) {
 			foreach ($v as $kk => $vv) {
-				$recommend[$k][$kk]['is_notice'] = in_array($vv['competition_id'], $interest);
+				$result[$k][$kk]['is_notice'] = in_array($vv['competition_id'], $interest);
 			}
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);

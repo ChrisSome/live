@@ -289,15 +289,15 @@ class User extends FrontUserController
 	{
 		// 参数校验
 		$validate = new Validate();
-		$validate->addColumn('match_id')->required();
+		$validate->addColumn('match_id')->required()->min(1);
 		$validate->addColumn('type')->required()->inArray(['add', 'del']);
 		if (!$validate->validate($this->param())) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		}
-		$params = $this->param();
 		// 当前登录用户ID
-		$matchId = $params['match_id'];
-		if ($params['type'] == 'add') {
+		$matchId = $this->param('match_id', true);
+		$type = $this->param('type');
+		if ($type == 'add') {
 			$res = AppFunc::userDoInterestMatch($matchId, $this->authId);
 		} else {
 			$res = AppFunc::userDelInterestMatch($matchId, $this->authId);
