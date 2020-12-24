@@ -198,6 +198,8 @@ class Community extends FrontUserController
 	 */
 	public function postAdd()
 	{
+		print_r($this->param());
+		
 		// 登录校验
 		if ($this->authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 		// 是否频繁操作
