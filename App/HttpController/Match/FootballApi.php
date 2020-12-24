@@ -364,7 +364,7 @@ class FootballApi extends FrontUserController
 		$currentSeasonId = empty($season['cur_season_id']) ? 0 : intval($season['cur_season_id']);
 		
 		if ($currentSeasonId < 1) {
-			$intRank = [];
+			$intRank = ['homeIntvalRank' => null, 'awayIntvalRank' => null];
 		} else {
 			$res = SeasonAllTableDetail::getInstance()->findOne(['season_id' => $currentSeasonId]);
 			
@@ -424,7 +424,7 @@ class FootballApi extends FrontUserController
 			'intvalRank' => $intRank, //积分排名
 			'historyResult' => !empty($sensuous['history']) ? json_decode($sensuous['history'], true) : [],
 			'recentResult' => !empty($sensuous['recent']) ? json_decode($sensuous['recent'], true) : [],
-			'history' => $formatHistoryMatches, //历史交锋
+			'history' => FrontService::formatMatchThree(array_slice($formatHistoryMatches, 0, 10), 0, []),//历史交锋
 			'homeRecent' => FrontService::formatMatchThree(array_slice($homeRecentMatches, 0, 10), 0, []),//主队近期战绩
 			'awayRecent' => FrontService::formatMatchThree(array_slice($awayRecentMatches, 0, 10), 0, []),//客队近期战绩
 			'homeRecentSchedule' => FrontService::formatMatchThree(array_slice($homeRecentSchedule, 0, 10), 0, []),//主队近期赛程

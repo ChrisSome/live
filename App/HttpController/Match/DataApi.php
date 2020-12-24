@@ -376,7 +376,7 @@ class DataApi extends FrontUserController
 			if (!empty($country)) $result['country_info'] = ['name_zh' => $country['name_zh'], 'logo' => $country['logo']];
 			// 转会历史
 			$tmp = AdminPlayerChangeClub::getInstance()
-				->findAll(['player_id' => $playerId], 'player_id,from_team_id,to_team_id,transfer_type', 'transfer_time,desc');
+				->findAll(['player_id' => $playerId], 'player_id,from_team_id,transfer_time,to_team_id,transfer_type', 'transfer_time,desc');
 			if (!empty($tmp)) {
 				foreach ($tmp as $v) {
 					$toTeam = $v->ToTeamInfo();
