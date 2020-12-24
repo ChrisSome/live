@@ -813,18 +813,14 @@ class AppFunc
 		}
 	}
 	
-	public static function getBasic($match_id)
+	public static function getBasic($matchId)
 	{
-		if ($match = AdminMatch::getInstance()->where('match_id', $match_id)->get()) {
-			$format = FrontService::handMatch([$match], 0, true);
-			if (isset($format[0])) {
-				return $format[0];
-			} else {
-				return [];
-			}
-		} else {
-			return [];
+		$match = AdminMatch::getInstance()->findOne(['match_id' => $matchId]);
+		if (!empty($match)) {
+			$format = FrontService::formatMatchThree([$match], 0, false);
+			if (!empty($format[0])) return $format[0];
 		}
+		return [];
 	}
 	
 	public static function changeArrToStr(array $arr)

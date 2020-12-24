@@ -63,6 +63,9 @@ class Upload extends FrontUserController
 		}
 		$filename = $file->getClientFileName();
 		$suffix = pathinfo($filename)['extension'];
+		if (!in_array($suffix, ['jpg', 'png', 'gif', 'jpeg', 'ico'])) {
+			$this->output(Status::CODE_ERR, '不支持的类型');
+		}
 		$baseName = Utils::getFileKey($filename) . '.' . $suffix;
 		// 上传文件
 		$client = new OssService($uploadType);
