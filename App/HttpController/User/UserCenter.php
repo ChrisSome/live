@@ -84,10 +84,19 @@ class UserCenter extends FrontUserController
 					return true;
 				});
 				$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
-				foreach ($list as $k => $v) {
+				// 用户映射
+				$userIds = [];
+				if (!empty($list)) array_walk($list, function ($v) use (&$userIds) {
 					$id = intval($v['user_id']);
-					$user = $id < 1 ? null : AdminUser::getInstance()->findOne($id, 'id,photo,nickname,level,is_offical');
-					$list[$k]['user_info'] = empty($user) ? [] : $user->toArray();
+					if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+				});
+				$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
+					->findAll(['id' => [$userIds, 'in']], 'id,photo,nickname,level,is_offical', null,
+						false, 0, 0, 'id,*,true');
+				foreach ($list as $k => $v) {
+					$userId = intval($v['user_id']);
+					$list[$k]['content'] = base64_decode($v['content']);
+					$list[$k]['user_info'] = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 				}
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
 			}
@@ -118,10 +127,19 @@ class UserCenter extends FrontUserController
 				return true;
 			});
 			$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
-			foreach ($list as $k => $v) {
+			// 用户映射
+			$userIds = [];
+			if (!empty($list)) array_walk($list, function ($v) use (&$userIds) {
 				$id = intval($v['user_id']);
-				$user = $id < 1 ? null : AdminUser::getInstance()->findOne($id, 'id,photo,nickname,level,is_offical');
-				$list[$k]['user_info'] = empty($user) ? [] : $user->toArray();
+				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+			});
+			$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
+				->findAll(['id' => [$userIds, 'in']], 'id,photo,nickname,level,is_offical', null,
+					false, 0, 0, 'id,*,true');
+			foreach ($list as $k => $v) {
+				$userId = intval($v['user_id']);
+				$list[$k]['content'] = base64_decode($v['content']);
+				$list[$k]['user_info'] = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 			}
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
 		}
