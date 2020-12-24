@@ -143,28 +143,28 @@ class UserCenter extends FrontUserController
 	{
 		$user = AdminUser::getInstance()->findOne($this->authId);
 		if (empty($user)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-		$params = $this->param();
 		// 类型校验
-		$type = empty($params['type']) || intval($params['type']) < 1 ? 1 : intval($params['type']);
+		$type = $this->param('type', true, 1);
 		if ($type != 1 && $type != 2) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
 		// 更新数据
 		$data = [];
 		// 数据校验
 		$validate = new Validate();
-		$nickname = trim($params['nickname']);
+		$nickname = $this->param('nickname');
 		if (!empty($nickname) && $type == 1) {
 			$tmp = AdminUser::getInstance()->findOne(['nickname' => $nickname, 'id' => [$this->authId, '<>']]);
 			if (!empty($tmp)) $this->output(Status::CODE_USER_DATA_EXIST, Status::$msg[Status::CODE_USER_DATA_EXIST]);
 			$validate->addColumn('nickname', '申请昵称')->required()->lengthMax(32)->lengthMin(4);
 			$data['nickname'] = $nickname;
 		}
-		if (!empty($params['photo']) && $type == 2) {
+		$photo = $this->param('photo');
+		if (!empty($photo) && $type == 2) {
 			$validate->addColumn('photo', '申请头像')->required()->lengthMax(128);
-			$data['photo'] = $params['photo'];
+			$data['photo'] = $photo;
 		}
-		if (!empty($params['old_password']) && !empty($params['new_password']) && $type == 3) {
-			$passwordOld = trim($params['old_password']);
-			$passwordNew = trim($params['new_password']);
+		$passwordOld = $this->param('old_password');
+		$passwordNew = $this->param('new_password');
+		if (!empty($passwordOld) && !empty($passwordNew) && $type == 3) {
 			if (!preg_match('/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,12}$/', $passwordNew)) {
 				$this->output(Status::CODE_W_FORMAT_PASS, Status::$msg[Status::CODE_W_FORMAT_PASS]);
 			}
@@ -173,7 +173,7 @@ class UserCenter extends FrontUserController
 			}
 			$data['password_hash'] = PasswordTool::getInstance()->generatePassword($passwordNew);
 		}
-		$mobile = empty($params['mobile']) ? '' : trim($params['mobile']);
+		$mobile = $this->param('mobile');
 		if (!empty($mobile) && $type == 4) {
 			if (!preg_match("/^1[3456789]\d{9}$/", $mobile)) {
 				$this->output(Status::CODE_W_PHONE, Status::$msg[Status::CODE_W_PHONE]);
@@ -702,15 +702,14 @@ class UserCenter extends FrontUserController
 	 */
 	public function foulCenter()
 	{
-		$params = $this->param();;
 		// 分页参数
 		$page = $this->param('page', true, 1);
 		$size = $this->param('size', true, 10);
 		// 分页数据
 		$fields = 'id,reason,info,created_at,item_type,item_id,item_punish_type,user_punish_type';
-		$result = AdminUserFoulCenter::getInstance()
+		[$list, $count] = AdminUserFoulCenter::getInstance()
 			->findAll(['user_id' => $this->authId], $fields, 'created_at,desc', true, $page, $size);
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}
 	
 	/**
