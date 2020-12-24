@@ -56,6 +56,7 @@ class UserOperateTask implements TaskInterface
 		$authorId = $this->taskData['author_id'];
 		
 		
+		var_dump('task_inside_data -> :');
 		print_r($this->taskData);
 		
 		if ($itemType == 1) {
