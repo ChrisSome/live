@@ -54,6 +54,10 @@ class UserOperateTask implements TaskInterface
 		$itemType = $this->taskData['item_type'];
 		$isCancel = $this->taskData['is_cancel'];
 		$authorId = $this->taskData['author_id'];
+		
+		
+		print_r($this->taskData);
+		
 		if ($itemType == 1) {
 			$model = AdminUserPost::getInstance();
 			$statusReport = AdminUserPost::NEW_STATUS_REPORTED;

@@ -107,6 +107,8 @@ class User extends FrontUserController
 	 */
 	public function informationOperate()
 	{
+		print_r($this->param());
+		
 		if ($this->authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 		// 参数校验
 		$validate = new Validate();
@@ -155,6 +157,8 @@ class User extends FrontUserController
 			'is_cancel' => $isCancel,
 			'author_id' => $authorId,
 		];
+		print_r($taskData);
+		
 		TaskManager::getInstance()->async(new UserOperateTask(['payload' => $taskData]));
 		//		TaskManager::getInstance()->async(function () use ($itemType, $type, $itemId, $authorId, $isCancel) {
 		//			if ($itemType == 1) {
