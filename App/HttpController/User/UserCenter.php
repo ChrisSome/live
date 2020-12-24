@@ -59,12 +59,11 @@ class UserCenter extends FrontUserController
 	 */
 	public function userBookMark()
 	{
-		$params = $this->param();
 		// 类型校验
-		$type = empty($params['type']) || intval($params['type']) < 1 ? 1 : intval($params['type']);
+		$type = $this->param('type', true, 1);
 		if ($type != 1 && $type != 2) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);;
 		// 关键字
-		$keywords = trim($params['key_word']);
+		$keywords = $this->param('key_word');
 		// 分页参数
 		$page = $this->param('page', true, 1);
 		$size = $this->param('size', true, 10);
@@ -72,16 +71,16 @@ class UserCenter extends FrontUserController
 			if (!empty($keywords)) {
 				$sqlTemplate = 'select %s ' .
 					'from admin_user_operates as a inner join admin_user_posts as b on a.item_id=b.id ' .
-					'where a.item_type=1 and a.type=2 and a.user_id=%b and b.status in(1,2,6) and b.title like "%%s%"';
+					'where a.item_type=1 and a.type=2 and b.user_id=%b and b.status in(1,2,6) and b.title like "%s"';
 				$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-					$fields = 'a.id,a.title,a.content,a.user_id,a.fabolus_number,a.collect_number,a.respon_number,a.created_at,a.status';
-					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, $keywords), []);
+					$fields = 'b.id,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
+					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
 					return true;
 				});
 				$list = empty($list) ? [] : $list;
 				$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-					$fields = 'count(a.id) total';
-					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, $keywords), []);
+					$fields = 'count(*) total';
+					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
 					return true;
 				});
 				$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
@@ -106,16 +105,16 @@ class UserCenter extends FrontUserController
 		if (!empty($keywords)) {
 			$sqlTemplate = 'select %s ' .
 				'from admin_user_operates as a inner join admin_information as b on a.item_id=b.id ' .
-				'where a.item_type=3 and a.type=2 and a.user_id=%b and b.title like "%%s%"';
+				'where a.item_type=3 and a.type=2 and b.user_id=%b and b.title like "%s"';
 			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-				$fields = 'a.id,a.title,a.content,a.user_id,a.fabolus_number,a.collect_number,a.respon_number,a.created_at,a.status';
-				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, $keywords), []);
+				$fields = 'b.id,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
+				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
 				return true;
 			});
 			$list = empty($list) ? [] : $list;
 			$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-				$fields = 'count(a.id) total';
-				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, $keywords), []);
+				$fields = 'count(*) total';
+				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
 				return true;
 			});
 			$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
