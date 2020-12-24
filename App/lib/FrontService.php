@@ -498,7 +498,7 @@ class  FrontService
 	static function formatMatchThree($matches, $uid, $interestMatchArr)
 	{
 		if (empty($matches)) return [];
-
+		
 		$data = [];
 		//用户关注比赛
 		$userInterestMatchIds = $interestMatchArr;
@@ -511,9 +511,9 @@ class  FrontService
 			$is_start = false;
 			if (in_array($match->status_id, FootballApi::STATUS_SCHEDULE)) {
 				$is_start = false;
-			} else if (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
+			} elseif (in_array($match->status_id, FootballApi::STATUS_PLAYING)) {
 				$is_start = true;
-			} else if (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
+			} elseif (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
 				$is_start = false;
 			}
 			$has_living = 0;
@@ -545,7 +545,7 @@ class  FrontService
 			$item['note'] = $match->note;  //备注   欧青连八分之一决赛
 			$item['home_scores'] = $match->home_scores;  //主队比分
 			$item['away_scores'] = $match->away_scores;  //主队比分
-			$item['steamLink'] = !empty($steamLike['mobile_link']) ? $steamLike['mobile_link'] : '' ;  //直播地址
+			$item['steamLink'] = !empty($steamLike['mobile_link']) ? $steamLike['mobile_link'] : '';  //直播地址
 			$item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
 			$item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
 			
@@ -776,31 +776,31 @@ class  FrontService
 		$where = ['item_id' => [$ids, 'in'], 'item_type' => 3, 'type' => 1, 'is_cancel' => 0];
 		$tmp = empty($ids) ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id,user_id');
 		$operateMapper = [];
-		array_walk($tmp, function ($v) use (&$operateMapper) {
+		array_walk($tmp, function ($v) use (&$operateMapper, $authId) {
 			$itemId = intval($v['item_id']);
-			$userId = intval($v['user_id']);
-			$operateMapper[$itemId . '_' . $userId] = 1;
+			$operateMapper[$itemId . '_' . $authId] = 1;
 		});
 		$list = [];
 		foreach ($informationList as $v) {
 			if ($v['created_at'] > date('Y-m-d H:i:s')) continue;
-			$id = intval($v['user_id']);
-			$user = empty($userMapper[$id]) ? [] : $userMapper[$id];
+			$id = intval($v['id']);
+			$userId = intval($v['user_id']);
+			$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 			if (empty($user)) continue;
-			$id = intval($v['competition_id']);
-			$competition = empty($competitionMapper[$id]) ? null : $competitionMapper[$id];
+			$competitionId = intval($v['competition_id']);
+			$competition = empty($competitionMapper[$competitionId]) ? null : $competitionMapper[$competitionId];
 			$list[] = [
-				'id' => $v['id'],
+				'id' => $id,
 				'user' => $user,
 				'img' => $v['img'],
 				'title' => $v['title'],
-				'competition_id' => $id,
 				'status' => $v['status'],
 				'is_title' => $v['type'] == 1,
 				'created_at' => $v['created_at'],
+				'competition_id' => $competitionId,
 				'respon_number' => intval($v['respon_number']),
 				'fabolus_number' => intval($v['fabolus_number']),
-				'is_fabolus' => $authId > 0 ? !empty($operateMapper[$v['id'] . '_' . $v['user_id']]) : false,
+				'is_fabolus' => $authId > 0 ? !empty($operateMapper[$id . '_' . $authId]) : false,
 				'competition_short_name_zh' => empty($competition['short_name_zh']) ? '' : $competition['short_name_zh'],
 			];
 		}
