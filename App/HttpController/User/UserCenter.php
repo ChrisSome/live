@@ -120,26 +120,13 @@ class UserCenter extends FrontUserController
 				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
 				return true;
 			});
-			$list = empty($list) ? [] : $list;
+			$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
 			$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
 				$fields = 'count(*) total';
 				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
 				return true;
 			});
 			$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
-			// 用户映射
-			$userIds = [];
-			if (!empty($list)) array_walk($list, function ($v) use (&$userIds) {
-				$id = intval($v['user_id']);
-				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
-			});
-			$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
-				->findAll(['id' => [$userIds, 'in']], 'id,photo,nickname,level,is_offical', null,
-					false, 0, 0, 'id,*,true');
-			foreach ($list as $k => $v) {
-				$userId = intval($v['user_id']);
-				$list[$k]['user_info'] = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
-			}
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
 		}
 		$where = ['user_id' => $this->authId, 'item_type' => 3, 'type' => AdminUserOperate::TYPE_BOOK_MARK];
