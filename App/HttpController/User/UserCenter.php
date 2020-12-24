@@ -355,7 +355,7 @@ class UserCenter extends FrontUserController
 				->findAll($where, null, 'created_at,desc', true, $page, $size);
 			// 映射数据
 			$userIds = $postIds = $postCommentIds = $informationCommentIds = $informationIds = [];
-			array_walk($items, function ($v) use (&$userIds, &$postIds, &$postCommentIds, &$informationCommentIds) {
+			if (!empty($items)) array_walk($items, function ($v) use (&$userIds, &$postIds, &$postCommentIds, &$informationCommentIds) {
 				$id = intval($v['item_id']);
 				if ($id > 0) {
 					$itemType = intval($v['item_type']);
@@ -389,11 +389,11 @@ class UserCenter extends FrontUserController
 				});
 			// 帖子映射
 			$postMapper = empty($postIds) ? [] : AdminUserPost::getInstance()
-				->findAll(['id' => [$postIds, 'in']], 'id,title,content', null,
+				->findAll(['id' => [$postIds, 'in']], 'id,title,content,user_id', null,
 					false, 0, 0, 'id,*,true');
 			if (!empty($postMapper)) array_walk($postMapper,
 				function ($v, $k) use (&$postCommentIds, &$postIds, &$userIds, &$postMapper) {
-					$id = intval($v['user_info']);
+					$id = intval($v['user_id']);
 					if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 					$id = intval($v['id']);
 					if ($id > 0 && !in_array($id, $postIds)) $postIds[] = $id;
@@ -428,12 +428,12 @@ class UserCenter extends FrontUserController
 			foreach ($items as $v) {
 				$messageId = intval($v['id']);
 				$id = intval($v['item_id']);
-				$userId = intval($v['user_id']);
-				$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 				$itemType = intval($v['item_type']);
 				if ($itemType == 1) { // 帖子
-					$post = empty($postMapper[$id]) ? null : empty($postMapper[$id]);
+					$post = empty($postMapper[$id]) ? null : $postMapper[$id];
 					if (empty($post)) continue;
+					$userId = intval($post['user_id']);
+					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 					$list[] = [
 						'message_id' => $messageId,
 						'created_at' => $v['created_at'],
@@ -446,6 +446,8 @@ class UserCenter extends FrontUserController
 				} elseif ($itemType == 2) { // 帖子评论
 					$comment = empty($postCommentMapper[$id]) ? null : $postCommentMapper[$id];
 					if (empty($comment)) continue;
+					$userId = intval($comment['user_id']);
+					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 					$id = intval($v['post_id']);
 					$post = empty($postMapper[$id]) ? [] : $postMapper[$id];
 					$id = intval($v['parent_id']);
@@ -463,6 +465,8 @@ class UserCenter extends FrontUserController
 				} elseif ($itemType == 4) { // 资讯回复
 					$informationComment = empty($informationCommentMapper[$id]) ? null : $informationCommentMapper[$id];
 					if (empty($informationComment)) continue;
+					$userId = intval($informationComment['user_id']);
+					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 					$id = intval($v['information_id']);
 					$information = empty($informationMapper[$id]) ? [] : $informationMapper[$id];
 					$list[] = [
