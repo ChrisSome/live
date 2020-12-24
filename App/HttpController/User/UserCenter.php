@@ -350,7 +350,7 @@ class UserCenter extends FrontUserController
 		}
 		// 评论与回复
 		if ($type == 3) {
-			$where = ['user_id' => $this->authId, '' => [[1, 2, 4], 'in'], 'type' => 3, 'status' => [AdminMessage::STATUS_DEL, '<>']];
+			$where = ['user_id' => $this->authId, 'type' => 3, 'status' => [AdminMessage::STATUS_DEL, '<>']];
 			[$items, $count] = AdminMessage::getInstance()
 				->findAll($where, null, 'created_at,desc', true, $page, $size);
 			// 映射数据

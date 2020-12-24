@@ -262,10 +262,10 @@ class InformationApi extends FrontUserController
 		TaskManager::getInstance()->async(function () use ($parentId, $informationId) {
 			if ($parentId > 0) {
 				// 父评论回复数累加
-				AdminInformationComment::getInstance()->update(['respon_number' => QueryBuilder::inc(1)], $parentId);
+				AdminInformationComment::getInstance()->update(['respon_number' => QueryBuilder::inc()], $parentId);
 			}
 			// 资讯回复数累加
-			AdminInformation::getInstance()->update(['respon_number' => QueryBuilder::inc(1)], $informationId);
+			AdminInformation::getInstance()->update(['respon_number' => QueryBuilder::inc()], $informationId);
 		});
 		TaskManager::getInstance()->async(new SerialPointTask(['task_id' => 4, 'user_id' => $this->authId]));
 		// 防频繁操作

@@ -221,9 +221,8 @@ class User extends FrontUserController
 		if (!$validate->validate($this->param())) {
 			$this->output(Status::CODE_W_PARAM, $validate->getError()->__toString());
 		}
-		$params = $this->param();
 		// 获取帖子信息
-		$postId = intval($params('post_id'));
+		$postId = $this->param('post_id', true);
 		$post = AdminUserPost::getInstance()->findOne($postId);
 		if (empty($post)) $this->output(Status::CODE_WRONG_RES, '对应帖子不存在');
 		// 未发布的帖子禁止评论
@@ -231,35 +230,37 @@ class User extends FrontUserController
 			$this->output(Status::CODE_WRONG_RES, '该帖不可评论');
 		}
 		// 获取父级评论信息
-		$parentId = empty($params['parent_id']) || intval($params['parent_id']) < 1 ? 0 : intval($params['parent_id']);
+		$parentId = $this->param('parent_id', true);
 		if ($parentId > 0) {
 			$parentComment = AdminPostComment::getInstance()->findOne($parentId);
 			if (empty($parentComment) || $parentComment['status'] != AdminPostComment::STATUS_NORMAL) {
 				$this->output(Status::CODE_WRONG_RES, '原始评论参数不正确');
 			}
 		}
+		$content = $this->param('content');
 		// 顶级回复的ID
-		$topCommentId = empty($params['top_comment_id']) || intval($params['top_comment_id']) < 1 ? 0 : intval($params['top_comment_id']);
+		$topCommentId = $this->param('top_comment_id', true);
 		$commentId = AdminPostComment::getInstance()->insert([
 			'post_id' => $postId,
 			'parent_id' => $parentId,
 			'user_id' => $this->authId,
 			'top_comment_id' => $topCommentId,
-			'content' => base64_encode(htmlspecialchars(addslashes($params['content']))),
+			'content' => base64_encode(htmlspecialchars(addslashes($content))),
 			't_u_id' => empty($parentComment['user_id']) ? intval($post['user_id']) : intval($parentComment['user_id']),
 		]);
-		$comment = AdminPostComment::getInstance()->findOne($commentId);
-		$comment = FrontService::handComments([$comment], $this->authId)[0];
-		if ($topCommentId > 0) AdminPostComment::create()->setField('respon_number', QueryBuilder::inc(1), $parentId);
+		$comment = $commentId < 1 ? null : AdminPostComment::getInstance()->findOne($commentId);
+		$comment = empty($content) ? [] : FrontService::handComments([$comment], $this->authId)[0];
+		// 回复数累加
+		$itemType = 1;
+		$commentAuthorId = intval($post['user_id']);
+		if ($topCommentId > 0) AdminPostComment::create()->update(['respon_number' => QueryBuilder::inc()], $parentId);
 		if (!empty($parentComment)) {
-			$commentAuthorId = AdminPostComment::getInstance()->findOne($parentId)->user_id;
+			$tmp = AdminPostComment::getInstance()->findOne($parentId, 'user_id');
+			$commentAuthorId = empty($tmp['user_id']) ? 0 : intval($tmp['user_id']);
 			$itemType = 2;
-		} else {
-			$commentAuthorId = AdminUserPost::getInstance()->findOne($postId)->user_id;
-			$itemType = 1;
 		}
 		// 累加回复数
-		AdminUserPost::create()->setField('respon_number', QueryBuilder::inc(), $postId);
+		AdminUserPost::getInstance()->setField('respon_number', intval($post['respon_number']) + 1, $postId);
 		// 发送消息
 		if ($commentAuthorId != $this->authId) AdminMessage::getInstance()->insert([
 			'type' => 3,
