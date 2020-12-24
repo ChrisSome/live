@@ -116,7 +116,7 @@ class UserCenter extends FrontUserController
 				'from admin_user_operates as a inner join admin_information as b on a.item_id=b.id ' .
 				'where a.item_type=3 and a.type=2 and a.user_id=%s and b.title like "%s"';
 			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-				$fields = 'b.id,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
+				$fields = 'b.id,b.competition_id,b.img,b.type,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
 				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
 				return true;
 			});
