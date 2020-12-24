@@ -477,15 +477,16 @@ class FootballApi extends FrontUserController
             }
         }
 
+
         $returnData = [
             'intvalRank' => $intvalRank, //积分排名
             'historyResult' => !empty($sensus['history']) ? json_decode($sensus['history'], true) : [],
             'recentResult' => !empty($sensus['recent']) ? json_decode($sensus['recent'], true) : [],
             'history' => array_slice($formatHistoryMatches, 9), //历史交锋
-            'homeRecent' => FrontService::formatMatchThree(array_slice($homeRecentMatches, 9), 0, []),//主队近期战绩
-            'awayRecent' => FrontService::formatMatchThree(array_slice($awayRecentMatches, 9), 0, []),//客队近期战绩
-            'homeRecentSchedule' => FrontService::formatMatchThree(array_slice($homeRecentSchedule, 9), 0, []),//主队近期赛程
-            'awayRecentSchedule' => FrontService::formatMatchThree(array_slice($awayRecentSchedule, 9), 0, []),//客队近期赛程
+            'homeRecent' => FrontService::formatMatchThree(array_slice($homeRecentMatches, 0, 10), 0, []),//主队近期战绩
+            'awayRecent' => FrontService::formatMatchThree(array_slice($awayRecentMatches, 0, 10), 0, []),//客队近期战绩
+            'homeRecentSchedule' => FrontService::formatMatchThree(array_slice($homeRecentSchedule, 0, 10), 0, []),//主队近期赛程
+            'awayRecentSchedule' => FrontService::formatMatchThree(array_slice($awayRecentSchedule, 0, 10), 0, []),//客队近期赛程
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
 
