@@ -355,7 +355,8 @@ class Community extends FrontUserController
 		$childGroupMapper = [];
 		$statusList = [AdminPostComment::STATUS_NORMAL, AdminPostComment::STATUS_REPORTED];
 		$statusStr = join(',', $statusList);
-		$subSql = 'select count(*)+1 from admin_user_post_comments x where x.top_comment_id=a.top_comment_id and x.post_id=? and x.status in(' . $statusStr . ') having (count(*)+1)<=3';
+		$subSql = 'select count(*)+1 from admin_user_post_comments x where x.top_comment_id=top_comment_id and x.post_id='.$postId.
+			' and x.status in(' . $statusStr . ') having (count(*)+1)<=3';
 		$where = ['post_id' => $postId, 'status' => [$statusList, 'in'], 'top_comment_id' => [$commentIds, 'in'], 'exists' => $subSql];
 		$tmp = empty($commentIds) ? [] : AdminPostComment::getInstance()->findAll($where, null, 'created_at desc');
 		foreach ($tmp as $v) {
