@@ -107,6 +107,8 @@ class User extends FrontUserController
 	 */
 	public function informationOperate()
 	{
+		print_r($this->param());
+		
 		if ($this->authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 		// 参数校验
 		$validate = new Validate();
