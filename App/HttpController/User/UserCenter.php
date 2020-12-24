@@ -185,7 +185,7 @@ class UserCenter extends FrontUserController
 		if (empty($data)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 更新数据
 		if (AdminUser::getInstance()->saveDataById($this->authId, $data)) {
-			// $code = empty($params['code']) ? '' : trim($params['code']);
+			// $code = $this->param('code');
 			// if (!empty($mobile) && !empty($code)) {
 			//	 AdminUserPhonecode::getInstance()
 			//		->setField('status',AdminUserPhonecode::STATUS_USED, ['code' => $code, 'mobile' => $mobile]);
