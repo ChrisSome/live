@@ -107,33 +107,34 @@ class User extends FrontUserController
 	 */
 	public function informationOperate()
 	{
-		print_r($this->param());
-		
 		if ($this->authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 		// 参数校验
 		$validate = new Validate();
-		$validate->addColumn('item_id')->required();
-		$validate->addColumn('author_id')->required();
+		$validate->addColumn('item_id')->required()->min(1);
+		$validate->addColumn('author_id')->required()->min(1);
 		$validate->addColumn('is_cancel')->required();
 		$validate->addColumn('type')->required()->inArray([1, 2, 3]); // 1点赞 2收藏 3举报
 		$validate->addColumn('item_type')->required()->inArray([1, 2, 3, 4, 5]); // 1帖子 2帖子评论 3资讯 4资讯评论 5直播间发言
 		if (!$validate->validate($this->param())) $this->output(Status::CODE_ERR, $validate->getError()->__toString());
-		$params = $this->param();
-		$type = intval($params['type']);
+		// 类型
+		$type = $this->param('type', true);
 		if (Cache::get('user_operate_information_' . $this->authId . '-type-' . $type)) {
 			$this->output(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
 		}
-		if (!empty($params['remark']) && AppFunc::have_special_char($params['remark'])) {
+		// 备注
+		$remark = $this->param('remark');
+		if (!empty($remark) && AppFunc::have_special_char($remark)) {
 			$this->output(Status::CODE_UNVALID_CODE, Status::$msg[Status::CODE_UNVALID_CODE]);
 		}
-		$itemId = intval($params['item_id']);
-		$itemType = intval($params['item_type']);
-		$authorId = intval($params['author_id']);
-		$isCancel = intval($params['is_cancel']) > 0 ? 1 : 0;
+		$content = $this->param('content');
+		$itemId = $this->param('item_id', true);
+		$itemType = $this->param('item_type', true);
+		$authorId = $this->param('author_id', true);
+		$isCancel = $this->param('is_cancel', true) < 1 ? 0 : 1;
 		$operate = AdminUserOperate::getInstance()->findOne(['item_id' => $itemId, 'item_type' => $itemType, 'user_id' => $this->authId, 'type' => $type]);
 		if (!empty($operate)) {
 			if ($isCancel == $operate['is_cancel']) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-			$operate->setField('is_cancel', $isCancel);
+			AdminUserOperate::getInstance()->setField('is_cancel', $isCancel, $operate['id']);
 		} else {
 			$data = [
 				'type' => $type,
@@ -141,8 +142,8 @@ class User extends FrontUserController
 				'item_type' => $itemType,
 				'author_id' => $authorId,
 				'user_id' => $this->authId,
-				'remark' => empty($params['remark']) ? '' : addslashes(htmlspecialchars(trim($params['remark']))),
-				'content' => empty($params['content']) ? '' : addslashes(htmlspecialchars(trim($params['content']))),
+				'remark' => empty($remark) ? '' : addslashes(htmlspecialchars(trim($remark))),
+				'content' => empty($content) ? '' : addslashes(htmlspecialchars(trim($content))),
 			];
 			AdminUserOperate::getInstance()->insert($data);
 		}
