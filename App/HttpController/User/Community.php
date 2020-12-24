@@ -310,13 +310,11 @@ class Community extends FrontUserController
 	 */
 	public function detail()
 	{
-		print_r($this->param());
-		
 		// 参数校验
-		$postId = $this->param('postId', true);
+		$postId = $this->param('post_id', true);
 		if ($postId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 排序类型 1热度/回复数 2最新回复 3最早回复
-		$orderType = $this->param('orderType', true, 1);
+		$orderType = $this->param('order_type', true, 1);
 		if ($orderType > 3 || $orderType < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取帖子信息
 		$post = AdminUserPost::getInstance()->findOne($postId);
