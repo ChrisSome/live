@@ -193,6 +193,7 @@ class FootballApi extends FrontUserController
 	public function matchListPlaying()
 	{
 		[$selectCompetitionIdArr, $interestMatchArr] = AdminUser::getUserShowCompetitionId($this->authId);
+		if(empty($selectCompetitionIdArr)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		$where = ['is_delete' => 0, 'competition_id' => [$selectCompetitionIdArr, 'in'], 'status_id' => [self::STATUS_PLAYING, 'in']];
 		$playingMatch = empty($selectCompetitionIdArr) ? [] : AdminMatch::getInstance()->findAll($where);
 		$formatMatch = empty($playingMatch) ? [] : FrontService::formatMatchThree($playingMatch, $this->authId, $interestMatchArr);
