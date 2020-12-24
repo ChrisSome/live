@@ -189,9 +189,10 @@ class UserCenter   extends FrontUserController{
             $model = $model->getLimit($page, $size);
             $operates = $model->all();
             $informationIds = array_column($operates, 'id');
+            $count = count($informationIds);
             $informations = AdminInformation::create()->where('id', $informationIds, 'in')->all();
             $formatInformation = FrontService::handInformation($informations, $user_id);
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatInformation);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $formatInformation, 'count' => $count]);
 
         }
 
