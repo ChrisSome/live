@@ -206,7 +206,7 @@ class Community extends FrontUserController
 			$this->output(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
 		}
 		// 是否发布
-		$isPublish = $this->param('is_save', true) > 0;
+		$isPublish = $this->param('is_save', true) < 1;
 		// 若已被禁言,无法发布, 否则 若包含敏感词可以保存到草稿箱
 		if ($isPublish && $this->auth['status'] == AdminUser::STATUS_FORBIDDEN) {
 			$this->output(Status::CODE_STATUS_FORBIDDEN, Status::$msg[Status::CODE_STATUS_FORBIDDEN]);
