@@ -69,9 +69,9 @@ class User extends FrontUserController
 			// 已关注的,忽略
 			if (AppFunc::isFollow($this->authId, $followUserId)) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 			// 关注操作
-			$result = AppFunc::addFollow($this->authId, $user['id']);
+			$result = AppFunc::addFollow($this->authId, $followUserId);
 			// 发送消息
-			$where = ['user_id' => $followUserId, 'item_id' => $followUserId, 'did_user_id' => $this->auth['id'], 'type' => 4, 'item_type' => 5];
+			$where = ['user_id' => $followUserId, 'item_id' => $followUserId, 'did_user_id' => $this->authId, 'type' => 4, 'item_type' => 5];
 			$message = AdminMessage::getInstance()->findOne($where);
 			if (!empty($message)) {
 				$message->saveDataById($message['id'], ['status' => AdminMessage::STATUS_UNREAD, 'created_at' => date('Y-m-d H:i:s')]);
@@ -88,12 +88,12 @@ class User extends FrontUserController
 			}
 		} else {
 			// 取消关注操作
-			$result = AppFunc::delFollow($this->authId, $user['id']);
+			$result = AppFunc::delFollow($this->authId, $followUserId);
 			// 获取消息
-			$where = ['user_id' => $followUserId, 'item_id' => $followUserId, 'did_user_id' => $this->auth['id'], 'type' => 4, 'item_type' => 5];
+			$where = ['user_id' => $followUserId, 'item_id' => $followUserId, 'did_user_id' => $this->authId, 'type' => 4, 'item_type' => 5];
 			$message = AdminMessage::getInstance()->findOne($where);
 			// 删除该条消息
-			if (!empty($message)) $message->setField('status', AdminMessage::STATUS_DEL);
+			if (!empty($message)) AdminMessage::getInstance()->setField('status', AdminMessage::STATUS_DEL, $message['id']);
 		}
 		if ($result) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		$this->output(Status::CODE_USER_FOLLOW, Status::$msg[Status::CODE_USER_FOLLOW]);

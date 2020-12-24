@@ -140,17 +140,18 @@ class Community extends FrontUserController
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 			}
 		}
-		//比赛
+		// 比赛
 		if ($type == 1 || $type == 4) {
 			$list = [];
 			$count = 0;
 			$tmp = AdminTeam::getInstance()->findAll(['name_zh' => [$keywords, 'like']], 'team_id');
 			if (!empty($tmp)) {
+				[, $interestMatchArr] = AdminUser::getUserShowCompetitionId($this->authId);
 				$teamIdsStr = join(',', array_column($tmp, 'team_id'));
 				$where = 'home_team_id in(' . $teamIdsStr . ') or away_team_id in(' . $teamIdsStr . ')';
 				[$list, $count] = AdminMatch::getInstance()
 					->findAll($where, null, 'match_time,desc', true, $page, $size);
-				$result['format_matches']['list'] = $list = FrontService::handMatch($list, 0, true, false, true);
+				$result['format_matches']['list'] = $list = FrontService::formatMatchThree($list, $this->authId, $interestMatchArr);
 				$result['format_matches']['count'] = $count;
 			}
 			if ($type == 4) {
@@ -355,7 +356,7 @@ class Community extends FrontUserController
 		$childGroupMapper = [];
 		$statusList = [AdminPostComment::STATUS_NORMAL, AdminPostComment::STATUS_REPORTED];
 		$statusStr = join(',', $statusList);
-		$subSql = 'select count(*)+1 from admin_user_post_comments x where x.top_comment_id=top_comment_id and x.post_id='.$postId.
+		$subSql = 'select count(*)+1 from admin_user_post_comments x where x.top_comment_id=top_comment_id and x.post_id=' . $postId .
 			' and x.status in(' . $statusStr . ') having (count(*)+1)<=3';
 		$where = ['post_id' => $postId, 'status' => [$statusList, 'in'], 'top_comment_id' => [$commentIds, 'in'], 'exists' => $subSql];
 		$tmp = empty($commentIds) ? [] : AdminPostComment::getInstance()->findAll($where, null, 'created_at desc');
