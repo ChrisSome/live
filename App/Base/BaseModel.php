@@ -2,7 +2,9 @@
 
 namespace App\Base;
 
+use EasySwoole\ORM\Db\Cursor;
 use EasySwoole\ORM\AbstractModel;
+use EasySwoole\ORM\Db\CursorInterface;
 
 abstract class BaseModel extends AbstractModel
 {
@@ -63,10 +65,10 @@ abstract class BaseModel extends AbstractModel
 	 * @param        $where
 	 * @param string $fields
 	 * @param null   $order
-	 * @return mixed
+	 * @return BaseModel|array|bool|AbstractModel|Cursor|CursorInterface|int|null
 	 * @throws
 	 */
-	public function findOne($where, $fields = '*', $order = null)
+	public function findOne($where, string $fields = '*', $order = null)
 	{
 		$data = null;
 		$self = self::create();
@@ -126,7 +128,7 @@ abstract class BaseModel extends AbstractModel
 				} elseif ($extra == 'in' || $extra == 'between') {
 					if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return $fields == 'count' ? 0 : null;
 					foreach ($v[0] as $kk => $vv) {
-						$v[0][$kk] = intval($vv);
+						$v[0][$kk] = preg_match('/^\d+$/', $vv) ? intval($vv) : trim($vv);
 					}
 					$self = $self->where($field, ...$v);
 				} elseif (!empty($extra)) {
@@ -215,7 +217,7 @@ abstract class BaseModel extends AbstractModel
 					} elseif ($extra == 'in' || $extra == 'between') {
 						if (!is_array($v[0]) || ($extra == 'between' && count($v[0]) != 2)) return $isPager ? [[], 0] : [];
 						foreach ($v[0] as $kk => $vv) {
-							$v[0][$kk] = intval($vv);
+							$v[0][$kk] = preg_match('/^\d+$/', $vv) ? intval($vv) : trim($vv);
 						}
 						$self = $self->where($field, ...$v);
 					} elseif (!empty($extra)) {
