@@ -318,7 +318,7 @@ class User extends FrontUserController
 		// 当前登录用户ID
 		$competition = AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $this->authId]);
 		if (!empty($competition)) {
-			$result = $competition->setField('competition_ids', $competitionId);
+			$result = AdminUserInterestCompetition::getInstance()->setField('competition_ids', $competitionId, $competition['id']);
 		} else {
 			$result = AdminUserInterestCompetition::getInstance()->insert([
 				'user_id' => $this->authId,
