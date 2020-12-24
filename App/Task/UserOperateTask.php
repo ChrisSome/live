@@ -33,109 +33,95 @@ use App\Utility\Log\Log;
  */
 class UserOperateTask implements TaskInterface
 {
-    protected $taskData;
-
-    public function __construct($taskData)
-    {
-        $this->taskData = $taskData['payload'];
-    }
-
-
-    /**
-     * @param int $taskId
-     * @param int $workerIndex
-     * @return bool|void
-     * @throws \EasySwoole\ORM\Exception\Exception
-     * @throws \EasySwoole\Pool\Exception\PoolEmpty
-     * @throws \Throwable
-     */
-    function run(int $taskId, int $workerIndex) {
-
-        $item_type = $this->taskData['item_type'];
-        $type = $this->taskData['type'];
-        $item_id = $this->taskData['item_id'];
-        $uid = $this->taskData['uid'];
-        $is_cancel = $this->taskData['is_cancel'];
-        $author_id = $this->taskData['author_id'];
-        if ($item_type == 1) {
-            $model = AdminUserPost::getInstance();
-            $status_report = AdminUserPost::NEW_STATUS_REPORTED;
-        } else if ($item_type == 2) {
-            $model = AdminPostComment::getInstance();
-            $status_report = AdminPostComment::STATUS_REPORTED;
-
-        } else if ($item_type == 3) {
-            $model = AdminInformation::getInstance();
-            $status_report = AdminInformation::STATUS_REPORTED;
-
-        } else if ($item_type == 4) {
-            $model = AdminInformationComment::getInstance();
-            $status_report = AdminInformationComment::STATUS_REPORTED;
-
-        } else if ($item_type == 5) {
-            $model = AdminUser::getInstance();
-            $status_report = AdminUser::STATUS_REPORTED;
-        } else {
-            return false;
-        }
-
-        switch ($type) {
-            case 1:
-                if (!$is_cancel) {
-                    $model->update(['fabolus_number' => QueryBuilder::inc(1)], ['id' => $item_id]);
-                    if ($author_id != $uid) {
-                        if ($message = AdminMessage::getInstance()->where('user_id',  $author_id)->where('type', 2)->where('item_type', $item_type)->where('item_id', $item_id)->where('did_user_id', $uid)->get()) {
-                            $message->status = AdminMessage::STATUS_UNREAD;
-                            $message->created_at = date('Y-m-d H:i:s');
-                            $message->update();
-                        } else {
-                            //发送消息
-                            $data = [
-                                'status' => AdminMessage::STATUS_UNREAD,
-                                'user_id' => $author_id,
-                                'type' => 2,
-                                'item_type' => $item_type,
-                                'item_id' => $item_id,
-                                'title' => '点赞通知',
-                                'did_user_id' => $uid
-                            ];
-                            AdminMessage::getInstance()->insert($data);
-                        }
-
-                    }
-                } else {
-                    $model->update(['fabolus_number' => QueryBuilder::dec(1)], ['id' => $item_id]);
-                    if ($author_id != $uid && $message = AdminMessage::getInstance()->where('user_id',  $author_id)->where('type', 2)->where('item_type', $item_type)->where('item_id', $item_id)->where('did_user_id', $uid)->get()) {
-                        $message->status = AdminMessage::STATUS_DEL;
-                        $message->update();
-                    }
-                }
-
-
-
-                break;
-            case 2:
-                if (!$is_cancel) {
-                    $model->update(['collect_number' => QueryBuilder::inc(1)], ['id' => $item_id]);
-
-                } else {
-                    $model->update(['collect_number' => QueryBuilder::dec(1)], ['id' => $item_id]);
-
-                }
-
-                break;
-            case 3:
-                $model->update(['status', $status_report], ['id' => $item_id]);
-                break;
-
-        }
-
-
-    }
-
-    function onException(\Throwable $throwable, int $taskId, int $workerIndex)
-    {
-        throw $throwable;
-    }
-
+	protected $taskData;
+	
+	public function __construct($taskData)
+	{
+		$this->taskData = $taskData['payload'];
+	}
+	
+	/**
+	 * @param int $taskId
+	 * @param int $workerIndex
+	 * @return bool
+	 * @throws
+	 */
+	function run(int $taskId, int $workerIndex): bool
+	{
+		$uid = $this->taskData['uid'];
+		$type = $this->taskData['type'];
+		$itemId = $this->taskData['item_id'];
+		$itemType = $this->taskData['item_type'];
+		$isCancel = $this->taskData['is_cancel'];
+		$authorId = $this->taskData['author_id'];
+		if ($itemType == 1) {
+			$model = AdminUserPost::getInstance();
+			$statusReport = AdminUserPost::NEW_STATUS_REPORTED;
+		} elseif ($itemType == 2) {
+			$model = AdminPostComment::getInstance();
+			$statusReport = AdminPostComment::STATUS_REPORTED;
+		} elseif ($itemType == 3) {
+			$model = AdminInformation::getInstance();
+			$statusReport = AdminInformation::STATUS_REPORTED;
+		} elseif ($itemType == 4) {
+			$model = AdminInformationComment::getInstance();
+			$statusReport = AdminInformationComment::STATUS_REPORTED;
+		} elseif ($itemType == 5) {
+			$model = AdminUser::getInstance();
+			$statusReport = AdminUser::STATUS_REPORTED;
+		} else {
+			return false;
+		}
+		switch ($type) {
+			case 1:
+				$tmp = $model->findOne($itemId, 'fabolus_number');
+				$num = empty($tmp['fabolus_number']) || intval($tmp['fabolus_number']) < 1 ? 0 : intval($tmp['fabolus_number']);
+				if (!$isCancel) {
+					$model->setField('fabolus_number', $num + 1, $itemId);
+					if ($authorId != $uid) {
+						$where = ['type' => 2, 'user_id' => $authorId, 'item_type' => $itemType, 'item_id' => $itemId, 'did_user_id' => $uid];
+						$message = AdminMessage::getInstance()->findOne($where);
+						if (!empty($message)) {
+							AdminMessage::getInstance()->saveDataById($message['id'], [
+								'status' => AdminMessage::STATUS_UNREAD,
+								'created_at' => date('Y-m-d H:i:s'),
+							]);
+						} else {
+							//发送消息
+							AdminMessage::getInstance()->insert([
+								'type' => 2,
+								'title' => '点赞通知',
+								'item_id' => $itemId,
+								'did_user_id' => $uid,
+								'user_id' => $authorId,
+								'item_type' => $itemType,
+								'status' => AdminMessage::STATUS_UNREAD,
+							]);
+						}
+					}
+				} else {
+					if ($num < 2) $num = 1;
+					$model->setField('fabolus_number', $num - 1, $itemId);
+					$where = ['type' => 2, 'user_id' => $authorId, 'item_type' => $itemType, 'item_id' => $itemId, 'did_user_id' => $uid];
+					$message = $authorId != $uid ? AdminMessage::getInstance()->findOne($where) : null;
+					if (!empty($message)) AdminMessage::getInstance()->setField('status', AdminMessage::STATUS_DEL, $message['id']);
+				}
+				break;
+			case 2:
+				$tmp = $model->findOne($itemId, 'collect_number');
+				$num = empty($tmp['collect_number']) || intval($tmp['collect_number']) < 1 ? 0 : intval($tmp['collect_number']);
+				$num = $isCancel ? ($num < 2 ? 0 : ($num - 1)) : ($num + 1);
+				$model->setField('collect_number', $num, $itemId);
+				break;
+			case 3:
+				$model->setField('status', $statusReport, $itemId);
+				break;
+		}
+		return true;
+	}
+	
+	function onException(\Throwable $throwable, int $taskId, int $workerIndex)
+	{
+		throw $throwable;
+	}
 }
