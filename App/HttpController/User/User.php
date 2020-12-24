@@ -259,8 +259,11 @@ class User extends FrontUserController
 			$commentAuthorId = empty($tmp['user_id']) ? 0 : intval($tmp['user_id']);
 			$itemType = 2;
 		}
-		// 累加回复数
-		AdminUserPost::getInstance()->setField('respon_number', intval($post['respon_number']) + 1, $postId);
+		// 帖子最新回复时间更新 & 累加回复数
+		AdminUserPost::getInstance()->saveDataById($postId, [
+			'last_respon_time', date('Y-m-d H:i:s'),
+			'respon_number' => intval($post['respon_number']) + 1,
+		]);
 		// 发送消息
 		if ($commentAuthorId != $this->authId) AdminMessage::getInstance()->insert([
 			'type' => 3,
@@ -275,8 +278,6 @@ class User extends FrontUserController
 		TaskManager::getInstance()->async(new SerialPointTask(['task_id' => 3, 'user_id' => $this->authId]));
 		// 防频繁操作
 		Cache::set('userCom' . $this->authId, 1, 5);
-		// 帖子最新回复时间更新
-		$post->setField('last_respon_time', date('Y-m-d H:i:s'));
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $comment);
 	}
 	
