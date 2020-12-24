@@ -327,13 +327,11 @@ class UserCenter extends FrontUserController
 				$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 				// 帖子数据
 				$post = $itemType != 1 || empty($postMapper[$itemId]) ? [] : $postMapper[$itemId];
-				if (!empty($post)) $post['content'] = base64_decode($post['content']);
 				// 帖子回复数据
 				$postComment = $itemType != 2 || empty($postCommentMapper[$itemId]) ? [] : $postCommentMapper[$itemId];
-				if (!empty($postComment)) $postComment['content'] = base64_decode($postComment['content']);
 				// 资讯回复数据
 				$informationComment = $itemType != 4 || empty($informationCommentMapper[$itemId]) ? [] : $informationCommentMapper[$itemId];
-				if (!empty($informationComment)) $informationComment['content'] = mb_substr(base64_decode($informationComment['content']), 0, 20);
+				if (!empty($informationComment)) $informationComment['content'] = mb_substr($informationComment['content'], 0, 20);
 				// 资讯数据
 				$informationId = empty($informationComment) ? 0 : intval($informationComment['post_id']);
 				$information = $informationId < 1 || empty($informationMapper[$informationId]) ? [] : $informationMapper[$informationId];
