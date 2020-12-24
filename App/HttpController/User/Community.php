@@ -465,8 +465,8 @@ class Community extends FrontUserController
         $data = [
             'title' => $data['title'],
             'content' => base64_encode(addslashes(htmlspecialchars($data['content']))),
-            'cat_id' => $data['cat_id'],
-            'user_id' => $this->auth['id'],
+            'cat_id' => (int)$data['cat_id'],
+            'user_id' => (int)$this->auth['id'],
         ];
 
         if (!empty($this->params['imgs'])) {
