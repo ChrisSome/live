@@ -281,8 +281,9 @@ class DataApi extends FrontUserController
             $country = $basic->getCountry();
             //转会
             $format_history = [];
-            if ($history = AdminPlayerChangeClub::getInstance()->field(['player_id', 'from_team_id', 'to_team_id', 'transfer_type'])->where('player_id', $player_id)->all()) {
+            if ($history = AdminPlayerChangeClub::getInstance()->field(['player_id', 'from_team_id', 'to_team_id', 'transfer_type', 'transfer_time'])->where('player_id', $player_id)->all()) {
                 foreach ($history as $k => $item) {
+
                     $from_team = $item->fromTeamInfo();
                     if ($from_team) {
                         $from_team_info = ['name_zh' => $from_team->name_zh, 'logo' => $from_team->logo, 'team_id' => $from_team->team_id];
