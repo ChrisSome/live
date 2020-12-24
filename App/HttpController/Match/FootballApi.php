@@ -402,41 +402,41 @@ class FootballApi extends FrontUserController
         } else {
             $res = SeasonAllTableDetail::getInstance()->where('season_id', $currentSeasonId)->get();
 
-            $decode = json_decode($res->tables, true);
-            $promotions = json_decode($res->promotions, true);
+//            $decode = json_decode($res->tables, true);
+//            $promotions = json_decode($res->promotions, true);
 
-            $homeIntvalRank = $awayIntvalRank = [];
-            if ($promotions) {
-                $rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
-                foreach ($rows as $item) {
-                    if ($item['team_id'] == $matchInfo->home_team_id) {
-                        $homeIntvalRank = $item;
-                    } else if ($item['team_id'] == $matchInfo->away_team_id) {
-                        $awayIntvalRank = $item;
-                    }
-                    if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) break;
-                }
-
-            } else {
-
-                foreach ($decode as $item_row) {
-                    foreach ($item_row['rows'] as $k_row) {
-                        $team_ids[] = $k_row['team_id'];
-                        if ($k_row['team_id'] == $matchInfo->home_team_id) {
-                            $homeIntvalRank = $k_row;
-                        }
-
-                        if ($k_row['team_id'] == $matchInfo->away_team_id) {
-                            $awayIntvalRank = $k_row;
-                        }
-
-                        if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) {
-
-                            break;
-                        }
-                    }
-                }
-            }
+            $homeIntvalRank = $awayIntvalRank = null;
+//            if ($promotions) {
+//                $rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
+//                foreach ($rows as $item) {
+//                    if ($item['team_id'] == $matchInfo->home_team_id) {
+//                        $homeIntvalRank = $item;
+//                    } else if ($item['team_id'] == $matchInfo->away_team_id) {
+//                        $awayIntvalRank = $item;
+//                    }
+//                    if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) break;
+//                }
+//
+//            } else {
+//
+//                foreach ($decode as $item_row) {
+//                    foreach ($item_row['rows'] as $k_row) {
+//                        $team_ids[] = $k_row['team_id'];
+//                        if ($k_row['team_id'] == $matchInfo->home_team_id) {
+//                            $homeIntvalRank = $k_row;
+//                        }
+//
+//                        if ($k_row['team_id'] == $matchInfo->away_team_id) {
+//                            $awayIntvalRank = $k_row;
+//                        }
+//
+//                        if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) {
+//
+//                            break;
+//                        }
+//                    }
+//                }
+//            }
 
             $intvalRank = ['homeIntvalRank' => $homeIntvalRank, 'awayIntvalRank' => $awayIntvalRank];
 
