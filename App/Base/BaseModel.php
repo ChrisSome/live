@@ -103,6 +103,11 @@ abstract class BaseModel extends AbstractModel
 					continue;
 				}
 				
+				if ($field == 'exists') {
+					if (is_string($v)) $self->where('exists (' . $v . ')');
+					continue;
+				}
+				
 				if (is_int($field) && is_array($v)) return null;
 				
 				$extra = is_array($v) && !empty($v[1]) ? strtolower(trim($v[1])) : '';
@@ -183,6 +188,11 @@ abstract class BaseModel extends AbstractModel
 					
 					if ($field == 'or') {
 						if (is_array($v)) $self->where('(' . join(' or ', $v) . ')');
+						continue;
+					}
+					
+					if ($field == 'exists') {
+						if (is_string($v)) $self->where('exists (' . $v . ')');
 						continue;
 					}
 					
