@@ -300,7 +300,7 @@ class Community extends FrontUserController
            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
        }
-
+        $uid = !empty($this->auth['id']) ? (int)$this->auth['id'] : 0;
         $page = !empty($this->params['page']) ? $this->params['page'] : 1;
         $size = !empty($this->params['size']) ? $this->params['size'] : 10;
         //帖子
@@ -314,22 +314,19 @@ class Community extends FrontUserController
         $format_information = FrontService::handInformation($information->all(null), $this->auth['id']);
         $information_count = $information->lastQueryResult()->getTotalCount();
         //比赛
-        $team = AdminTeam::getInstance()->where('name_zh', '%' . $key_word . '%', 'like')->all();
-
-
-        if ($team) {
+        list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
+        if ($team = AdminTeam::getInstance()->where('name_zh', '%' . $key_word . '%', 'like')->all()) {
             $team_ids = array_column($team, 'team_id');
             if ($team_ids) {
                 $team_ids_str = AppFunc::changeArrToStr($team_ids);
                 $matches = AdminMatch::getInstance()->where('home_team_id in ' . $team_ids_str . ' or away_team_id in ' . $team_ids_str)->getLimit($page, $size);
                 $match_list = $matches->all(null);
 
-
             } else {
                 $match_list = [];
 
             }
-            $format_match = FrontService::handMatch($match_list, 0, true, false, true);
+            $format_match = FrontService::formatMatchThree($match_list, $uid, $interestMatchArr);
             $match_count = count($format_match);
 
         } else {
