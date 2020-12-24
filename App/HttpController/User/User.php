@@ -315,7 +315,6 @@ class User extends FrontUserController
 	{
 		// 参数校验
 		$competitionId = $this->param('competition_id');
-		if ($competitionId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 当前登录用户ID
 		$competition = AdminUserInterestCompetition::getInstance()->findOne(['user_id' => $this->authId]);
 		if (!empty($competition)) {
