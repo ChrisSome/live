@@ -198,8 +198,6 @@ class Community extends FrontUserController
 	 */
 	public function postAdd()
 	{
-		print_r($this->param());
-		
 		// 登录校验
 		if ($this->authId < 1) $this->output(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 		// 是否频繁操作
@@ -246,7 +244,7 @@ class Community extends FrontUserController
 			if (!empty($words)) {
 				foreach ($words as $v) {
 					if (empty($v['word'])) continue;
-					if (strstr($content, $v['word']) || strstr($title, $v['word'])) {
+					if (strpos($content, $v['word']) !== false || strpos($title, $v['word']) !== false) {
 						// 帖子已保存,不再发送站内信
 						if ($postId > 0) {
 							$this->output(Status::CODE_ADD_POST_SENSITIVE, sprintf(Status::$msg[Status::CODE_ADD_POST_SENSITIVE], $v['word']));
