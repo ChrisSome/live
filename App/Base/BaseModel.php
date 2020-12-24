@@ -277,6 +277,7 @@ abstract class BaseModel extends AbstractModel
 				}
 			}
 		}
+		
 		// 获取清单
 		if ($isPager) {
 			$tmp = $self->page($page, $size)->withTotalCount();

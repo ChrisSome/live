@@ -294,7 +294,7 @@ class Community extends FrontUserController
 	{
 		$keys = [AdminSysSettings::SETTING_HOT_SEARCH, AdminSysSettings::SETTING_HOT_SEARCH_CONTENT];
 		$mapper = AdminSysSettings::getInstance()->findAll(['sys_key' => [$keys, 'in']], 'sys_key,sys_value', null,
-			false, 0, 0, 'sys_key,sys_value,true');
+			false, 0, 0, 'sys_key,sys_value');
 		// 输出数据
 		$hotSearch = empty($mapper[AdminSysSettings::SETTING_HOT_SEARCH]) ?
 			[] : json_decode($mapper[AdminSysSettings::SETTING_HOT_SEARCH], true);
