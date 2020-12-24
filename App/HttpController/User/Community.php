@@ -310,6 +310,8 @@ class Community extends FrontUserController
 	 */
 	public function detail()
 	{
+		print_r($this->param());
+		
 		// 参数校验
 		$postId = $this->param('postId', true);
 		if ($postId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -317,7 +319,7 @@ class Community extends FrontUserController
 		$orderType = $this->param('orderType', true, 1);
 		if ($orderType > 3 || $orderType < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取帖子信息
-		$post = AdminUserPost::getInstance()->findAll($postId);
+		$post = AdminUserPost::getInstance()->findOne($postId);
 		if (empty($post)) $this->output(Status::CODE_ERR, '对应帖子不存在');
 		// 若是其他人的帖子,增加点击率
 		if ($post['user_id'] != $this->authId) AdminUserPost::getInstance()->saveDataById($postId, ['hit' => QueryBuilder::inc()]);
