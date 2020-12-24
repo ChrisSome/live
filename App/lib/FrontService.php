@@ -518,6 +518,7 @@ class  FrontService
 				'living_url' => $livingUrl,
 				'match_id' => $v['match_id'],
 				'is_interest' => $isInterest,
+				'coverage' => $v['coverage'],
 				'user_num' => mt_rand(20, 150),
 				'neutral' => $v['neutral'],  //1中立 0否
 				'home_team_name' => $v['home_team_name'],
