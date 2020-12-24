@@ -327,6 +327,7 @@ class InformationApi extends FrontUserController
 		// 分页数据
 		$page = $this->param('page', true, 1);
 		$size = $this->param('size', true, 10);
+		
 		if ($type == 1) {
 			// 配置数据
 			$config = AdminSysSettings::getInstance()->findOne(['sys_key' => AdminSysSettings::SETTING_TITLE_BANNER], 'sys_value');
@@ -358,10 +359,10 @@ class InformationApi extends FrontUserController
 			];
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 		}
+		// 转会数据
 		if ($type == 2) {
-			// 转会数据
 			$where = ['type' => 2, 'status' => AdminInformation::STATUS_NORMAL];
-			[$list, $count] = AdminInformation::getInstance()->findAll($where, 'type', 'created_at,desc', true, $page, $size);
+			[$list, $count] = AdminInformation::getInstance()->findAll($where, null, 'created_at,desc', true, $page, $size);
 			$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
 			// 输出数据
 			$result = ['banner' => [], 'matches' => [], 'information' => ['list' => $list, 'count' => $count]];
