@@ -384,7 +384,7 @@ class UserCenter   extends FrontUserController{
 
                     if (!$information_comment = AdminInformationComment::getInstance()->where('id', $item['item_id'])->get()) continue;
                     $information = $information_comment->getInformation();
-                    $data['information_comment_info'] = $information_comment ? ['id' => $information_comment->id, 'content' => $information_comment->content] : [];
+                    $data['information_comment_info'] = $information_comment ? ['id' => $information_comment->id, 'content' => base64_decode($information_comment->content)] : [];
                     $data['information_info'] = $information ? ['id' => $information->id, 'title' => $information->title, 'content' => mb_substr($information->content, 0, 30)] : [];
                     $data['item_type'] = $item['item_type'];
                     $data['status'] = $item['status'];
