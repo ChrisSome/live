@@ -68,59 +68,15 @@ class UserCenter extends FrontUserController
 		$page = $this->param('page', true, 1);
 		$size = $this->param('size', true, 10);
 		if ($type == 1) {
-			if (!empty($keywords)) {
-				$sqlTemplate = 'select %s ' .
-					'from admin_user_operates as a inner join admin_user_posts as b on a.item_id=b.id ' .
-					'where a.item_type=1 and a.type=2 and a.user_id=%s and b.status in(1,2,6) and b.title like "%s"';
-				$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-					$fields = 'b.id,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
-					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
-					return true;
-				});
-				$list = empty($list) ? [] : $list;
-				$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-					$fields = 'count(*) total';
-					$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
-					return true;
-				});
-				$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
-				// 用户映射
-				$userIds = [];
-				if (!empty($list)) array_walk($list, function ($v) use (&$userIds) {
-					$id = intval($v['user_id']);
-					if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
-				});
-				$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
-					->findAll(['id' => [$userIds, 'in']], 'id,photo,nickname,level,is_offical', null,
-						false, 0, 0, 'id,*,true');
-				foreach ($list as $k => $v) {
-					$userId = intval($v['user_id']);
-					$list[$k]['content'] = base64_decode($v['content']);
-					$list[$k]['user_info'] = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
-				}
-				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
-			}
-			$where = ['user_id' => $this->authId, 'item_type' => 1, 'type' => AdminUserOperate::TYPE_BOOK_MARK];
-			[$list, $count] = AdminUserOperate::getInstance()
-				->findAll($where, null, 'created_at,desc', true, $page, $size);
-			$postIds = array_values(array_unique(array_filter(array_column($list, 'item_id'))));
-			if (!empty($postIds)) {
-				$list = AdminUserPost::getInstance()->findAll(['id' => [$postIds, 'in']]);
-				$list = FrontService::handPosts($list, $this->authId);
-			}
-			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
-		}
-		// 资讯数据
-		if (!empty($keywords)) {
 			$sqlTemplate = 'select %s ' .
-				'from admin_user_operates as a inner join admin_information as b on a.item_id=b.id ' .
-				'where a.item_type=3 and a.type=2 and a.user_id=%s and b.title like "%s"';
+				'from admin_user_operates as a inner join admin_user_posts as b on a.item_id=b.id and a.author_id=b.user_id ' .
+				'where a.item_type=1 and a.type=2 and a.user_id=%s and b.status in(1,2,6) and a.is_cancel=0 and b.title like "%s"';
 			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-				$fields = 'b.id,b.competition_id,b.img,b.type,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
-				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
+				$fields = 'b.id,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
+				$builder->raw(sprintf($sqlTemplate . ' order by a.created_at desc', $fields, $this->authId, '%' . $keywords . '%'), []);
 				return true;
 			});
-			$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
+			$list = empty($list) ? [] : FrontService::handPosts($list, $this->authId);
 			$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
 				$fields = 'count(*) total';
 				$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
@@ -129,13 +85,23 @@ class UserCenter extends FrontUserController
 			$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
 		}
-		$where = ['user_id' => $this->authId, 'item_type' => 3, 'type' => AdminUserOperate::TYPE_BOOK_MARK];
-		[$list, $count] = AdminUserOperate::getInstance()
-			->findAll($where, null, 'created_at,desc', true, $page, $size);
-		$informationIds = empty($list) ? [] : array_values(array_unique(array_filter(array_column($list, 'item_id'))));
-		$list = empty($informationIds) ? [] : AdminInformation::getInstance()->findAll(['id' => [$informationIds, 'in']]);
+		// 资讯数据
+		$sqlTemplate = 'select %s ' .
+			'from admin_user_operates as a inner join admin_information as b on a.item_id=b.id and a.author_id=b.user_id ' .
+			'where a.item_type=3 and a.type=2 and a.user_id=%s and a.is_cancel=0 and b.title like "%s"';
+		$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
+			$fields = 'b.id,b.competition_id,b.img,b.type,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
+			$builder->raw(sprintf($sqlTemplate . ' order by a.created_at desc', $fields, $this->authId, '%' . $keywords . '%'), []);
+			return true;
+		});
 		$list = empty($list) ? [] : FrontService::handInformation($list, $this->authId);
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
+		$total = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
+			$fields = 'count(*) total';
+			$builder->raw(sprintf($sqlTemplate, $fields, $this->authId, '%' . $keywords . '%'), []);
+			return true;
+		});
+		$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
 	}
 	
 	/**
