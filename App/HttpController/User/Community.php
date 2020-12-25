@@ -355,27 +355,23 @@ class Community extends FrontUserController
 		$childGroupMapper = [];
 		$statusList = [AdminPostComment::STATUS_NORMAL, AdminPostComment::STATUS_REPORTED];
 		$statusStr = join(',', $statusList);
-		$subSql = 'select count(*)+1 from admin_user_post_comments x where x.top_comment_id=top_comment_id and x.post_id=' . $postId .
+		$subSql = 'select count(*)+1 from admin_user_post_comments x where x.id=top_comment_id and x.post_id=' . $postId .
 			' and x.status in(' . $statusStr . ') having (count(*)+1)<=3';
 		$where = ['post_id' => $postId, 'status' => [$statusList, 'in'], 'top_comment_id' => [$commentIds, 'in'], 'exists' => $subSql];
 		$tmp = empty($commentIds) ? [] : AdminPostComment::getInstance()->findAll($where, null, 'created_at desc');
 		foreach ($tmp as $v) {
 			$id = intval($v['top_comment_id']);
-			$childGroupMapper[$id][] = $v;
+			$childGroupMapper[$id][] = $v->toArray();
 		}
 		$where = ['post_id' => $postId, 'status' => [$statusList, 'in'], 'top_comment_id' => [$commentIds, 'in']];
 		$childCountMapper = empty($commentIds) ? [] : AdminPostComment::getInstance()
 			->findAll($where, 'top_comment_id,count(*) total', ['group' => 'top_comment_id'],
 				false, 0, 0, 'top_comment_id,total,true');
-		foreach ($tmp as $v) {
-			$id = intval($v['top_comment_id']);
-			$childGroupMapper[$id][] = $v;
-		}
 		// 填充列表数据
 		foreach ($list as $v) {
 			$id = intval($v['id']);
 			$userId = intval($v['user_id']);
-			$userInfo = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
+			$userInfo = empty($userMapper[$userId]) ? [] : $userMapper[$userId]->toArray();
 			$children = empty($childGroupMapper[$id]) ? [] : $childGroupMapper[$id];
 			$childrenCount = empty($childCountMapper[$id]) ? 0 : $childCountMapper[$id];
 			$result['comment'][] = [
