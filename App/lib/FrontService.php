@@ -749,13 +749,9 @@ class  FrontService
 		$competitionMapper = empty($competitionIds) ? [] : AdminCompetition::getInstance()
 			->findAll(['id' => [$competitionIds, 'in']], null, null,
 				false, 0, 0, 'id,*,true');
-		$where = ['item_id' => [$ids, 'in'], 'item_type' => 3, 'type' => 1, 'is_cancel' => 0];
-		$tmp = empty($ids) ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id,user_id');
-		$operateMapper = [];
-		array_walk($tmp, function ($v) use (&$operateMapper, $authId) {
-			$itemId = intval($v['item_id']);
-			$operateMapper[$itemId . '_' . $authId] = 1;
-		});
+		$where = ['item_id' => [$ids, 'in'], 'item_type' => 3, 'type' => 1, 'is_cancel' => 0, 'user_id' => $authId];
+		$operateMapper = empty($ids) ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id', null,
+			false, 0, 0, 'item_id,item_id,*');
 		$list = [];
 		foreach ($informationList as $v) {
 			if ($v['created_at'] > date('Y-m-d H:i:s')) continue;
@@ -776,7 +772,7 @@ class  FrontService
 				'competition_id' => $competitionId,
 				'respon_number' => intval($v['respon_number']),
 				'fabolus_number' => intval($v['fabolus_number']),
-				'is_fabolus' => $authId > 0 ? !empty($operateMapper[$id . '_' . $authId]) : false,
+				'is_fabolus' => $authId > 0 ? !empty($operateMapper[$id]) : false,
 				'competition_short_name_zh' => empty($competition['short_name_zh']) ? '' : $competition['short_name_zh'],
 			];
 		}
