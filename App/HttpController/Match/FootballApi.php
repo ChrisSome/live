@@ -464,7 +464,7 @@ class FootballApi extends FrontUserController
 
 
         //历史交锋 与 近期战绩
-        $match = SeasonMatchList::create()->where('status_id', 8)->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
+        $match = SeasonMatchList::create()->where('status_id', 8)->where('(home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid . ')')
             ->where('is_delete', 0)->order('match_time', 'DESC')->all();
         $formatHistoryMatches = $homeRecentMatches = $awayRecentMatches = [];
         foreach ($match as $itemMatch) {

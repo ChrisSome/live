@@ -66,7 +66,7 @@ class EasySwooleEvent implements Event
         $config->setMaxIdleTime(15); //连接池对象最大闲置时间(秒)
         $config->setMinObjectNum(15); //设置最小连接池存在连接对象数量
 
-        $config->setMaxObjectNum(100); //设置最大连接池存在连接对象数量
+        $config->setMaxObjectNum(200); //设置最大连接池存在连接对象数量
         $config->setAutoPing(5); //设置自动ping客户端链接的间隔
 
 //        $connection = new \EasySwoole\ORM\Db\Connection($config);
