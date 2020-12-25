@@ -267,7 +267,7 @@ class UserCenter extends FrontUserController
 				->findAll(['id' => [$informationCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
 			if (!empty($informationCommentMapper)) array_walk($informationCommentMapper,
-				function ($v, $k) use (&$informationIds) {
+				function ($v) use (&$informationIds) {
 					$id = intval($v['information_id']);
 					if ($id > 0 && !in_array($id, $informationIds)) $informationIds[] = $id;
 				});
@@ -298,12 +298,11 @@ class UserCenter extends FrontUserController
 				$informationComment = $itemType != 4 || empty($informationCommentMapper[$itemId]) ? [] : $informationCommentMapper[$itemId];
 				$information = [];
 				if (!empty($informationComment)) {
-					$informationComment = $informationComment->toArray();
-					$informationId = intval($informationMapper['information_id']);
-					$information = empty($informationMapper[$informationId]) ? [] : $postMapper[$informationId];
 					$informationComment['content'] = mb_substr(base64_decode($informationComment['content']), 0, 20);
+					$informationId = intval($informationComment['information_id']);
+					$information = empty($informationMapper[$informationId]) ? [] : $informationMapper[$informationId];
+					if (!empty($information['content'])) $information['content'] = mb_substr(base64_decode($information['content']), 0, 20);
 				}
-				if (!empty($information['content'])) $information['content'] = mb_substr(base64_decode($information['content']), 0, 20);
 				
 				$list[$k] = [
 					'message_id' => $id,
