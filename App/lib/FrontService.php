@@ -214,37 +214,15 @@ class  FrontService
 			$id = intval($v['t_u_id']);
 			if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 		});
-		$where = 'item_type=4 and type=1 and is_cancel=0 and user_id=' . $authId . ' and item_id in(' . join(',', $commentIds) . ')';
-		$tmp = AdminUserOperate::getInstance()->func(function ($builder) use ($where) {
-			$builder->raw('select * from admin_user_operates where ' . $where, []);
-			return true;
-		});
-		foreach ($tmp as $v) {
-			$id = intval($v['item_id']);
-			$operateMapper[$id] = $v;
-		}
-		if (!empty($informationIds)) {
-			$where = 'id in(' . join(',', $informationIds) . ')';
-			$tmp = AdminInformation::getInstance()->func(function ($builder) use ($where) {
-				$builder->raw('select * from admin_information where ' . $where, []);
-				return true;
-			});
-			foreach ($tmp as $v) {
-				$id = intval($v['id']);
-				$informationMapper[$id] = $v;
-			}
-		}
-		if (!empty($userIds)) {
-			$where = 'id in(' . join(',', $userIds) . ')';
-			$tmp = AdminUser::getInstance()->func(function ($builder) use ($where) {
-				$builder->raw('select id,photo,nickname,level,is_offical from admin_user where ' . $where, []);
-				return true;
-			});
-			foreach ($tmp as $v) {
-				$id = intval($v['id']);
-				$userMapper[$id] = $v;
-			}
-		}
+		$where = ['item_type' => 4, 'type' => 1, 'is_cancel' => 0, 'user_id' => $authId, 'item_id' => [$commentIds, 'in']];
+		$operateMapper = empty($commentIds) ? [] : AdminUserOperate::getInstance()->findAll($where, null, null,
+			false, 0, 0, 'item_id,*,true');
+		$informationMapper = empty($informationIds) ? [] : AdminInformation::getInstance()
+			->findAll(['id' => [$informationIds, 'in']], null, null,
+				false, 0, 0, 'id,*,true');
+		$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
+			->findAll(['id' => [$userIds, 'in']], 'id,photo,nickname,level,is_offical', null,
+				false, 0, 0, 'id,*,true');
 		foreach ($informationComments as $v) {
 			$id = intval($v['id']);
 			$isFabolus = !empty($operateMapper[$id]);

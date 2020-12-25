@@ -52,12 +52,7 @@ class Match extends Base
         //设置房间对象
         AppFunc::userEnterRoom($args['match_id'], $fd);
         //最近二十条聊天记录
-//        $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->order('created_at', 'DESC')->limit(20)->all();
-        $lastMessages = DbManager::getInstance()->invoke(function ($client) use ($matchId) {
-            $testUserModel = ChatHistory::invoke($client);
-            $data = $testUserModel->where('match_id', $matchId)->order('created_at', 'DESC')->limit(20)->all();
-            return $data;
-        });
+	    $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->order('created_at', 'DESC')->limit(20)->all();
         //比赛状态
         $match = DbManager::getInstance()->invoke(function ($client) use ($matchId) {
             $matchModel = AdminMatch::invoke($client);
@@ -139,9 +134,11 @@ class Match extends Base
         $messages = [];
         if ($lastMessages) {
             foreach ($lastMessages as $lastMessage) {
+	            $senderUser = $lastMessage->getSenderNickname();
                 $data['message_id'] = $lastMessage['id'];
                 $data['sender_user_id'] = $lastMessage['sender_user_id'];
-                $data['sender_user_nickname'] = $lastMessage->getSenderNickname()['nickname'];
+	            $data['sender_user_nickname'] = $senderUser['nickname'];
+	            $data['sender_user_level'] = $senderUser['level'];
                 $data['at_user_id'] = $lastMessage['at_user_id'];
                 $data['at_user_nickname'] = $lastMessage->getAtNickname()['nickname'];
                 $data['content'] = $lastMessage['content'];

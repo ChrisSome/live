@@ -393,7 +393,7 @@ class Community extends FrontUserController
 	public function getAllChildComments()
 	{
 		// 参数校验
-		$commentId = $this->param('commentId', true);
+		$commentId = $this->param('comment_id', true);
 		if ($commentId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取评论信息
 		$comment = AdminPostComment::getInstance()->findOne($commentId);
@@ -537,8 +537,8 @@ class Community extends FrontUserController
 	public function getPostChildComments()
 	{
 		// 参数校验
-		$postId = $this->param('postId', true);
-		$commentId = $this->param('commentId', true);
+		$postId = $this->param('post_id', true);
+		$commentId = $this->param('comment_id', true);
 		if ($postId < 1 || $commentId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 分页参数
 		$page = $this->param('page', true, 1);
