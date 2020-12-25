@@ -70,98 +70,7 @@ class UserCenter   extends FrontUserController{
 
     }
 
-    /**
-     * 收藏夹
-     * @return bool
-     */
-    public function userBookMark1()
-    {
 
-        $uid = $this->auth['id'];
-        if (!$uid) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-        }
-        $key_word = $this->params['key_word'];
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 10;
-        $type = $this->params['type'] ?: 1;
-        if ($type == 1) {
-            if ($key_word) {
-                $queryBuild = new QueryBuilder();
-                $queryBuild->raw("select i.id, i.title, i.content, i.user_id, i.fabolus_number, i.`collect_number`, i.respon_number, i.created_at, i.status from admin_user_operates o inner join `admin_user_posts` i on o.item_id=i.id  where o.item_type=1 and i.status in (1, 2, 6)  and o.user_id=? and o.type=2 and i.title like '%" . $key_word . "%'",[$uid, $key_word]);
-                $data = DbManager::getInstance()->query($queryBuild, true, 'default')->toArray();
-                $queryBuild->raw("select count(*) total from admin_user_operates o inner join `admin_user_posts` i on o.item_id=i.id  where o.item_type=1  and o.user_id=? and o.type=2 and i.title like '%" . $key_word . "%'",[$uid, $key_word]);
-                $count = DbManager::getInstance()->query($queryBuild, true, 'default')->toArray();
-                $total = $count['result'][0]['total'];
-                if ($data['result']) {
-                    foreach ($data['result'] as $pk => $post) {
-                        $user = AdminUser::getInstance()->where('id', $post['user_id'])->field(['id', 'photo', 'nickname', 'level', 'is_offical'])->get()->toArray();
-                        $data['result'][$pk]['user_info'] = $user;
-                    }
-                }
-                $return_data = ['list' => $data['result'], 'total' => $total];
-
-            } else {
-                $operate = AdminUserOperate::getInstance()->where('user_id', $uid)->where('item_type', 1)->where('type', AdminUserOperate::TYPE_BOOK_MARK)->getLimit($page, $size);
-                $operate = $operate->getLimit($page, $size);
-                $limit = $operate->all(null);
-                $total = $operate->lastQueryResult()->getTotalCount();
-                $post_ids = array_column($limit, 'item_id');
-                if ($limit) {
-                    $posts = AdminUserPost::getInstance()->where('id', $post_ids, 'in')->all();
-                    $format_posts = FrontService::handPosts($posts, $this->auth['id']);
-                } else {
-                    $format_posts = [];
-                }
-                $return_data = ['list' => $format_posts, 'count' => $total];
-            }
-
-        } else if ($type == 2) {//资讯
-            if ($key_word) {
-                $queryBuild = new QueryBuilder();
-                $queryBuild->raw("select i.id, i.title, i.user_id, i.img, i.fabolus_number, i.`collect_number`, i.respon_number, i.created_at, i.status, i.competition_id, i.type, i.img from admin_user_operates o inner join `admin_information` i on o.item_id=i.id  where o.item_type=3  and o.user_id=? and o.type=2 and i.title like '%" . $key_word . "%'",[$uid, $key_word]);
-                $data = DbManager::getInstance()->query($queryBuild, true, 'default')->toArray();
-
-                $queryBuild->raw("select count(*) total from admin_user_operates o inner join `admin_information` i on o.item_id=i.id  where o.item_type=3  and o.user_id=? and o.type=2 and i.title like '%" . $key_word . "%'",[$uid, $key_word]);
-                $count = DbManager::getInstance()->query($queryBuild, true, 'default')->toArray();
-                $total = $count['result'][0]['total'];
-                //相关的user
-                if ($data['result']) {
-                    foreach ($data['result'] as $ik => $information) {
-                        $user = AdminUser::getInstance()->where('id', $information['user_id'])->field(['id', 'photo', 'nickname', 'level', 'is_offical'])->get()->toArray();
-                        $data['result'][$ik]['user_info'] = $user;
-                    }
-                }
-                $return_data = ['list' => $data['result'], 'total' => $total];
-
-            } else {
-
-                $operate = AdminUserOperate::getInstance()->where('user_id', $uid)->where('item_type', 3)->where('type', AdminUserOperate::TYPE_BOOK_MARK)->getLimit($page, $size);
-                $operate = $operate->getLimit($page, $size);
-                $limit = $operate->all(null);
-
-                $total = $operate->lastQueryResult()->getTotalCount();
-
-                $information_ids = array_column($limit, 'item_id');
-                if ($information_ids) {
-                    $informations= AdminInformation::getInstance()->where('id', $information_ids, 'in')->all();
-                    $format_informations = FrontService::handInformation($informations, $this->auth['id']);
-
-                } else {
-                    $format_informations = [];
-                }
-
-                $return_data = ['list' => $format_informations, 'count' => $total];
-            }
-
-        } else {
-            $return_data = [];
-        }
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_data);
-
-
-    }
 
     public function userBookMark()
     {
@@ -191,7 +100,10 @@ class UserCenter   extends FrontUserController{
             }
             $model = $model->getLimit($page, $size);
             $operates = $model->all();
+
             $informationIds = array_column($operates, 'id');
+            if (!$informationIds) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => [], 'count' => 0]);
+
             $count = count($informationIds);
             $informations = AdminInformation::create()->where('id', $informationIds, 'in')->all();
             $formatInformation = FrontService::handInformation($informations, $user_id);

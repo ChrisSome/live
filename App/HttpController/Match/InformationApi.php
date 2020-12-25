@@ -241,6 +241,7 @@ class InformationApi extends FrontUserController
      */
     public function informationInfo()
     {
+
         $params = $this->params;
         $authId = empty($this->auth['id']) || intval($this->auth['id']) < 1 ? 0 : intval($this->auth['id']); // 当前登录用户ID
         $informationId = empty($params['information_id']) || intval($params['information_id']) < 1 ? 0 : intval($params['information_id']);
@@ -263,7 +264,7 @@ class InformationApi extends FrontUserController
         $page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
         $size = empty($params['size']) || intval($params['size']) < 1 ? 10 : intval($params['size']);
         // 评论/回复数据
-        $order = $orderType == 0 ? 'fabolus_number desc' : ($orderType == 1 ? 'created_at asc' : ($orderType == 2 ? 'created_at desc' : null));
+        $order = $orderType == 0 ? 'fabolus_number desc, id ASC' : ($orderType == 1 ? 'created_at asc' : ($orderType == 2 ? 'created_at desc, id ASC' : null));
         $data = Utils::queryHandler(AdminInformationComment::getInstance(),
             'information_id=? and top_comment_id=0 and parent_id=0', $informationId,
             '*', false, $order, null, $page, $size);

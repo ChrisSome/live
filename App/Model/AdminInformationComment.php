@@ -19,14 +19,14 @@ class AdminInformationComment extends BaseModel
      * $value mixed 是原值
      * $data  array 是当前model所有的值
      */
-    protected function getContentAttr($value, $data)
-    {
-        return base64_decode($data['content']);
-
-    }
+//    protected function getContentAttr($value, $data)
+//    {
+//        return base64_decode($data['content']);
+//
+//    }
     public function getLimit($page, $limit)
     {
-        return $this->order('created_at', 'DESC')
+        return $this->order('created_at', 'DESC')->order('id', 'ASC')
             ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();
     }
