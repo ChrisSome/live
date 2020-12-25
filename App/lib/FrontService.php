@@ -743,7 +743,7 @@ class  FrontService
 				false, 0, 0, 'id,*,true');
 		// 赛事映射
 		$competitionMapper = empty($competitionIds) ? [] : AdminCompetition::getInstance()
-			->findAll(['id' => [$competitionIds, 'in']], null, null,
+			->findAll(['competition_id' => [$competitionIds, 'in']], null, null,
 				false, 0, 0, 'id,*,true');
 		$where = ['item_id' => [$ids, 'in'], 'item_type' => 3, 'type' => 1, 'is_cancel' => 0, 'user_id' => $authId];
 		$operateMapper = empty($ids) || $authId < 1 ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id', null,
