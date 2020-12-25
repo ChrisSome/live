@@ -50,8 +50,8 @@ class  FrontService
 		});
 		
 		// 点赞/收藏数据映射
-		$where = ['type' => [[1, 2], 'in'], 'item_type' => 1, 'is_cancel' => 0, 'item_id' => [$postIds, 'in']];
-		$tmp = empty($postIds) ? [] : AdminUserOperate::getInstance()->findAll($where);
+		$where = ['type' => [[1, 2], 'in'], 'item_type' => 1, 'is_cancel' => 0, 'item_id' => [$postIds, 'in'], 'user_id' => $authId];
+		$tmp = empty($postIds) || $authId < 1 ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id,type');
 		foreach ($tmp as $v) {
 			$key = $v['item_id'] . '_' . $v['type'];
 			$operateMapper[$key] = 1;
@@ -107,13 +107,13 @@ class  FrontService
 				'content' => base64_decode($v['content']),
 				'is_me' => $authId ? $userId == $authId : false,
 				'cat_name' => empty($category['name']) ? '' : $category['name'],
+				'is_fabolus' => !empty($operateMapper[$postId . '_1']), //是否赞过
 				'cat_color' => empty($category['color']) ? [] : $category['color'],
+				'is_collect' => !empty($operateMapper[$postId . '_2']), //是否收藏该帖子
 				'imgs' => empty($v['imgs']) ? [] : json_decode($v['imgs'], true),
 				'user_info' => empty($userMapper[$userId]) ? [] : $userMapper[$userId], //发帖人信息
-				'is_follow' => $authId ? AppFunc::isFollow($authId, $userId) : false, //是否关注发帖人
-				'is_collect' => $authId ? (!empty($operateMapper[$postId . '_2'])) : false, //是否收藏该帖子
+				'is_follow' => $authId > 0 ? AppFunc::isFollow($authId, $userId) : false, //是否关注发帖人
 				'lasted_resp' => empty($commentMapper[$postId]) ? $v['created_at'] : $commentMapper[$postId], //帖子最新回复
-				'is_fabolus' => $authId ? (!empty($operateMapper[$postId . '_1'])) : false, //是否赞过
 			];
 		}
 		return $list;
@@ -155,13 +155,9 @@ class  FrontService
 		$postMapper = empty($postIds) ? [] : AdminUserPost::getInstance()->findAll(['id' => [$postIds, 'in']],
 			'id,title', null, false, 0, 0, 'id,title,true');
 		// 点赞映射
-		$operateMapper = [];
-		$tmp = empty($operateIds) ? [] : AdminUserOperate::getInstance()
-			->findAll(['or' => $operateIds, 'type' => 1, 'is_cancel' => 0, 'item_type' => 2], 'item_id,user_id');
-		foreach ($tmp as $v) {
-			$key = $v['item_id'] . '_' . $v['user_id'];
-			$operateMapper[$key] = 1;
-		}
+		$operateMapper = empty($operateIds) || $authId < 1 ? [] : AdminUserOperate::getInstance()
+			->findAll(['or' => $operateIds, 'type' => 1, 'is_cancel' => 0, 'item_type' => 2, 'user_id' => $authId], 'item_id', null,
+				false, 0, 0, 'item_id,item_id,true');
 		// 返回数据
 		$list = [];
 		foreach ($comments as $v) {
@@ -184,11 +180,11 @@ class  FrontService
 				'created_at' => $v['created_at'],
 				'parent_content' => $parentContent,
 				'content' => base64_decode($v['content']),
+				'is_fabolus' => !empty($operateMapper[$id]),
 				'respon_number' => intval($v['respon_number']),
 				'top_comment_id' => intval($v['top_comment_id']),
 				'fabolus_number' => intval($v['fabolus_number']),
 				'is_follow' => AppFunc::isFollow($authId, $userId),
-				'is_fabolus' => $userId > 0 && !empty($operateMapper[$id . '_' . $userId]),
 			];
 		}
 		return $list;
