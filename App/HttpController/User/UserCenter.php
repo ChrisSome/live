@@ -253,28 +253,22 @@ class UserCenter extends FrontUserController
 			$postCommentMapper = empty($postCommentIds) ? [] : AdminPostComment::getInstance()
 				->findAll(['id' => [$postCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v, $k) use (&$postIds, &$postCommentMapper) {
+			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v, $k) use (&$postIds) {
 				$id = intval($v['post_id']);
-				$postCommentMapper[$k]['content'] = empty($v['content']) ? '' : base64_decode($v['content']);
 				if ($id > 0 && !in_array($id, $postIds)) $postIds[] = $id;
 			});
 			// 帖子映射
 			$fields = 'id,title,content';
 			$postMapper = empty($postIds) ? [] : AdminUserPost::getInstance()
 				->findAll(['id' => [$postIds, 'in']], $fields, null, false, 0, 0, 'id,*,true');
-			$postMapper = empty($postMapper) ? [] : array_map(function ($v) {
-				$v['content'] = empty($v['content']) ? '' : base64_decode($v['content']);
-				return $v;
-			}, $postMapper);
 			// 资讯回复映射
 			$fields = 'id,content,information_id';
 			$informationCommentMapper = empty($informationCommentIds) ? [] : AdminInformationComment::getInstance()
 				->findAll(['id' => [$informationCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
 			if (!empty($informationCommentMapper)) array_walk($informationCommentMapper,
-				function ($v, $k) use (&$informationIds, &$informationCommentMapper) {
+				function ($v, $k) use (&$informationIds) {
 					$id = intval($v['information_id']);
-					$informationCommentMapper[$k]['content'] = empty($v['content']) ? '' : base64_decode($v['content']);
 					if ($id > 0 && !in_array($id, $informationIds)) $informationIds[] = $id;
 				});
 			// 资讯映射
@@ -297,20 +291,20 @@ class UserCenter extends FrontUserController
 				if (!empty($postComment)) {
 					$postId = intval($postComment['post_id']);
 					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
+					$postComment['content'] = base64_decode($postComment['content']);
 				}
-				if (!empty($postComment)) $postComment['content'] = base64_decode($postComment['content']);
-				// 资讯数据
-				$informationId = empty($informationComment) ? 0 : intval($informationComment['post_id']);
-				$information = $informationId < 1 || empty($informationMapper[$informationId]) ? [] : $informationMapper[$informationId];
+				if (!empty($post['content'])) $post['content'] = base64_decode($post['content']);
 				// 资讯回复数据
 				$informationComment = $itemType != 4 || empty($informationCommentMapper[$itemId]) ? [] : $informationCommentMapper[$itemId];
+				$information = [];
 				if (!empty($informationComment)) {
-					$informationComment['content'] = mb_substr($informationComment['content'], 0, 20);
 					$informationComment = $informationComment->toArray();
 					$informationId = intval($informationMapper['information_id']);
 					$information = empty($informationMapper[$informationId]) ? [] : $postMapper[$informationId];
+					$informationComment['content'] = mb_substr(base64_decode($informationComment['content']), 0, 20);
 				}
-				if (!empty($information)) $information['content'] = mb_substr($information['content'], 0, 20);
+				if (!empty($information['content'])) $information['content'] = mb_substr(base64_decode($information['content']), 0, 20);
+				
 				$list[$k] = [
 					'message_id' => $id,
 					'status' => $v['status'],
