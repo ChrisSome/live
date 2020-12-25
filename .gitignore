@@ -9,3 +9,4 @@ App/Config/Database.php
 /.idea
 /.metadata
 /RemoteSystemsTempFiles
+Temp/pid.pid
