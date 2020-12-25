@@ -108,7 +108,7 @@ class FootBallMatch extends FrontUserController
     protected $live_url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';//比赛列表
     protected $season_url = 'https://open.sportnanoapi.com/api/v4/football/season/list?user=%s&secret=%s&time=%s'; //更新赛季
     protected $player_stat = 'https://open.sportnanoapi.com/api/v4/football/player/list/with_stat?user=%s&secret=%s&time=%s'; //获取球员能力技术列表
-    protected $player_change_club_history = 'https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&id=%s'; //球员转会历史
+    protected $player_change_club_history = 'https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&time=%s'; //球员转会历史
     protected $team_honor = 'https://open.sportnanoapi.com/api/v4/football/team/honor/list?user=%s&secret=%s&id=%s'; //球队荣誉
     protected $honor_list = 'https://open.sportnanoapi.com/api/v4/football/honor/list?user=%s&secret=%s&time=%s'; //荣誉详情
     protected $all_stat = 'https://open.sportnanoapi.com/api/v4/football/season/all/stats/detail?user=%s&secret=%s&id=%s'; //获取赛季球队球员统计详情-全量
@@ -1029,8 +1029,7 @@ class FootBallMatch extends FrontUserController
                         if (!AdminPlayerChangeClub::getInstance()->where('id', $item['id'])->get()) {
                             AdminPlayerChangeClub::getInstance()->insert($data);
                         } else {
-                            unset($data['id']);
-                            AdminPlayerChangeClub::getInstance()->update($data, ['id' => $item['id']]);
+                            //不可能有修改
                         }
                     }
                 }
@@ -1579,9 +1578,13 @@ class FootBallMatch extends FrontUserController
 
 
     function test() {
-        $res = AdminTeamLineUp::create()->where('match_id')->get();
+        $max = AdminPlayerChangeClub::getInstance()->max('updated_at');
 
-        $model = new \TestModel(1);
+        $url = sprintf('https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&id=%s', $this->user, $this->secret, $max+1);
+        $res = Tool::getInstance()->postApi($url);
+        $resp = json_decode($res, true);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $resp);
+
 
 
     }

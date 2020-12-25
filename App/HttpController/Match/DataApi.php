@@ -434,7 +434,6 @@ class DataApi extends FrontUserController
      */
     public function teamInfo(): bool
     {
-
         // 类型
         $type = 1;
         if (!empty($this->params['type'])) $type = intval($this->params['type']);

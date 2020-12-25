@@ -482,7 +482,9 @@ class FootballApi extends FrontUserController
         }
         $homeRecentSchedule = $awayRecentSchedule = [];
         //近期赛程
-        $matchSchedule = SeasonMatchList::create()->where('status_id', self::STATUS_SCHEDULE, 'in')->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
+        $matchSchedule = AdminMatch::create()->where('status_id', self::STATUS_SCHEDULE, 'in')
+            ->where('(home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid . ')')
+            ->where('match_time', time(), '>=')
             ->where('is_delete', 0)->order('match_time', 'DESC')->all();
 
         foreach ($matchSchedule as $scheduleItem) {
@@ -683,7 +685,6 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 
         }
-        $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
         $competition_id = $return['competition_id'];
         $return['competition_type'] = 0;
         if ($competition = AdminCompetition::create()->where('competition_id', $competition_id)->get()) {
