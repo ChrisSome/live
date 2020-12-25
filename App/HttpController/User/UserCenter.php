@@ -253,7 +253,7 @@ class UserCenter extends FrontUserController
 			$postCommentMapper = empty($postCommentIds) ? [] : AdminPostComment::getInstance()
 				->findAll(['id' => [$postCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v, $k) use (&$postIds,&$postCommentMapper) {
+			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v, $k) use (&$postIds, &$postCommentMapper) {
 				$id = intval($v['post_id']);
 				$postCommentMapper[$k]['content'] = empty($v['content']) ? '' : base64_decode($v['content']);
 				if ($id > 0 && !in_array($id, $postIds)) $postIds[] = $id;
@@ -271,7 +271,7 @@ class UserCenter extends FrontUserController
 			$informationCommentMapper = empty($informationCommentIds) ? [] : AdminInformationComment::getInstance()
 				->findAll(['id' => [$informationCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($informationCommentMapper)) array_walk($informationCommentMapper, function ($v, $k) use (&$informationIds,&$informationCommentMapper) {
+			if (!empty($informationCommentMapper)) array_walk($informationCommentMapper, function ($v, $k) use (&$informationIds, &$informationCommentMapper) {
 				$id = intval($v['information_id']);
 				$informationCommentMapper[$k]['content'] = empty($v['content']) ? '' : base64_decode($v['content']);
 				if ($id > 0 && !in_array($id, $informationIds)) $informationIds[] = $id;
@@ -289,11 +289,14 @@ class UserCenter extends FrontUserController
 				// 用户数据
 				$userId = intval($v['did_user_id']);
 				$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
+				if (!empty($user)) $user = $user->toArray();
 				// 帖子数据
 				$post = $itemType != 1 || empty($postMapper[$itemId]) ? [] : $postMapper[$itemId];
+				if (!empty($post)) $post = $post->toArray();
 				// 帖子回复数据
 				$postComment = $itemType != 2 || empty($postCommentMapper[$itemId]) ? [] : $postCommentMapper[$itemId];
-				if(!empty($postComment)) {
+				if (!empty($postComment)) {
+					$postComment = $postComment->toArray();
 					$postId = intval($postComment['post_id']);
 					$tmp = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
 					$postComment['id'] = empty($tmp['id']) ? 0 : $tmp['id'];
@@ -302,7 +305,8 @@ class UserCenter extends FrontUserController
 				// 资讯回复数据
 				$informationComment = $itemType != 4 || empty($informationCommentMapper[$itemId]) ? [] : $informationCommentMapper[$itemId];
 				if (!empty($informationComment)) $informationComment['content'] = mb_substr($informationComment['content'], 0, 20);
-				if(!empty($informationComment)) {
+				if (!empty($informationComment)) {
+					$informationComment = $informationComment->toArray();
 					$informationId = intval($informationMapper['information_id']);
 					$tmp = empty($informationMapper[$informationId]) ? [] : $postMapper[$informationId];
 					$informationComment['id'] = empty($tmp['id']) ? 0 : $tmp['id'];
