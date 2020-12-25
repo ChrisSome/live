@@ -363,13 +363,21 @@ class Community extends FrontUserController
 			$id = intval($v['top_comment_id']);
 			$childGroupMapper[$id][] = $v;
 		}
+		$where = ['post_id' => $postId, 'status' => [$statusList, 'in'], 'top_comment_id' => [$commentIds, 'in']];
+		$childCountMapper = empty($commentIds) ? [] : AdminPostComment::getInstance()
+			->findAll($where, 'top_comment_id,count(*) total', ['group' => 'top_comment_id'],
+				false, 0, 0, 'top_comment_id,total,true');
+		foreach ($tmp as $v) {
+			$id = intval($v['top_comment_id']);
+			$childGroupMapper[$id][] = $v;
+		}
 		// 填充列表数据
 		foreach ($list as $v) {
 			$id = intval($v['id']);
 			$userId = intval($v['user_id']);
 			$userInfo = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 			$children = empty($childGroupMapper[$id]) ? [] : $childGroupMapper[$id];
-			$childrenCount = empty($childCountMapper[$id]) ? [] : $childCountMapper[$id];
+			$childrenCount = empty($childCountMapper[$id]) ? 0 : $childCountMapper[$id];
 			$result['comment'][] = [
 				'id' => $id,
 				'user_info' => $userInfo,

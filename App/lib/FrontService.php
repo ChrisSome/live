@@ -167,7 +167,7 @@ class  FrontService
 			$userId = intval($v['t_u_id']);
 			$topUser = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 			$parentId = intval($v['parent_id']);
-			$parentContent = empty($commentMapper[$parentId]) ? [] : $commentMapper[$parentId];
+			$parentContent = empty($commentMapper[$parentId]) ? [] : base64_decode($commentMapper[$parentId]);
 			$postId = intval($v['post_id']);
 			$postTitle = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
 			$list[] = [
