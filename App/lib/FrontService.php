@@ -59,8 +59,7 @@ class  FrontService {
         $commentMapper = Utils::queryHandler(AdminPostComment::getInstance(), 'post_id in(' . join(',', $postIds) . ')', null,
             'post_id,max(created_at) time', false, ['group' => 'post_id'], 'post_id,time,1');
         // 类型数据映射
-
-        $categoryMapper = Utils::queryHandler(AdminUserPostsCategory::getInstance(), 'id in(' . join(',', $categoryIds) . ')', null,
+        $categoryMapper = empty($categoryIds) ? [] : Utils::queryHandler(AdminUserPostsCategory::getInstance(), 'id in(' . join(',', $categoryIds) . ')', null,
             '*', false, null, 'id,*,1');
         // 设置数据映射 & 用户数据映射
         $settingMapper = $userMapper = [];
