@@ -228,7 +228,7 @@ class Login extends FrontUserController
 		// 验证码校验
 		$code = $this->param('phone_code');
 		$tmp = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
-		if (empty($tmp['status']) || $tmp['code'] != $code) {
+		if (empty($tmp) || $tmp['code'] != $code) {
 			$this->output(StatusMapper::CODE_W_PHONE_CODE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE_CODE]);
 		}
 		// 密码校验
@@ -322,7 +322,7 @@ class Login extends FrontUserController
 		}
 		// 获取验证码信息
 		$tmp = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
-		if (empty($tmp['status']) || $tmp['code'] != $code) {
+		if (empty($tmp) || $tmp['code'] != $code) {
 			$this->output(StatusMapper::CODE_W_PHONE_CODE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE_CODE]);
 		}
 		// 手机号用户已存在
