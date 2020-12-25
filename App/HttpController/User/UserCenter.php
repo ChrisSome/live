@@ -72,7 +72,7 @@ class UserCenter extends FrontUserController
 				'from admin_user_operates as a inner join admin_user_posts as b on a.item_id=b.id and a.author_id=b.user_id ' .
 				'where a.item_type=1 and a.type=2 and a.user_id=%s and b.status in(1,2,6) and a.is_cancel=0 and b.title like "%s"';
 			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-				$fields = 'b.id,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
+				$fields = 'b.*';
 				$builder->raw(sprintf($sqlTemplate . ' order by a.created_at desc', $fields, $this->authId, '%' . $keywords . '%'), []);
 				return true;
 			});
@@ -90,7 +90,7 @@ class UserCenter extends FrontUserController
 			'from admin_user_operates as a inner join admin_information as b on a.item_id=b.id and a.author_id=b.user_id ' .
 			'where a.item_type=3 and a.type=2 and a.user_id=%s and a.is_cancel=0 and b.title like "%s"';
 		$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
-			$fields = 'b.id,b.competition_id,b.img,b.type,b.title,b.content,b.user_id,b.fabolus_number,b.collect_number,b.respon_number,b.created_at,b.status';
+			$fields = 'b.*';
 			$builder->raw(sprintf($sqlTemplate . ' order by a.created_at desc', $fields, $this->authId, '%' . $keywords . '%'), []);
 			return true;
 		});
