@@ -334,7 +334,7 @@ class UserCenter   extends FrontUserController{
                 } else if ($item['item_type'] == 4) { //赞资讯回复
                     if ($information_commnet = AdminInformationComment::getInstance()->where('id', $item['item_id'])->get()) {
                         $information = $information_commnet->getInformation();
-                        $data['information_comment_info'] = $information_commnet ? ['id' => $information_commnet->id, 'content' => mb_substr($information_commnet->content, 0, 20)] : [];
+                        $data['information_comment_info'] = $information_commnet ? ['id' => $information_commnet->id, 'content' => mb_substr(base64_decode($information_commnet->content), 0, 20)] : [];
                         $data['information_info'] = $information ? ['id' => $information->id, 'title' => $information->title, 'content' => mb_substr($information->content, 0, 20)] : [];
                     } else {
                         continue;
