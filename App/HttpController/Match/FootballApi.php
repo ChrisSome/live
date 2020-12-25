@@ -398,39 +398,48 @@ class FootballApi extends FrontUserController
 		$homeTid = $match['home_team_id'];
 		$awayTid = $match['away_team_id'];
 		
-		//历史交锋
-		$matches = SeasonMatchList::getInstance()->where('status_id', 8)->where('((home_team_id=' . $homeTid . ' and away_team_id=' . $awayTid . ') or (home_team_id=' . $awayTid . ' and away_team_id=' . $homeTid . '))')
-			->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
-		
-		$formatHistoryMatches = FrontService::formatMatchThree($matches, 0, []);
-		
-		//近期战绩
-		$homeRecentMatches = SeasonMatchList::getInstance()->where('status_id', 8)
-			->where('home_team_id=' . $homeTid . ' or away_team_id=' . $homeTid)
-			->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
-		$awayRecentMatches = SeasonMatchList::getInstance()->where('status_id', 8)
-			->where('home_team_id=' . $awayTid . ' or away_team_id=' . $awayTid)
-			->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
-		
-		//近期赛程
-		$homeRecentSchedule = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
-			->where('(home_team_id = ' . $homeTid . ' or away_team_id = ' . $homeTid . ')')->where('is_delete', 0)
-			->order('match_time', 'ASC')->all();
-		$awayRecentSchedule = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
-			->where('(home_team_id = ' . $awayTid . ' or away_team_id = ' . $awayTid . ')')->where('is_delete', 0)
-			->order('match_time', 'ASC')->all();
-		
-		$returnData = [
+		// 历史交锋 与 近期战绩
+		$match = SeasonMatchList::getInstance()->where('status_id', 8)
+			->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
+			->where('is_delete', 0)->order('match_time', 'DESC')->all();
+		$formatHistoryMatches = $homeRecentMatches = $awayRecentMatches = [];
+		foreach ($match as $itemMatch) {
+			if (($itemMatch['home_team_id'] == $homeTid && $itemMatch['away_team_id'] == $awayTid) ||
+				($itemMatch['home_team_id'] == $awayTid && $itemMatch['away_team_id'] == $homeTid)) {
+				$formatHistoryMatches[] = $itemMatch;
+			}
+			if ($itemMatch['home_team_id'] == $homeTid || $itemMatch['away_team_id'] == $homeTid) {
+				$homeRecentMatches[] = $itemMatch;
+			}
+			if ($itemMatch['home_team_id'] == $awayTid || $itemMatch['away_team_id'] == $awayTid) {
+				$awayRecentMatches[] = $itemMatch;
+			}
+		}
+		$homeRecentSchedule = $awayRecentSchedule = [];
+		// 近期赛程
+		$matchSchedule = SeasonMatchList::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
+			->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
+			->where('is_delete', 0)->order('match_time', 'DESC')->all();
+		foreach ($matchSchedule as $scheduleItem) {
+			if ($scheduleItem['home_team_id'] == $homeTid || $scheduleItem['away_team_id'] == $awayTid) {
+				$homeRecentSchedule[] = $scheduleItem;
+			}
+			if ($scheduleItem['home_team_id'] == $awayTid || $scheduleItem['home_team_id'] == $homeTid) {
+				$awayRecentSchedule[] = $scheduleItem;
+			}
+		}
+		// 输出数据
+		$result = [
 			'intvalRank' => $intRank, //积分排名
-			'historyResult' => !empty($sensuous['history']) ? json_decode($sensuous['history'], true) : [],
-			'recentResult' => !empty($sensuous['recent']) ? json_decode($sensuous['recent'], true) : [],
+			'historyResult' => !empty($sensus['history']) ? json_decode($sensus['history'], true) : [],//历史战绩
+			'recentResult' => !empty($sensus['recent']) ? json_decode($sensus['recent'], true) : [],
 			'history' => FrontService::formatMatchThree(array_slice($formatHistoryMatches, 0, 10), 0, []),//历史交锋
 			'homeRecent' => FrontService::formatMatchThree(array_slice($homeRecentMatches, 0, 10), 0, []),//主队近期战绩
 			'awayRecent' => FrontService::formatMatchThree(array_slice($awayRecentMatches, 0, 10), 0, []),//客队近期战绩
 			'homeRecentSchedule' => FrontService::formatMatchThree(array_slice($homeRecentSchedule, 0, 10), 0, []),//主队近期赛程
 			'awayRecentSchedule' => FrontService::formatMatchThree(array_slice($awayRecentSchedule, 0, 10), 0, []),//客队近期赛程
 		];
-		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
 	/**
