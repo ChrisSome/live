@@ -750,8 +750,8 @@ class  FrontService
 			->findAll(['id' => [$competitionIds, 'in']], null, null,
 				false, 0, 0, 'id,*,true');
 		$where = ['item_id' => [$ids, 'in'], 'item_type' => 3, 'type' => 1, 'is_cancel' => 0, 'user_id' => $authId];
-		$operateMapper = empty($ids) ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id', null,
-			false, 0, 0, 'item_id,item_id,*');
+		$operateMapper = empty($ids) || $authId < 1 ? [] : AdminUserOperate::getInstance()->findAll($where, 'item_id', null,
+			false, 0, 0, 'item_id,*,true');
 		$list = [];
 		foreach ($informationList as $v) {
 			if ($v['created_at'] > date('Y-m-d H:i:s')) continue;
@@ -770,9 +770,9 @@ class  FrontService
 				'is_title' => $v['type'] == 1,
 				'created_at' => $v['created_at'],
 				'competition_id' => $competitionId,
+				'is_fabolus' => !empty($operateMapper[$id]),
 				'respon_number' => intval($v['respon_number']),
 				'fabolus_number' => intval($v['fabolus_number']),
-				'is_fabolus' => $authId > 0 ? !empty($operateMapper[$id]) : false,
 				'competition_short_name_zh' => empty($competition['short_name_zh']) ? '' : $competition['short_name_zh'],
 			];
 		}
