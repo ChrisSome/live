@@ -418,6 +418,6 @@ class InformationApi extends FrontUserController
 			'content' => $content,
 			'payload' => ['item_id' => 0, 'type' => 1],
 		]);
-		$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 	}
 }
