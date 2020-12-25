@@ -14,6 +14,7 @@ use App\Model\AdminUser;
 use App\Model\AdminUserFeedBack;
 use App\Model\AdminUserFoulCenter;
 use App\Model\AdminUserInterestCompetition;
+use App\Model\AdminUserMessageRecord;
 use App\Model\AdminUserOperate;
 use App\Model\AdminUserPhonecode;
 use App\Model\AdminUserPost;
@@ -55,7 +56,9 @@ class UserCenter   extends FrontUserController{
 
         //我的获赞数
 
-        $fabolus_number = AdminUserOperate::getInstance()->where('author_id', $this->auth['id'])->where('type', 1)->count();
+//        $fabolus_number = AdminUserOperate::getInstance()->where('author_id', $this->auth['id'])->where('type', 1)->where('is_cancel', 0)->count();
+
+        $fabolus_number = AdminMessage::create()->where('user_id', $uid)->where('type', 2)->where('item_type', [1,2,4], 'in')->where('status', AdminMessage::STATUS_DEL, '<>')->count();
         $data = [
             'user_info' => $user_info,
             'fans_count' => AppFunc::changeToWan($fansCount, ''),
