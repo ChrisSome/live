@@ -302,7 +302,7 @@ class InformationApi extends FrontUserController
 		$topComment = empty($topComment[0]) ? [] : $topComment[0];
 		// 分页参数
 		$page = $this->param('page', true, 1);
-		$size = $this->param('page', true, 10);
+		$size = $this->param('size', true, 10);
 		[$list, $count] = AdminInformationComment::getInstance()
 			->findAll(['top_comment_id' => $topCommentId], null, 'created_at,desc', true, $page, $size);
 		// 封装数据
