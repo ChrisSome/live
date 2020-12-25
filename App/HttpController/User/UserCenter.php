@@ -42,7 +42,8 @@ class UserCenter extends FrontUserController
 		// 关注数
 		$followCount = count(AppFunc::getUserFollowing($this->authId));
 		// 获赞数
-		$fabolusNumber = AdminUserOperate::getInstance()->findOne(['author_id' => $this->authId, 'type' => 1, 'is_cancel' => 0], 'count');
+		$fabolusNumber = AdminUserOperate::getInstance()
+			->findOne(['author_id' => $this->authId, 'type' => 1, 'item_type' => [[1, 2, 4], 'in'], 'is_cancel' => 0], 'count');
 		// 输出数据
 		$result = [
 			'user_info' => $userInfo,
