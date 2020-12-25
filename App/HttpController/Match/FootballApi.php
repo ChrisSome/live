@@ -482,9 +482,9 @@ class FootballApi extends FrontUserController
         }
         $homeRecentSchedule = $awayRecentSchedule = [];
         //近期赛程
-        $matchSchedule = AdminMatch::create()->where('status_id', self::STATUS_SCHEDULE, 'in')
+        $statusArr = array_merge(self::STATUS_SCHEDULE, self::STATUS_PLAYING);
+        $matchSchedule = AdminMatch::create()->where('status_id', $statusArr, 'in')
             ->where('(home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid . ')')
-            ->where('match_time', time(), '>=')
             ->where('is_delete', 0)->order('match_time', 'DESC')->all();
 
         foreach ($matchSchedule as $scheduleItem) {
