@@ -11,11 +11,14 @@ use App\Model\AdminMessage;
 use easySwoole\Cache\Cache;
 use App\Model\AdminSensitive;
 use App\Task\SerialPointTask;
+use App\GeTui\BatchSignalPush;
 use App\Model\AdminCompetition;
 use App\Model\AdminInformation;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserOperate;
 use App\Utility\Message\Status;
+use App\Model\AdminUserSetting;
+use App\Model\AdminNoticeMatch;
 use App\Base\FrontUserController;
 use EasySwoole\Validate\Validate;
 use EasySwoole\Mysqli\QueryBuilder;
@@ -380,5 +383,41 @@ class InformationApi extends FrontUserController
 		// 输出数据
 		$result = ['banner' => [], 'matches' => $matches, 'information' => ['list' => $list, 'count' => $count]];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+	}
+	
+	/**
+	 * 资讯通知,后台资讯编辑/添加时调用
+	 * @throws
+	 */
+	public function informationPusher()
+	{
+		// 资讯数据
+		$informationId = $this->param('information_id', true);
+		$information = $informationId > 0 ? AdminInformation::getInstance()->findOne($informationId) : false;
+		if (empty($information)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+		
+		// 接收方IDs
+		$tmp = AdminUserSetting::getInstance()->findAll("push->'$.information'=1", 'user_id', null, false, 0, 0, 'user_id,*,true');
+		$userIds = empty($tmp) ? [] : array_keys($tmp);
+		
+		$title = $information['title'];
+		$content = mb_substr(trim(strip_tags($information['title'])), 0, 25);
+		$batchPush = new BatchSignalPush();
+		$data = [
+			'type' => 10,
+			'title' => '资讯推送',
+			'content' => '[' . $title . ']' . $content,
+			'match_id' => 0,
+			'uids' => json_encode($userIds),
+		];
+		$id = AdminNoticeMatch::getInstance()->insert($data);
+		// 开赛通知
+		$batchPush->pushMessageToList($userIds, [
+			'title' => $title,
+			'notice_id' => $id,
+			'content' => $content,
+			'payload' => ['item_id' => 0, 'type' => 1],
+		]);
+		$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 	}
 }

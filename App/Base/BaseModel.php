@@ -62,9 +62,11 @@ abstract class BaseModel extends AbstractModel
 	}
 	
 	/**
-	 * @param        $where
+	 * @param mixed  $where        条件格式:键值对,
+	 *                             键->查询字段(可以是多字段|分割,仅限模糊查询使用), 若键名为or则键值为局部或关系查询, 查询条件也可以为纯字符串
+	 *                             值->1数组时(in,like,between等时第一个元素为范围或搜索词,第二个元素为类型(like,in,between)) 2数字/字符串(字段匹配的值)
 	 * @param string $fields
-	 * @param null   $order
+	 * @param mixed  $order        1排序:参数为数组且中包含order的部分 或 参数是一个字符串(格式:字段,desc/asc)
 	 * @return BaseModel|array|bool|AbstractModel|Cursor|CursorInterface|int|null
 	 * @throws
 	 */
@@ -156,7 +158,6 @@ abstract class BaseModel extends AbstractModel
 			} else {
 				return $fields == 'count' ? 0 : null;
 			}
-			$self = $self->where($where);
 		}
 		if ($fields == 'count') return $self->count();
 		$data = $self->get();
@@ -245,33 +246,38 @@ abstract class BaseModel extends AbstractModel
 				} else {
 					return $isPager ? [[], 0] : [];
 				}
-				$self = $self->where($where);
 			}
 		}
 		// 查询字段
 		$fields = empty($fields) || $fields == '*' || !(is_array($fields) || is_string($fields)) ? null : $fields;
 		if (!empty($fields)) $self = $self->field($fields);
 		// 排序/分组部分
+		$withGroup = false;
 		if (!empty($orderOrGroup) && (is_array($orderOrGroup) || is_string($orderOrGroup))) {
 			if (is_string($orderOrGroup)) {
 				$order = explode(',', trim(preg_replace('/\s+,\s+/', ',', $orderOrGroup), ','));
 				if (count($order) == 2) $self = $self->order(...$order);
 			} else {
-				if (isset($orderOrGroup['order']) || isset($orderOrGroup['group'])) {
-					if (!empty($orderOrGroup['order']) && is_string($orderOrGroup['order'])) {
-						$order = explode(',', trim(preg_replace('/\s+,\s+/', ',', $orderOrGroup), ','));
-						if (count($order) == 2) $self = $self->order(...$order);
-					}
-					if (!empty($orderOrGroup['group']) && is_string($orderOrGroup['group'])) {
-						$self->group($orderOrGroup['group']);
-					}
+				if (!empty($orderOrGroup['group']) && is_string($orderOrGroup['group'])) {
+					$withGroup = true;
+					$self->group($orderOrGroup['group']);
 				} else {
-					$order = array_values($orderOrGroup);
-					if (is_string($order[0])) {
-						if (count($order) == 2) $self = $self->order(...$order);
-					} elseif (is_array($order[0])) {
-						foreach ($order as $k => $v) {
-							if (count($v) == 2) $self = $self->order(...$v);
+					if (!empty($orderOrGroup['order'])) {
+						if (!empty($orderOrGroup['order']) && is_string($orderOrGroup['order'])) {
+							$order = explode(',', trim(preg_replace('/\s+,\s+/', ',', $orderOrGroup), ','));
+							if (count($order) == 2) $self = $self->order(...$order);
+						}
+						if (!empty($orderOrGroup['group']) && is_string($orderOrGroup['group'])) {
+							$self->group($orderOrGroup['group']);
+						}
+					} else {
+						$order = array_values($orderOrGroup);
+						if (is_string($order[0])) {
+							if (count($order) == 2) $self = $self->order(...$order);
+						} elseif (is_array($order[0])) {
+							foreach ($order as $k => $v) {
+								if (count($v) == 2) $self = $self->order(...$v);
+							}
 						}
 					}
 				}
@@ -280,6 +286,7 @@ abstract class BaseModel extends AbstractModel
 		
 		// 获取清单
 		if ($isPager) {
+			if (!$withGroup) $self = $self->order('id', 'asc');
 			$tmp = $self->page($page, $size)->withTotalCount();
 			$list = $tmp->all();
 			if (empty($list)) $list = [];

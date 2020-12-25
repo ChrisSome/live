@@ -296,10 +296,8 @@ class Community extends FrontUserController
 		$mapper = AdminSysSettings::getInstance()->findAll(['sys_key' => [$keys, 'in']], 'sys_key,sys_value', null,
 			false, 0, 0, 'sys_key,sys_value');
 		// 输出数据
-		$hotSearch = empty($mapper[AdminSysSettings::SETTING_HOT_SEARCH]) ?
-			[] : json_decode($mapper[AdminSysSettings::SETTING_HOT_SEARCH], true);
-		$defaultSearchContent = empty($mapper[AdminSysSettings::SETTING_HOT_SEARCH_CONTENT]) ?
-			[] : json_decode($mapper[AdminSysSettings::SETTING_HOT_SEARCH_CONTENT], true);
+		$hotSearch = empty($mapper[AdminSysSettings::SETTING_HOT_SEARCH]) ? [] : json_decode($mapper[AdminSysSettings::SETTING_HOT_SEARCH], true);
+		$defaultSearchContent = empty($mapper[AdminSysSettings::SETTING_HOT_SEARCH_CONTENT]) ? '' : $mapper[AdminSysSettings::SETTING_HOT_SEARCH_CONTENT];
 		$result = ['hot_search' => $hotSearch, 'default_search_content' => $defaultSearchContent];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
