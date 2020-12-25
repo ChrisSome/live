@@ -143,15 +143,15 @@ class InformationApi extends FrontUserController
 			$where = ['information_id' => $informationId, 'status' => AdminInformationComment::STATUS_NORMAL, 'top_comment_id' => [$commentIds, 'in']];
 			$childCountMapper = empty($commentIds) ? [] : AdminInformationComment::getInstance()
 				->findAll($where, 'top_comment_id,count(*) total', ['group' => 'top_comment_id'],
-					false, 0, 0, 'top_comment_id,total,1');
+					false, 0, 0, 'top_comment_id,total,true');
 			// 点赞数据映射
 			$where = ['item_type' => 4, 'item_id' => [$commentIds, 'in'], 'type' => 1, 'user_id' => $this->authId, 'is_cancel' => 0];
 			$operateMapper = empty($commentIds) ? [] : AdminUserOperate::getInstance()
 				->findAll($where, 'item_id', null,
-					false, 0, 0, 'item_id,item_id,false');
+					false, 0, 0, 'item_id,item_id,true');
 			// 回复数据映射
 			$childGroupMapper = [];
-			$subSql = 'select count(*)+1 from admin_information_comments x where x.top_comment_id=top_comment_id and x.information_id=' . $informationId .
+			$subSql = 'select count(*)+1 from admin_information_comments x where x.id=top_comment_id and x.information_id=' . $informationId .
 				' and x.status=' . AdminInformationComment::STATUS_NORMAL . ' having (count(*)+1)<=3';
 			$where = ['information_id' => $informationId, 'status' => AdminInformationComment::STATUS_NORMAL, 'top_comment_id' => [$commentIds, 'in'], 'exists' => $subSql];
 			$tmp = empty($commentIds) ? [] : AdminInformationComment::getInstance()->findAll($where, null, 'created_at desc');
@@ -294,13 +294,11 @@ class InformationApi extends FrontUserController
 	 */
 	public function informationChildComment()
 	{
-		// 登录状态判断
-		$authId = empty($this->auth['id']) || intval($this->auth['id']) < 1 ? 0 : intval($this->auth['id']); // 当前登录用户ID
 		// 顶级评论数据
 		$topCommentId = $this->param('top_comment_id', true);
 		$topComment = $topCommentId < 1 ? null : AdminInformationComment::getInstance()->findOne($topCommentId);
 		if (empty($topComment)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		$topComment = FrontService::handInformationComment([$topComment], $authId);
+		$topComment = FrontService::handInformationComment([$topComment], $this->authId);
 		$topComment = empty($topComment[0]) ? [] : $topComment[0];
 		// 分页参数
 		$page = $this->param('page', true, 1);
@@ -308,7 +306,7 @@ class InformationApi extends FrontUserController
 		[$list, $count] = AdminInformationComment::getInstance()
 			->findAll(['top_comment_id' => $topCommentId], null, 'created_at,desc', true, $page, $size);
 		// 封装数据
-		$list = FrontService::handInformationComment($list, $authId);
+		$list = FrontService::handInformationComment($list, $this->authId);
 		// 输出数据
 		$result = ['fatherComment' => $topComment, 'childComment' => $list, 'count' => $count];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
