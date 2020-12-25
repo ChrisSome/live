@@ -556,7 +556,7 @@ class Community extends FrontUserController
 	public function commentInfo()
 	{
 		// 参数校验
-		$commentId = $this->param('commentId', true);
+		$commentId = $this->param('comment_id', true);
 		if ($commentId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 获取评论信息
 		$comment = AdminPostComment::getInstance()->findOne($commentId);
