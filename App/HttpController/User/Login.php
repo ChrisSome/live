@@ -219,27 +219,26 @@ class Login extends FrontUserController
 		if (!$validator->validate($this->param())) {
 			$this->output(StatusMapper::CODE_W_PARAM, $validator->getError()->__toString());
 		}
-		$params = $this->param();
 		// 获取用户信息
-		$mobile = $params['mobile'];
+		$mobile = $this->param('mobile');
 		$user = AdminUser::getInstance()->findOne(['mobile' => $mobile]);
 		if (empty($user)) {
 			$this->output(StatusMapper::CODE_USER_NOT_EXIST, StatusMapper::$msg[StatusMapper::CODE_USER_NOT_EXIST]);
 		}
 		// 验证码校验
-		$code = $params['phone_code'];
+		$code = $this->param('phone_code');
 		$tmp = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
 		if (empty($tmp['status']) || $tmp['code'] != $code) {
 			$this->output(StatusMapper::CODE_W_PHONE_CODE, StatusMapper::$msg[StatusMapper::CODE_W_PHONE_CODE]);
 		}
 		// 密码校验
-		$password = $params['password'];
+		$password = $this->param('password');
 		if (!preg_match('/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/', $password)) {
 			$this->output(StatusMapper::CODE_W_FORMAT_PASS, StatusMapper::$msg[StatusMapper::CODE_W_FORMAT_PASS]);
 		}
 		// 密码更新
 		$password = PasswordTool::getInstance()->generatePassword($password);
-		$user->setField('password_hash', $password);
+		AdminUser::getInstance()->setField('password_hash', $password, $user['id']);
 		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK]);
 	}
 	
