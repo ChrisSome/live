@@ -280,27 +280,26 @@ class UserCenter extends FrontUserController
 				$itemType = intval($v['item_type']);
 				// 用户数据
 				$userId = intval($v['did_user_id']);
-				$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
+				$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId]->toArray();
 				// 帖子数据
-				$post = $itemType != 1 || empty($postMapper[$itemId]) ? [] : $postMapper[$itemId];
+				$post = $itemType != 1 || empty($postMapper[$itemId]) ? [] : $postMapper[$itemId]->toArray();
 				// 帖子回复数据
-				$postComment = $itemType != 2 || empty($postCommentMapper[$itemId]) ? [] : $postCommentMapper[$itemId];
+				$postComment = $itemType != 2 || empty($postCommentMapper[$itemId]) ? [] : $postCommentMapper[$itemId]->toArray();
 				if (!empty($postComment)) {
 					$postComment['content'] = base64_decode($postComment['content']);
 					$postId = intval($postComment['post_id']);
-					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
+					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId]->toArray();
 				}
 				if (!empty($post['content'])) $post['content'] = base64_decode($post['content']);
 				// 资讯回复数据
-				$informationComment = $itemType != 4 || empty($informationCommentMapper[$itemId]) ? [] : $informationCommentMapper[$itemId];
+				$informationComment = $itemType != 4 || empty($informationCommentMapper[$itemId]) ? [] : $informationCommentMapper[$itemId]->toArray();
 				$information = [];
 				if (!empty($informationComment)) {
 					$informationComment['content'] = mb_substr(base64_decode($informationComment['content']), 0, 20);
 					$informationId = intval($informationComment['information_id']);
-					$information = empty($informationMapper[$informationId]) ? [] : $informationMapper[$informationId];
+					$information = empty($informationMapper[$informationId]) ? [] : $informationMapper[$informationId]->toArray();
 					if (!empty($information['content'])) $information['content'] = mb_substr(base64_decode($information['content']), 0, 20);
 				}
-				
 				$list[$k] = [
 					'message_id' => $id,
 					'status' => $v['status'],
