@@ -249,7 +249,7 @@ class UserCenter extends FrontUserController
 			$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
 				->findAll(['id' => [$userIds, 'in']], $fields, null, false, 0, 0, 'id,*,true');
 			// 帖子回复映射
-			$fields = 'id,content';
+			$fields = 'id,content,post_id';
 			$postCommentMapper = empty($postCommentIds) ? [] : AdminPostComment::getInstance()
 				->findAll(['id' => [$postCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
@@ -267,7 +267,7 @@ class UserCenter extends FrontUserController
 				return $v;
 			}, $postMapper);
 			// 资讯回复映射
-			$fields = 'id,content';
+			$fields = 'id,content,information_id';
 			$informationCommentMapper = empty($informationCommentIds) ? [] : AdminInformationComment::getInstance()
 				->findAll(['id' => [$informationCommentIds, 'in']], $fields, null,
 					false, 0, 0, 'id,*,true');
@@ -293,9 +293,21 @@ class UserCenter extends FrontUserController
 				$post = $itemType != 1 || empty($postMapper[$itemId]) ? [] : $postMapper[$itemId];
 				// 帖子回复数据
 				$postComment = $itemType != 2 || empty($postCommentMapper[$itemId]) ? [] : $postCommentMapper[$itemId];
+				if(!empty($postComment)) {
+					$postId = intval($postComment['post_id']);
+					$tmp = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
+					$postComment['id'] = empty($tmp['id']) ? 0 : $tmp['id'];
+					$postComment['title'] = empty($tmp['title']) ? '' : $tmp['title'];
+				}
 				// 资讯回复数据
 				$informationComment = $itemType != 4 || empty($informationCommentMapper[$itemId]) ? [] : $informationCommentMapper[$itemId];
 				if (!empty($informationComment)) $informationComment['content'] = mb_substr($informationComment['content'], 0, 20);
+				if(!empty($informationComment)) {
+					$informationId = intval($informationMapper['information_id']);
+					$tmp = empty($informationMapper[$informationId]) ? [] : $postMapper[$informationId];
+					$informationComment['id'] = empty($tmp['id']) ? 0 : $tmp['id'];
+					$informationComment['title'] = empty($tmp['title']) ? '' : $tmp['title'];
+				}
 				// 资讯数据
 				$informationId = empty($informationComment) ? 0 : intval($informationComment['post_id']);
 				$information = $informationId < 1 || empty($informationMapper[$informationId]) ? [] : $informationMapper[$informationId];
