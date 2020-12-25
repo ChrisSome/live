@@ -245,26 +245,24 @@ class UserCenter extends FrontUserController
 				}
 			});
 			// 用户映射
-			$fields = 'id,nickname,photo,level,is_offical';
 			$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
-				->findAll(['id' => [$userIds, 'in']], $fields, null, false, 0, 0, 'id,*,true');
+				->findAll(['id' => [$userIds, 'in']], 'id,nickname,photo,level,is_offical', null,
+					false, 0, 0, 'id,*,true');
 			// 帖子回复映射
-			$fields = 'id,content,post_id';
 			$postCommentMapper = empty($postCommentIds) ? [] : AdminPostComment::getInstance()
-				->findAll(['id' => [$postCommentIds, 'in']], $fields, null,
+				->findAll(['id' => [$postCommentIds, 'in']], 'id,content,post_id', null,
 					false, 0, 0, 'id,*,true');
 			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v, $k) use (&$postIds) {
 				$id = intval($v['post_id']);
 				if ($id > 0 && !in_array($id, $postIds)) $postIds[] = $id;
 			});
 			// 帖子映射
-			$fields = 'id,title,content';
 			$postMapper = empty($postIds) ? [] : AdminUserPost::getInstance()
-				->findAll(['id' => [$postIds, 'in']], $fields, null, false, 0, 0, 'id,*,true');
+				->findAll(['id' => [$postIds, 'in']], 'id,title,content', null,
+					false, 0, 0, 'id,*,true');
 			// 资讯回复映射
-			$fields = 'id,content,information_id';
 			$informationCommentMapper = empty($informationCommentIds) ? [] : AdminInformationComment::getInstance()
-				->findAll(['id' => [$informationCommentIds, 'in']], $fields, null,
+				->findAll(['id' => [$informationCommentIds, 'in']], 'id,content,information_id', null,
 					false, 0, 0, 'id,*,true');
 			if (!empty($informationCommentMapper)) array_walk($informationCommentMapper,
 				function ($v) use (&$informationIds) {
@@ -272,9 +270,8 @@ class UserCenter extends FrontUserController
 					if ($id > 0 && !in_array($id, $informationIds)) $informationIds[] = $id;
 				});
 			// 资讯映射
-			$fields = 'id,title,content';
 			$informationMapper = empty($informationIds) ? [] : AdminInformation::getInstance()
-				->findAll(['id' => [$informationIds, 'in']], $fields, null,
+				->findAll(['id' => [$informationIds, 'in']], 'id,title,content', null,
 					false, 0, 0, 'id,*,true');
 			// 填充数据
 			foreach ($list as $k => $v) {
@@ -289,9 +286,9 @@ class UserCenter extends FrontUserController
 				// 帖子回复数据
 				$postComment = $itemType != 2 || empty($postCommentMapper[$itemId]) ? [] : $postCommentMapper[$itemId];
 				if (!empty($postComment)) {
+					$postComment['content'] = base64_decode($postComment['content']);
 					$postId = intval($postComment['post_id']);
 					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
-					$postComment['content'] = base64_decode($postComment['content']);
 				}
 				if (!empty($post['content'])) $post['content'] = base64_decode($post['content']);
 				// 资讯回复数据
