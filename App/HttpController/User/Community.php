@@ -398,22 +398,22 @@ class Community extends FrontUserController
 		// 获取评论信息
 		$comment = AdminPostComment::getInstance()->findOne($commentId);
 		if (empty($comment)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-		// 获取一级评论信息
-		$topComment = $comment;
-		$topCommentId = empty($comment['top_comment_id']) ? 0 : intval($comment['top_comment_id']);
-		if ($topCommentId > 0) {
-			$where = ['id' => $topCommentId, 'status' => [AdminUserPost::NEW_STATUS_DELETED, '<>']];
-			$topComment = AdminPostComment::getInstance()->findOne($where);
-		}
 		// 输出数据
 		$result = ['fatherComment' => [], 'childComment' => [], 'count' => 0];
+		// 获取一级评论信息
+		$topCommentId = empty($comment['top_comment_id']) ? 0 : intval($comment['top_comment_id']);
+		$fatherComments = [$comment];
+		if ($topCommentId > 0) {
+			$where = ['id' => $topCommentId, 'status' => [AdminUserPost::NEW_STATUS_DELETED, '<>']];
+			$fatherComments = AdminPostComment::getInstance()->findAll($where);
+		}
 		// 封装一级评论信息
-		$tmp = empty($topComment) ? [] : FrontService::handComments([$topComment], $this->authId);
-		if (!empty($tmp)) $result['fatherComment'] = $tmp[0];
+		$fatherComments = empty($fatherComments) ? [] : FrontService::handComments($fatherComments, $this->authId);
+		if (!empty($fatherComments[0])) $result['fatherComment'] = $fatherComments[0];
 		// 封装二级评论信息
 		$page = $this->param('page', true, 1);
 		$size = $this->param('size', true, 10);
-		$where = ['top_comment_id' => $topCommentId, 'status' => [AdminUserPost::STATUS_DEL, '<>']];
+		$where = ['top_comment_id' => $result['fatherComment']['id'], 'status' => [AdminUserPost::STATUS_DEL, '<>']];
 		[$list, $result['count']] = AdminPostComment::getInstance()
 			->findAll($where, '*', 'created_at,desc', true, $page, $size);
 		if (!empty($list)) $result['childComment'] = FrontService::handComments($list, $this->authId);
