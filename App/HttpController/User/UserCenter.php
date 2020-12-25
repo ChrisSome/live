@@ -623,7 +623,7 @@ class UserCenter extends FrontUserController
 		if (!empty($postComments)) {
 			// 用户映射
 			$userIds = [];
-			array_walk($postComments, function ($v) use (&$userIds) {
+			array_walk($postComments, function ($v, $k) use (&$userIds) {
 				$id = intval($v['user_id']);
 				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 			});
@@ -632,6 +632,7 @@ class UserCenter extends FrontUserController
 					false, 0, 0, 'id,*,true');
 			foreach ($postComments as $k => $v) {
 				$id = intval($v['user_id']);
+				$postComments[$k]['content'] = base64_decode($v['content']);
 				$postComments[$k]['user_info'] = empty($userMapper[$id]) ? [] : $userMapper[$id];
 			}
 		} else {
@@ -657,6 +658,7 @@ class UserCenter extends FrontUserController
 					false, 0, 0, 'id,*,true');
 			foreach ($informationComments as $k => $v) {
 				$id = intval($v['user_id']);
+				$informationComments[$k]['content'] = base64_decode($v['content']);
 				$informationComments[$k]['user_info'] = empty($userMapper[$id]) ? [] : $userMapper[$id];
 			}
 		} else {
