@@ -328,8 +328,7 @@ class UserCenter extends FrontUserController
 				$id = intval($v['item_id']);
 				if ($id > 0) {
 					$itemType = intval($v['item_type']);
-					if ($itemType == 1 && !in_array($id, $postIds)) $postIds[] = $id;
-					if ($itemType == 2 && !in_array($id, $postCommentIds)) $postCommentIds[] = $id;
+					if (($itemType == 1 || $itemType == 2) && !in_array($id, $postCommentIds)) $postCommentIds[] = $id;
 					if ($itemType == 4 && !in_array($id, $informationCommentIds)) $informationCommentIds[] = $id;
 				}
 			});
@@ -391,7 +390,7 @@ class UserCenter extends FrontUserController
 					$postId = intval($comment['post_id']);
 					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
 					if (!empty($post)) $post['content'] = base64_decode($post['content']);
-					$userId = intval($post['user_id']);
+					$userId = intval($comment['user_id']);
 					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 					$list[] = [
 						'user_info' => $user,
