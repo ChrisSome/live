@@ -82,7 +82,7 @@ class FootBallMatch extends FrontUserController
 	protected $liveUrl = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';//比赛列表
 	protected $seasonUrl = 'https://open.sportnanoapi.com/api/v4/football/season/list?user=%s&secret=%s&time=%s'; //更新赛季
 	protected $playerStat = 'https://open.sportnanoapi.com/api/v4/football/player/list/with_stat?user=%s&secret=%s&time=%s'; //获取球员能力技术列表
-	protected $playerChangeClubHistory = 'https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&id=%s'; //球员转会历史
+	protected $playerChangeClubHistory = 'https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&time=%s'; //球员转会历史
 	protected $teamHonor = 'https://open.sportnanoapi.com/api/v4/football/team/honor/list?user=%s&secret=%s&id=%s'; //球队荣誉
 	protected $honorList = 'https://open.sportnanoapi.com/api/v4/football/honor/list?user=%s&secret=%s&time=%s'; //荣誉详情
 	protected $allStat = 'https://open.sportnanoapi.com/api/v4/football/season/all/stats/detail?user=%s&secret=%s&id=%s'; //获取赛季球队球员统计详情-全量
@@ -831,12 +831,7 @@ class FootBallMatch extends FrontUserController
 					'from_team_name' => $v['from_team_name'],
 				];
 				$tmp = $id < 1 ? null : AdminPlayerChangeClub::getInstance()->findOne(['id' => $id]);
-				if (empty($tmp)) {
-					AdminPlayerChangeClub::getInstance()->insert($data);
-				} else {
-					unset($data['id']);
-					AdminPlayerChangeClub::getInstance()->update($data, $id);
-				}
+				if (empty($tmp)) AdminPlayerChangeClub::getInstance()->insert($data);
 			}
 		}
 	}

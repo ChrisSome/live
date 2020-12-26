@@ -18,7 +18,6 @@ use EasySwoole\ORM\Db\Config as DbConfig;
 use EasySwoole\RedisPool\RedisPoolException;
 use EasySwoole\Socket\Config as SocketConfig;
 use EasySwoole\RedisPool\Exception\Exception;
-use easySwoole\Cache\Exception\CacheException;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
 
@@ -59,7 +58,7 @@ class EasySwooleEvent implements Event
 		// 设置最小连接池存在连接对象数量
 		$mysqlConfig->setMinObjectNum(18);
 		// 设置最大连接池存在连接对象数量
-		$mysqlConfig->setMaxObjectNum(100);
+		$mysqlConfig->setMaxObjectNum(200);
 		// 设置获取连接池对象超时时间
 		$mysqlConfig->setGetObjectTimeout(3.0);
 		// 设置自动ping客户端链接的间隔

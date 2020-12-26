@@ -2,6 +2,7 @@
 /RemoteSystemsTempFiles/
 /composer.lock
 /Temp/esCache/*
+/Temp/pid.pid
 /Temp/logs/*
 /produce.php
 /mysql/data

@@ -19,6 +19,7 @@
     "easyswoole/verifycode": "^3.0",
     "easyswoole/redis-pool": "^2.1",
     "ritaswc/zx-ip-address": "^2.0",
-    "joshcam/mysqli-database-class": "dev-master"
+    "joshcam/mysqli-database-class": "dev-master",
+    "ext-curl": "*"
   }
 }

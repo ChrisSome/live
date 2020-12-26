@@ -357,8 +357,6 @@ class FootballApi extends FrontUserController
 		$match = $matchId < 1 ? null : AdminMatch::getInstance()->findOne(['match_id' => $matchId, 'is_delete' => 0]);
 		if (empty($match)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		
-		$sensuous = AdminClashHistory::getInstance()->where(['match_id' => $matchId]);
-		
 		//积分排名
 		$season = $match->competitionName();
 		$currentSeasonId = empty($season['cur_season_id']) ? 0 : intval($season['cur_season_id']);
@@ -418,8 +416,8 @@ class FootballApi extends FrontUserController
 		$homeRecentSchedule = $awayRecentSchedule = [];
 		// 近期赛程
 		$matchSchedule = SeasonMatchList::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
-			->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
-			->where('is_delete', 0)->order('match_time', 'DESC')->all();
+			->where('(home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid . ')')
+			->where('match_time', time(), '>=')->where('is_delete', 0)->order('match_time', 'DESC')->all();
 		foreach ($matchSchedule as $scheduleItem) {
 			if ($scheduleItem['home_team_id'] == $homeTid || $scheduleItem['away_team_id'] == $awayTid) {
 				$homeRecentSchedule[] = $scheduleItem;
