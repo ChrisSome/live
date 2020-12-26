@@ -474,7 +474,8 @@ class Community extends FrontUserController
 
             if ($this->auth['status'] == AdminUser::STATUS_FORBIDDEN) {
                 return $this->writeJson(Status::CODE_STATUS_FORBIDDEN, Status::$msg[Status::CODE_STATUS_FORBIDDEN]);
-
+            } else if ((int)$data['cat_id'] == 0) {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
             }
             //发布
 

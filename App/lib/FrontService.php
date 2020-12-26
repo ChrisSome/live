@@ -103,6 +103,7 @@ class  FrontService {
                 'created_at' => $v['created_at'],
                 'is_refine' => intval($v['is_refine']),
                 'respon_number' => $v['respon_number'],
+                'updated_at' => $v['updated_at'],
                 'fabolus_number' => $v['fabolus_number'],
                 'collect_number' => $v['collect_number'],
                 'content' => base64_decode($v['content']),

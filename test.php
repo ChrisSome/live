@@ -1,52 +1,5 @@
 <?php
 
-$a = '[
-        {
-            "item_id": 5,
-            "type": 1
-        },
-        {
-            "item_id": 20,
-            "type": 1
-        },
-        {
-            "item_id": 22,
-            "type": 1
-        },
-        {
-            "item_id": 157,
-            "type": 1
-        },
-        {
-            "item_id": 85,
-            "type": 1
-        },
-        {
-            "item_id": 169,
-            "type": 1
-        },
-        {
-            "item_id": 168,
-            "type": 1
-        },
-        {
-            "item_id": 43,
-            "type": 1
-        },
-        {
-            "item_id": 157,
-            "type": 2
-        },
-        {
-            "item_id": 63,
-            "type": 2
-        }
-    ]';
-$decode = json_decode($a, true);
-$decode = array_values($decode);
-$t = ['item' => 63, 'type' => 2];
-foreach ($decode as $item) {
-    if ($item == $t) {
-        echo 1;
-    }
-}
+$a = '{"params":{"content":"111","roomId":1,"type":"text","at_user_id":0}, "event":"broadcast-roomBroadcast"}
+{"event":"broadcast-roomBroadcast","params":{"match_id":1,"content":"888","sender_user_id":41,"type":"text","at_user_id":2}}';
+var_dump(json_decode($a, true));
