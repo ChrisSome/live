@@ -37,6 +37,7 @@ use App\Model\AdminUserInterestCompetition;
 use App\Model\SeasonAllTableDetail;
 use App\Model\SeasonMatchList;
 use App\Model\SignalMatchLineUp;
+use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
 use easySwoole\Cache\Cache;
