@@ -398,7 +398,7 @@ class FootballApi extends FrontUserController
 		
 		// 历史交锋 与 近期战绩
 		$match = SeasonMatchList::getInstance()->where('status_id', 8)
-			->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
+			->where('home_team_id=' . $homeTid . ' or away_team_id=' . $homeTid . ' or home_team_id=' . $awayTid . ' or away_team_id=' . $awayTid)
 			->where('is_delete', 0)->order('match_time', 'DESC')->all();
 		$formatHistoryMatches = $homeRecentMatches = $awayRecentMatches = [];
 		foreach ($match as $itemMatch) {
@@ -416,7 +416,7 @@ class FootballApi extends FrontUserController
 		$homeRecentSchedule = $awayRecentSchedule = [];
 		// 近期赛程
 		$matchSchedule = SeasonMatchList::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
-			->where('(home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid . ')')
+			->where('(home_team_id=' . $homeTid . ' or away_team_id=' . $homeTid . ' or home_team_id=' . $awayTid . ' or away_team_id=' . $awayTid . ')')
 			->where('match_time', time(), '>=')->where('is_delete', 0)->order('match_time', 'DESC')->all();
 		foreach ($matchSchedule as $scheduleItem) {
 			if ($scheduleItem['home_team_id'] == $homeTid || $scheduleItem['away_team_id'] == $awayTid) {
@@ -461,9 +461,9 @@ class FootballApi extends FrontUserController
 		// 参数校验
 		$matchId = $this->param('match_id', true);
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		$match = $matchId < 1 ? null : AdminMatch::getInstance()->findOne(['match_id' => $matchId]);
+		$match = AdminMatch::getInstance()->findOne(['match_id' => $matchId]);
 		if (empty($match)) $this->output(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
-		$match = empty($match) ? null : FrontService::formatMatchThree([$match], $this->authId, []);
+		$match = FrontService::formatMatchThree([$match], $this->authId, []);
 		$match = empty($match[0]) ? null : $match[0];
 		if (empty($match)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		
