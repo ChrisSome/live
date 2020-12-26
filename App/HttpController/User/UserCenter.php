@@ -385,9 +385,12 @@ class UserCenter extends FrontUserController
 				$itemId = intval($v['item_id']);
 				$itemType = intval($v['item_type']);
 				if ($itemType == 1) { // 帖子
-					$post = empty($postMapper[$itemId]) ? null : $postMapper[$itemId];
-					if (empty($post)) continue;
-					$post['content'] = base64_decode($post['content']);
+					$comment = empty($postCommentMapper[$itemId]) ? null : $postCommentMapper[$itemId];
+					if (empty($comment)) continue;
+					$comment['content'] = base64_decode($comment['content']);
+					$postId = intval($comment['post_id']);
+					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
+					if (!empty($post)) $post['content'] = base64_decode($post['content']);
 					$userId = intval($post['user_id']);
 					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 					$list[] = [
@@ -395,8 +398,8 @@ class UserCenter extends FrontUserController
 						'post_info' => $post,
 						'status' => $v['status'],
 						'item_type' => $itemType,
-						'post_comment_info' => [],
 						'message_id' => $messageId,
+						'post_comment_info' =>$comment,
 						'created_at' => $v['created_at'],
 					];
 				} elseif ($itemType == 2) { // 帖子评论
@@ -407,7 +410,7 @@ class UserCenter extends FrontUserController
 					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 					$postId = intval($comment['post_id']);
 					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
-					if (!empty($post)) $post['content'] = mb_substr(base64_decode($post['content']), 0, 20);
+					if (!empty($post)) $post['content'] = base64_decode($post['content']);
 					$commentId = intval($comment['parent_id']);
 					$parent = empty($postCommentMapper[$commentId]) ? [] : $postCommentMapper[$commentId];
 					if (!empty($parent)) $parent['content'] = mb_substr(base64_decode($parent['content']), 0, 20);
