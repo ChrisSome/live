@@ -19,115 +19,115 @@ use App\Model\AdminUserInterestCompetition;
 class FootballApi extends FrontUserController
 {
 	protected $needCheckToken = false;
-	protected $lineUpDetail = 'https://open.sportnanoapi.com/api/v4/football/match/lineup/detail?user=%s&secret=%s&id=%s';
-	protected $matchHistory = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s';
-	protected $urlIntRank = 'https://open.sportnanoapi.com/api/v4/football/season/table/detail?user=%s&secret=%s&id=%s';
-	protected $playerLogo = 'http://cdn.sportnanoapi.com/football/player/';
 	const STATUS_NO_START = 1;
 	const STATUS_SCHEDULE = [0, 1, 9];
 	const STATUS_PLAYING = [2, 3, 4, 5, 7];
 	const STATUS_RESULT = [8, 9, 10, 11, 12, 13];
-	const hotCompetition = [
-		'hot' => [['competition_id' => 45, 'short_name_zh' => '欧洲杯'],
-			['competition_id' => 47, 'short_name_zh' => '欧联杯'],
-			['competition_id' => 542, 'short_name_zh' => '中超']],
-		'A' => [
-			['competition_id' => 595, 'short_name_zh' => '澳南超'],
-			['competition_id' => 600, 'short_name_zh' => '澳南甲'],
-			['competition_id' => 1689, 'short_name_zh' => '阿尔U21'],
-			['competition_id' => 1858, 'short_name_zh' => '澳昆U20'],
-			['competition_id' => 1850, 'short_name_zh' => '澳南后备'],
-		],
-		'B' => [
-			['competition_id' => 3007, 'short_name_zh' => '巴基挑杯'],
-			['competition_id' => 282, 'short_name_zh' => '冰岛乙'],
-			['competition_id' => 284, 'short_name_zh' => '冰岛杯'],
-			['competition_id' => 436, 'short_name_zh' => '巴西乙'],
-			['competition_id' => 1821, 'short_name_zh' => '巴丙'],
-		],
-		'D' => [
-			['competition_id' => 1675, 'short_name_zh' => '德堡州联'],
-			['competition_id' => 132, 'short_name_zh' => '德地区北'],
-		],
-		'E' => [
-			['competition_id' => 238, 'short_name_zh' => '俄超'],
-			['competition_id' => 241, 'short_name_zh' => '俄青联'],
-			['competition_id' => 240, 'short_name_zh' => '俄乙'],
-		
-		],
-		'F' => [
-			['competition_id' => 195, 'short_name_zh' => '芬超'],
-			['competition_id' => 1940, 'short_name_zh' => '芬丙'],
-			['competition_id' => 3053, 'short_name_zh' => '斐济女联'],
-			['competition_id' => 1932, 'short_name_zh' => '斐济杯'],
-		],
-		'G' => [
-			['competition_id' => 486, 'short_name_zh' => '哥斯甲'],
-			['competition_id' => 385, 'short_name_zh' => '格鲁甲'],
-			['competition_id' => 386, 'short_name_zh' => '格鲁乙'],
-		],
-		'H' => [
-			['competition_id' => 356, 'short_name_zh' => '哈萨超'],
-			['competition_id' => 357, 'short_name_zh' => '哈萨甲'],
-		],
-		'J' => [
-			['competition_id' => 2984, 'short_name_zh' => '加拿职'],
-		],
-		'K' => [
-			['competition_id' => 1785, 'short_name_zh' => '卡塔乙'],
-		],
-		'L' => [
-			['competition_id' => 271, 'short_name_zh' => '罗乙'],
-		],
-		'M' => [
-			['competition_id' => 465, 'short_name_zh' => '墨西超'],
-			['competition_id' => 466, 'short_name_zh' => '墨西乙'],
-			['competition_id' => 2115, 'short_name_zh' => '墨女超'],
-		],
-		'N' => [
-			['competition_id' => 716, 'short_name_zh' => '南非超'],
-			['competition_id' => 203, 'short_name_zh' => '挪乙'],
-		],
-		'O' => [
-			['competition_id' => 53, 'short_name_zh' => '欧青U19'],
-		],
-		'Q' => [
-			['competition_id' => 24, 'short_name_zh' => '球会友谊'],
-		],
-		'R' => [
-			['competition_id' => 568, 'short_name_zh' => '日职乙'],
-			['competition_id' => 569, 'short_name_zh' => '日足联'],
-			['competition_id' => 572, 'short_name_zh' => '日职丙'],
-			['competition_id' => 567, 'short_name_zh' => '日职联'],
-		],
-		'S' => [
-			['competition_id' => 616, 'short_name_zh' => '沙特乙'],
-			['competition_id' => 615, 'short_name_zh' => '沙特甲'],
-			['competition_id' => 3164, 'short_name_zh' => '所罗岛杯'],
-		],
-		'T' => [
-			['competition_id' => 1842, 'short_name_zh' => '泰乙'],
-			['competition_id' => 317, 'short_name_zh' => '土乙红'],
-			['competition_id' => 318, 'short_name_zh' => '土丙C'],
-		],
-		'W' => [
-			['competition_id' => 674, 'short_name_zh' => '乌兹超'],
-			['competition_id' => 675, 'short_name_zh' => '乌兹甲'],
-			['competition_id' => 1736, 'short_name_zh' => '乌拉乙'],
-		],
-		'X' => [
-			['competition_id' => 547, 'short_name_zh' => '香港甲'],
-			['competition_id' => 1732, 'short_name_zh' => '香港乙'],
-		],
-		'Y' => [
-			['competition_id' => 349, 'short_name_zh' => '以乙北'],
-			['competition_id' => 491, 'short_name_zh' => '亚冠杯'],
-		],
-		'Z' => [
-			['competition_id' => 543, 'short_name_zh' => '中甲'],
-			['competition_id' => 544, 'short_name_zh' => '中乙'],
-		],
-	];
+	protected $lineUpDetail = 'https://open.sportnanoapi.com/api/v4/football/match/lineup/detail?user=%s&secret=%s&id=%s';
+	protected $playerLogo = 'http://cdn.sportnanoapi.com/football/player/';
+	// protected $matchHistory = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s';
+	// protected $urlIntRank = 'https://open.sportnanoapi.com/api/v4/football/season/table/detail?user=%s&secret=%s&id=%s';
+	// const hotCompetition = [
+	//		'hot' => [['competition_id' => 45, 'short_name_zh' => '欧洲杯'],
+	//			['competition_id' => 47, 'short_name_zh' => '欧联杯'],
+	//			['competition_id' => 542, 'short_name_zh' => '中超']],
+	//		'A' => [
+	//			['competition_id' => 595, 'short_name_zh' => '澳南超'],
+	//			['competition_id' => 600, 'short_name_zh' => '澳南甲'],
+	//			['competition_id' => 1689, 'short_name_zh' => '阿尔U21'],
+	//			['competition_id' => 1858, 'short_name_zh' => '澳昆U20'],
+	//			['competition_id' => 1850, 'short_name_zh' => '澳南后备'],
+	//		],
+	//		'B' => [
+	//			['competition_id' => 3007, 'short_name_zh' => '巴基挑杯'],
+	//			['competition_id' => 282, 'short_name_zh' => '冰岛乙'],
+	//			['competition_id' => 284, 'short_name_zh' => '冰岛杯'],
+	//			['competition_id' => 436, 'short_name_zh' => '巴西乙'],
+	//			['competition_id' => 1821, 'short_name_zh' => '巴丙'],
+	//		],
+	//		'D' => [
+	//			['competition_id' => 1675, 'short_name_zh' => '德堡州联'],
+	//			['competition_id' => 132, 'short_name_zh' => '德地区北'],
+	//		],
+	//		'E' => [
+	//			['competition_id' => 238, 'short_name_zh' => '俄超'],
+	//			['competition_id' => 241, 'short_name_zh' => '俄青联'],
+	//			['competition_id' => 240, 'short_name_zh' => '俄乙'],
+	//
+	//		],
+	//		'F' => [
+	//			['competition_id' => 195, 'short_name_zh' => '芬超'],
+	//			['competition_id' => 1940, 'short_name_zh' => '芬丙'],
+	//			['competition_id' => 3053, 'short_name_zh' => '斐济女联'],
+	//			['competition_id' => 1932, 'short_name_zh' => '斐济杯'],
+	//		],
+	//		'G' => [
+	//			['competition_id' => 486, 'short_name_zh' => '哥斯甲'],
+	//			['competition_id' => 385, 'short_name_zh' => '格鲁甲'],
+	//			['competition_id' => 386, 'short_name_zh' => '格鲁乙'],
+	//		],
+	//		'H' => [
+	//			['competition_id' => 356, 'short_name_zh' => '哈萨超'],
+	//			['competition_id' => 357, 'short_name_zh' => '哈萨甲'],
+	//		],
+	//		'J' => [
+	//			['competition_id' => 2984, 'short_name_zh' => '加拿职'],
+	//		],
+	//		'K' => [
+	//			['competition_id' => 1785, 'short_name_zh' => '卡塔乙'],
+	//		],
+	//		'L' => [
+	//			['competition_id' => 271, 'short_name_zh' => '罗乙'],
+	//		],
+	//		'M' => [
+	//			['competition_id' => 465, 'short_name_zh' => '墨西超'],
+	//			['competition_id' => 466, 'short_name_zh' => '墨西乙'],
+	//			['competition_id' => 2115, 'short_name_zh' => '墨女超'],
+	//		],
+	//		'N' => [
+	//			['competition_id' => 716, 'short_name_zh' => '南非超'],
+	//			['competition_id' => 203, 'short_name_zh' => '挪乙'],
+	//		],
+	//		'O' => [
+	//			['competition_id' => 53, 'short_name_zh' => '欧青U19'],
+	//		],
+	//		'Q' => [
+	//			['competition_id' => 24, 'short_name_zh' => '球会友谊'],
+	//		],
+	//		'R' => [
+	//			['competition_id' => 568, 'short_name_zh' => '日职乙'],
+	//			['competition_id' => 569, 'short_name_zh' => '日足联'],
+	//			['competition_id' => 572, 'short_name_zh' => '日职丙'],
+	//			['competition_id' => 567, 'short_name_zh' => '日职联'],
+	//		],
+	//		'S' => [
+	//			['competition_id' => 616, 'short_name_zh' => '沙特乙'],
+	//			['competition_id' => 615, 'short_name_zh' => '沙特甲'],
+	//			['competition_id' => 3164, 'short_name_zh' => '所罗岛杯'],
+	//		],
+	//		'T' => [
+	//			['competition_id' => 1842, 'short_name_zh' => '泰乙'],
+	//			['competition_id' => 317, 'short_name_zh' => '土乙红'],
+	//			['competition_id' => 318, 'short_name_zh' => '土丙C'],
+	//		],
+	//		'W' => [
+	//			['competition_id' => 674, 'short_name_zh' => '乌兹超'],
+	//			['competition_id' => 675, 'short_name_zh' => '乌兹甲'],
+	//			['competition_id' => 1736, 'short_name_zh' => '乌拉乙'],
+	//		],
+	//		'X' => [
+	//			['competition_id' => 547, 'short_name_zh' => '香港甲'],
+	//			['competition_id' => 1732, 'short_name_zh' => '香港乙'],
+	//		],
+	//		'Y' => [
+	//			['competition_id' => 349, 'short_name_zh' => '以乙北'],
+	//			['competition_id' => 491, 'short_name_zh' => '亚冠杯'],
+	//		],
+	//		'Z' => [
+	//			['competition_id' => 543, 'short_name_zh' => '中甲'],
+	//			['competition_id' => 544, 'short_name_zh' => '中乙'],
+	//		],
+	//	];
 	
 	/**
 	 * 赛事列表

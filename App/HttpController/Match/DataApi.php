@@ -666,7 +666,7 @@ class DataApi extends FrontUserController
 						[$tmp['half_home_scores'], $tmp['half_away_scores']] = AppFunc::getHalfScore($decodeHomeScore, $decodeAwayScore);
 						[$tmp['home_corner'], $tmp['away_corner']] = AppFunc::getCorner($decodeHomeScore, $decodeAwayScore);//角球
 						$result[] = array_merge($tmp, [
-							'match_id' => intval($v['id']),
+							'match_id' => intval($v['match_id']),
 							'match_time' => date('Y-m-d', $v['match_time']),
 							'home_team_name_zh' => empty($teamMapper[$htId]) ? '' : $teamMapper[$htId],
 							'away_team_name_zh' => empty($teamMapper[$atId]) ? '' : $teamMapper[$atId],
