@@ -354,9 +354,10 @@ class UserCenter extends FrontUserController
 			}
 			// 帖子映射
 			$postMapper = empty($postIds) ? [] : AdminUserPost::getInstance()
-				->findAll(['id' => [$postIds, 'in']], 'id,title,content,user_id', null,
+				->findAll(['id' => [$postIds, 'in']], 'id,title,content', null,
 					false, 0, 0, 'id,*,true');
 			if (!empty($postMapper)) foreach ($postMapper as $k => $v) {
+				$postMapper[$k] = $v->toArray();
 				$id = intval($v['user_id']);
 				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 			}
@@ -365,6 +366,7 @@ class UserCenter extends FrontUserController
 				->findAll(['id' => [$informationCommentIds, 'in']], null, null,
 					false, 0, 0, 'id,*,true');
 			if (!empty($informationCommentMapper)) foreach ($informationCommentMapper as $k => $v) {
+				$informationCommentMapper[$k] = $v->toArray();
 				$id = intval($v['user_id']);
 				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 				$id = intval($v['information_id']);
@@ -374,10 +376,16 @@ class UserCenter extends FrontUserController
 			$informationMapper = empty($informationIds) ? [] : AdminInformation::getInstance()
 				->findAll(['id' => [$informationIds, 'in']], null, null,
 					false, 0, 0, 'id,*,true');
+			if (!empty($informationMapper)) foreach ($informationMapper as $k => $v) {
+				$informationMapper[$k] = $v->toArray();
+			}
 			// 用户映射
 			$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
 				->findAll(['id' => [$userIds, 'in']], 'id,mobile,photo,nickname,level,is_offical', null,
 					false, 0, 0, 'id,*,true');
+			if (!empty($userMapper)) foreach ($userMapper as $k => $v) {
+				$userMapper[$k] = $v->toArray();
+			}
 			$list = [];
 			foreach ($items as $v) {
 				$messageId = intval($v['id']);
