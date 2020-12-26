@@ -273,7 +273,7 @@ class InformationApi extends FrontUserController
 		Cache::set('user_comment_information_' . $this->authId, 1, 5);
 		// 用户消息
 		if ($parentId > 0) {
-			$comment = AdminInformationComment::getInstance()->where($parentId);
+			$comment = AdminInformationComment::getInstance()->findOne($parentId);
 			AdminMessage::getInstance()->insert([
 				'type' => 3,
 				'item_type' => 4,

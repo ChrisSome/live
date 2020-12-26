@@ -2,6 +2,7 @@
 
 namespace App\HttpController\User;
 
+use Throwable;
 use App\Common\AppFunc;
 use App\Model\AdminUser;
 use App\Utility\Log\Log;
@@ -62,7 +63,7 @@ class UserCenter extends FrontUserController
 	{
 		// 类型校验
 		$type = $this->param('type', true, 1);
-		if ($type != 1 && $type != 2) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);;
+		if ($type != 1 && $type != 2) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
 		// 关键字
 		$keywords = $this->param('key_word');
 		// 分页参数
@@ -72,9 +73,10 @@ class UserCenter extends FrontUserController
 			$sqlTemplate = 'select %s ' .
 				'from admin_user_operates as a inner join admin_user_posts as b on a.item_id=b.id and a.author_id=b.user_id ' .
 				'where a.item_type=1 and a.type=2 and a.user_id=%s and b.status in(1,2,6) and a.is_cancel=0 and b.title like "%s"';
-			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords) {
+			$list = AdminUserOperate::getInstance()->func(function ($builder) use ($sqlTemplate, $keywords, $page, $size) {
 				$fields = 'b.*';
-				$builder->raw(sprintf($sqlTemplate . ' order by a.created_at desc', $fields, $this->authId, '%' . $keywords . '%'), []);
+				$sql = $sqlTemplate . ' order by a.created_at desc limit ' . (($page - 1) * $size) . ',' . $size;
+				$builder->raw(sprintf($sql, $fields, $this->authId, '%' . $keywords . '%'), []);
 				return true;
 			});
 			$list = empty($list) ? [] : FrontService::handPosts($list, $this->authId);
@@ -174,7 +176,7 @@ class UserCenter extends FrontUserController
 		$params = $this->param();
 		// 类型校验
 		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
-		if ($type > 4) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);;
+		if ($type > 4) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 分页参数
 		$page = $this->param('page', true, 1);
 		$size = $this->param('size', true, 10);
@@ -253,7 +255,7 @@ class UserCenter extends FrontUserController
 			$postCommentMapper = empty($postCommentIds) ? [] : AdminPostComment::getInstance()
 				->findAll(['id' => [$postCommentIds, 'in']], 'id,content,post_id', null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v, $k) use (&$postIds) {
+			if (!empty($postCommentMapper)) array_walk($postCommentMapper, function ($v) use (&$postIds) {
 				$id = intval($v['post_id']);
 				if ($id > 0 && !in_array($id, $postIds)) $postIds[] = $id;
 			});
@@ -337,56 +339,42 @@ class UserCenter extends FrontUserController
 					false, 0, 0, 'id,*,true');
 			$postCommentIds = [];
 			if (!empty($postCommentMapper)) array_walk($postCommentMapper,
-				function ($v, $k) use (&$postCommentIds, &$postIds, &$userIds, &$postCommentMapper) {
+				function ($v) use (&$postCommentIds, &$postIds, &$userIds, &$postCommentMapper) {
 					$id = intval($v['post_id']);
 					if ($id > 0 && !in_array($id, $postIds)) $postIds[] = $id;
-					$id = intval($v['user_info']);
+					$id = intval($v['user_id']);
 					if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 					$id = intval($v['parent_id']);
 					if ($id > 0 && !in_array($id, $postCommentIds)) $postCommentIds[] = $id;
-					$postCommentMapper[$k]['content'] = base64_decode($v['content']);
 				});
 			$tmp = empty($postCommentIds) ? [] : AdminPostComment::getInstance()
 				->findAll(['id' => [$postCommentIds, 'in']], null, null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($tmp)) array_walk($tmp,
-				function ($v, $k) use (&$postCommentMapper) {
-					$v['content'] = base64_decode($v['content']);
-					$postCommentMapper[$k] = $v;
-				});
+			if (!empty($tmp)) foreach ($tmp as $k => $v) {
+				$postCommentMapper[$k] = $v;
+			}
 			// 帖子映射
 			$postMapper = empty($postIds) ? [] : AdminUserPost::getInstance()
 				->findAll(['id' => [$postIds, 'in']], 'id,title,content,user_id', null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($postMapper)) array_walk($postMapper,
-				function ($v, $k) use (&$postCommentIds, &$postIds, &$userIds, &$postMapper) {
-					$id = intval($v['user_id']);
-					if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
-					$id = intval($v['id']);
-					if ($id > 0 && !in_array($id, $postIds)) $postIds[] = $id;
-					$postMapper[$k]['content'] = mb_substr(base64_decode($v['content']), 0, 30);
-				});
+			if (!empty($postMapper)) foreach ($postMapper as $k => $v) {
+				$id = intval($v['user_id']);
+				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+			}
 			// 资讯评论映射
 			$informationCommentMapper = empty($informationCommentIds) ? [] : AdminInformationComment::getInstance()
 				->findAll(['id' => [$informationCommentIds, 'in']], null, null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($informationCommentMapper)) array_walk($informationCommentMapper,
-				function ($v, $k) use (&$informationIds, &$userIds, &$informationCommentMapper) {
-					$id = intval($v['user_id']);
-					if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
-					$id = intval($v['information_id']);
-					if ($id > 0 && !in_array($id, $informationIds)) $informationIds[] = $id;
-					$informationCommentMapper[$k]['content'] = base64_decode($v['content']);
-				});
+			if (!empty($informationCommentMapper)) foreach ($informationCommentMapper as $k => $v) {
+				$id = intval($v['user_id']);
+				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
+				$id = intval($v['information_id']);
+				if ($id > 0 && !in_array($id, $informationIds)) $informationIds[] = $id;
+			}
 			// 资讯映射
 			$informationMapper = empty($informationIds) ? [] : AdminInformation::getInstance()
 				->findAll(['id' => [$informationIds, 'in']], null, null,
 					false, 0, 0, 'id,*,true');
-			if (!empty($informationMapper)) array_walk($informationMapper,
-				function ($v) use (&$userIds) {
-					$id = intval($v['user_id']);
-					if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
-				});
 			// 用户映射
 			$userMapper = empty($userIds) ? [] : AdminUser::getInstance()
 				->findAll(['id' => [$userIds, 'in']], 'id,mobile,photo,nickname,level,is_offical', null,
@@ -394,54 +382,60 @@ class UserCenter extends FrontUserController
 			$list = [];
 			foreach ($items as $v) {
 				$messageId = intval($v['id']);
-				$id = intval($v['item_id']);
+				$itemId = intval($v['item_id']);
 				$itemType = intval($v['item_type']);
 				if ($itemType == 1) { // 帖子
-					$post = empty($postMapper[$id]) ? null : $postMapper[$id];
+					$post = empty($postMapper[$itemId]) ? null : $postMapper[$itemId];
 					if (empty($post)) continue;
+					$post['content'] = base64_decode($post['content']);
 					$userId = intval($post['user_id']);
 					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 					$list[] = [
-						'message_id' => $messageId,
-						'created_at' => $v['created_at'],
 						'user_info' => $user,
 						'post_info' => $post,
 						'status' => $v['status'],
 						'item_type' => $itemType,
 						'post_comment_info' => [],
-					];
-				} elseif ($itemType == 2) { // 帖子评论
-					$comment = empty($postCommentMapper[$id]) ? null : $postCommentMapper[$id];
-					if (empty($comment)) continue;
-					$userId = intval($comment['user_id']);
-					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
-					$id = intval($v['post_id']);
-					$post = empty($postMapper[$id]) ? [] : $postMapper[$id];
-					$id = intval($v['parent_id']);
-					$parent = empty($postCommentMapper[$id]) ? [] : $postCommentMapper[$id];
-					$list[] = [
 						'message_id' => $messageId,
 						'created_at' => $v['created_at'],
+					];
+				} elseif ($itemType == 2) { // 帖子评论
+					$comment = empty($postCommentMapper[$itemId]) ? null : $postCommentMapper[$itemId];
+					if (empty($comment)) continue;
+					$comment['content'] = base64_decode($comment['content']);
+					$userId = intval($comment['user_id']);
+					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
+					$postId = intval($v['post_id']);
+					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
+					if (!empty($post)) $post['content'] = mb_substr(base64_decode($post['content']), 0, 20);
+					$commentId = intval($v['parent_id']);
+					$parent = empty($postCommentMapper[$commentId]) ? [] : $postCommentMapper[$commentId];
+					if (!empty($parent)) $parent['content'] = mb_substr(base64_decode($parent['content']), 0, 20);
+					$list[] = [
 						'user_info' => $user,
 						'post_info' => $post,
 						'status' => $v['status'],
 						'item_type' => $itemType,
+						'message_id' => $messageId,
 						'post_comment_info' => $comment,
 						'parent_comment_info' => $parent,
+						'created_at' => $v['created_at'],
 					];
 				} elseif ($itemType == 4) { // 资讯回复
-					$informationComment = empty($informationCommentMapper[$id]) ? null : $informationCommentMapper[$id];
+					$informationComment = empty($informationCommentMapper[$itemId]) ? null : $informationCommentMapper[$itemId];
 					if (empty($informationComment)) continue;
+					$informationComment['content'] = mb_substr(base64_decode($informationComment['content']), 0, 20);
 					$userId = intval($informationComment['user_id']);
 					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
-					$id = intval($v['information_id']);
-					$information = empty($informationMapper[$id]) ? [] : $informationMapper[$id];
+					$informationId = intval($v['information_id']);
+					$information = empty($informationMapper[$informationId]) ? [] : $informationMapper[$informationId];
+					if (!empty($information)) $information['content'] = mb_substr(html_entity_decode($information['content']), 0, 20);
 					$list[] = [
-						'message_id' => $messageId,
-						'created_at' => $v['created_at'],
 						'user_info' => $user,
 						'status' => $v['status'],
 						'item_type' => $itemType,
+						'message_id' => $messageId,
+						'created_at' => $v['created_at'],
 						'information_info' => $information,
 						'information_comment_info' => $informationComment,
 					];
@@ -624,7 +618,7 @@ class UserCenter extends FrontUserController
 		if (!empty($postComments)) {
 			// 用户映射
 			$userIds = [];
-			array_walk($postComments, function ($v, $k) use (&$userIds) {
+			array_walk($postComments, function ($v) use (&$userIds) {
 				$id = intval($v['user_id']);
 				if ($id > 0 && !in_array($id, $userIds)) $userIds[] = $id;
 			});
@@ -784,7 +778,6 @@ class UserCenter extends FrontUserController
 	 */
 	public function getAvailableTask()
 	{
-		;
 		// 任务清单
 		$tasks = AdminUserSerialPoint::USER_TASK;
 		foreach ($tasks as $k => $v) {
@@ -815,9 +808,8 @@ class UserCenter extends FrontUserController
 	 */
 	public function userDoTask()
 	{
-		$params = $this->param();;
 		// 任务ID
-		$taskId = empty($params['task_id']) || intval($params['task_id']) < 1 ? 0 : intval($params['task_id']);
+		$taskId = $this->param('task_id', true);
 		if (!in_array($taskId, [1, 4])) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 任务数据
 		$task = AdminUserSerialPoint::USER_TASK;
@@ -843,7 +835,7 @@ class UserCenter extends FrontUserController
 				'point' => QueryBuilder::inc($times),
 				'level' => AppFunc::getUserLvByPoint($user['point']),
 			]);
-		} catch (\Throwable  $e) {
+		} catch (Throwable  $e) {
 			DbManager::getInstance()->rollback();
 		} finally {
 			DbManager::getInstance()->commit();
@@ -884,10 +876,9 @@ class UserCenter extends FrontUserController
 		$validator->addColumn('content')->required();
 		if (!$validator->validate($this->param())) {
 			$this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		};
-		$params = $this->param();
-		$imgs = trim($params['img']);
-		$content = trim($params['content']);
+		}
+		$imgs = $this->param('img');
+		$content = $this->param('content');
 		if (empty($content)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 插入数据
 		$data = [
