@@ -332,21 +332,19 @@ class AppFunc
 	
 	/**
 	 * 距离下一级相差多少分
-	 * @param $uid
+	 * @param $user
 	 * @return float|int
 	 */
-	public static function getPointsToNextLevel($uid)
+	public static function getPointsToNextLevel($user)
 	{
-		$user = AdminUser::getInstance()->where('id', $uid)->get();
-		
-		$level = $user->level;
-		$point = $user->point;
+		$level = intval($user['level']);
+		$point = intval($user['point']);
 		if ($level < 30) {
-			$D_value = $level * 500 - $point;
+			$result = $level * 500 - $point;
 		} elseif ($level >= 30 && $level < 60) {
-			$D_value = $level * 1000 - $point;
+			$result = $level * 1000 - $point;
 		}
-		return $D_value;
+		return $result;
 	}
 	
 	/**

@@ -27,11 +27,11 @@ use EasySwoole\EasySwoole\Task\TaskManager;
 
 class InformationApi extends FrontUserController
 {
-	//获取比赛趋势详情
-	private $trendDetailURL = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s';
-	private $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
-	private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
-	private $user = 'mark9527';
+	// 获取比赛趋势详情
+	// private $trendDetailURL = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s';
+	// private $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
+	// private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
+	// private $user = 'mark9527';
 	
 	/**
 	 * 标题栏

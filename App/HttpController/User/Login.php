@@ -2,6 +2,7 @@
 
 namespace App\HttpController\User;
 
+use Exception;
 use App\lib\Tool;
 use App\Common\AppFunc;
 use App\Task\PhoneTask;
@@ -10,6 +11,7 @@ use App\lib\PasswordTool;
 use App\Storage\OnlineUser;
 use EasySwoole\Redis\Redis;
 use easySwoole\Cache\Cache;
+use App\Task\SerialPointTask;
 use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserSetting;
@@ -259,7 +261,7 @@ class Login extends FrontUserController
 		$userId = $this->request()->getCookieParams('front_id');
 		$userId = empty($userId) || intval($userId) < 1 ? 0 : intval($userId);
 		$user = $userId < 1 ? null : AdminUser::getInstance()->findOne($userId);
-		if (empty($user)) {
+		if (empty($user) || !empty($user['third_wx_unionid'])) {
 			$this->output(StatusMapper::CODE_LOGIN_ERR, StatusMapper::$msg[StatusMapper::CODE_LOGIN_ERR]);
 		}
 		$params = $this->param();
@@ -280,6 +282,10 @@ class Login extends FrontUserController
 		];
 		if (!AdminUser::create()->saveDataById($userId, $data)) {
 			$this->output(StatusMapper::CODE_BINDING_ERR, StatusMapper::$msg[StatusMapper::CODE_BINDING_ERR]);
+		}else{
+			//绑定完时候加积分
+			TaskManager::getInstance()->async(new SerialPointTask(['task_id' => 'special', 'user_id' => $userId]));
+			 $this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $wxInfo);
 		}
 		$this->output(StatusMapper::CODE_OK, StatusMapper::$msg[StatusMapper::CODE_OK], $wxInfo);
 	}
@@ -447,7 +453,7 @@ class Login extends FrontUserController
 					AdminUserInterestCompetition::getInstance()->insert($userInterestComData);
 				}
 			});
-		} catch (\Exception $e) {
+		} catch (Exception $e) {
 			$this->output(StatusMapper::CODE_ERR, '用户不存在或密码错误');
 		}
 		// 获取新增的用户信息

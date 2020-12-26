@@ -800,15 +800,13 @@ class UserCenter extends FrontUserController
 		$user = AdminUser::getInstance()->findOne($this->authId, 'id,photo,level,is_offical,level,point');
 		// 输出数据
 		$result = ['user_info' => $user, 'task_list' => $tasks];
-		$result['d_value'] = AppFunc::getPointsToNextLevel($this->authId);
+		$result['d_value'] = AppFunc::getPointsToNextLevel($user);
 		$result ['t_value'] = AppFunc::getPointOfLevel($user['level']);
-		if (empty($user['third_wx_unionid'])) {
-			$result ['special'] = [
-				'id' => 4, 'name' => '分享好友', 'status' => 1,
-				'times_per_day' => 1, 'points_per_time' => 200,
-				'icon' => 'http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg',
-			];
-		}
+		$result ['special'] = [
+			'id' => 4, 'name' => '完善资料', 'status' => empty($user['third_wx_unionid']) ? 1 : 0,
+			'times_per_day' => 1, 'points_per_time' => 200,
+			'icon' => 'http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg',
+		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 	
@@ -854,7 +852,8 @@ class UserCenter extends FrontUserController
 		// 输出数据
 		$result = [
 			'level' => $user['level'], 'point' => $user['point'],
-			'd_value' => AppFunc::getPointsToNextLevel($this->authId),
+			'd_value' => AppFunc::getPointsToNextLevel($user),
+			't_value' => AppFunc::getPointOfLevel($user['level']),
 		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}

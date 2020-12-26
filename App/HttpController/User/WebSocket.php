@@ -13,9 +13,9 @@ class WebSocket extends FrontUserController
 {
 	protected $isCheckSign = false;
 	protected $needCheckToken = false;
-	private $user = 'mark9527';
-	private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
-	private $uriM = 'https://open.sportnanoapi.com/api/v4/football/match/diary?user=%s&secret=%s&date=%s';
+	// private $user = 'mark9527';
+	// private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
+	// private $uriM = 'https://open.sportnanoapi.com/api/v4/football/match/diary?user=%s&secret=%s&date=%s';
 	
 	function callback($instance, $channelName, $message)
 	{

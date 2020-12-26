@@ -2,10 +2,10 @@
 
 namespace App\HttpController;
 
-use EasySwoole\Http\AbstractInterface\AbstractRouter;
 use EasySwoole\Http\Request;
 use EasySwoole\Http\Response;
 use FastRoute\RouteCollector;
+use EasySwoole\Http\AbstractInterface\AbstractRouter;
 
 class Router extends AbstractRouter
 {

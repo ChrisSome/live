@@ -2,15 +2,11 @@
 
 namespace App\HttpController\User;
 
-use App\Task\MessageTask;
-use App\Model\AdminCategory;
 use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Utility\Message\Status;
 use App\Model\AdminAdvertisement;
 use App\Base\FrontUserController;
-use App\Model\AdminMessage as MessageModel;
-use EasySwoole\EasySwoole\Task\TaskManager;
 
 class System extends FrontUserController
 {
@@ -86,42 +82,5 @@ class System extends FrontUserController
 		// 获取清单
 		$result = AdminSensitive::getInstance()->findAll(['id' => [0, '>']], 'word');
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
-	}
-	
-	/**
-	 * todo ... [获取系统公告]
-	 * @throws
-	 */
-	public function index(): bool
-	{
-		$page = $this->param('page', true, 1);
-		$size = $this->param('offset', true, 10);
-		$where = ['cate_id' => AdminCategory::CATEGORY_ANNOUNCEMENT, 'status' => 1];
-		[$list, $count] = MessageModel::getInstance()->findAll($where,
-			'id,title,cate_name,status,created_at', 'created_at,asc', true, $page, $size);
-		$this->output(Status::CODE_OK, 'ok', ['data' => $list, 'count' => $count]);
-	}
-	
-	/**
-	 * todo ... [公告详情]
-	 * @throws
-	 */
-	public function detail()
-	{
-		// 获取详情
-		$id = $this->param('id', true);
-		$info = $id < 1 ? null : MessageModel::getInstance()->findOne($id);
-		if (empty($info)) $this->output(Status::CODE_ERR, '对应公告不存在');
-		//写异步task记录已读
-		if (!empty($auth)) TaskManager::getInstance()->async(function ($taskId, $workerIndex) use ($info) {
-			$messageTask = new MessageTask([
-				'user_id' => $this->auth['id'],
-				'mobile' => $this->auth['mobile'],
-				'message_id' => $info['id'],
-				'message_title' => $info['title'],
-			]);
-			$messageTask->execData();
-		});
-		$this->output(Status::CODE_OK, 'ok', $info);
 	}
 }

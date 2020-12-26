@@ -24,7 +24,7 @@ class  FrontService
 {
 	const TEAM_LOGO = 'https://cdn.sportnanoapi.com/football/team/';
 	const PLAYER_LOGO = 'https://cdn.sportnanoapi.com/football/player/';
-	const ALPHA_LIVE_LIVING_URL = 'https://cdn.sportnanoapi.com/football/player/';
+	// const ALPHA_LIVE_LIVING_URL = 'https://cdn.sportnanoapi.com/football/player/';
 	
 	/** 登录人id
 	 * @param $posts
@@ -38,7 +38,7 @@ class  FrontService
 		$authId = intval($authId);
 		
 		$postIds = $userIds = $categoryIds = [];
-		array_walk($posts, function ($v, $k) use (&$postIds, &$userIds, &$categoryIds) {
+		array_walk($posts, function ($v) use (&$postIds, &$userIds, &$categoryIds) {
 			$id = intval($v['id']);
 			if (!in_array($id, $postIds)) $postIds[] = $id;
 			$id = intval($v['user_id']);
@@ -202,7 +202,7 @@ class  FrontService
 		// 映射数据
 		$list = $operateMapper = $informationMapper = $userMapper = [];
 		$commentIds = $informationIds = $userIds = [];
-		array_walk($informationComments, function ($v, $k) use (&$commentIds, &$informationIds, &$userIds) {
+		array_walk($informationComments, function ($v) use (&$commentIds, &$informationIds, &$userIds) {
 			$id = intval($v['id']);
 			if (!in_array($id, $commentIds)) $commentIds[] = $id;
 			$id = intval($v['information_id']);
@@ -637,6 +637,11 @@ class  FrontService
 		return $return;
 	}
 	
+	/**
+	 * @param $res
+	 * @return array
+	 * @throws
+	 */
 	public static function handChangePlayer($res): array
 	{
 		$return = $playerMapper = $teamMapper = $playerIds = $teamIds = [];
@@ -768,8 +773,8 @@ class  FrontService
 				'photo' => $v['photo'],
 				'nickname' => $v['nickname'],
 				'is_offical' => $v['is_offical'],
-				//				'fans_count' => count(AppFunc::getUserFans($v->id)),
-				//				'is_follow' => AppFunc::isFollow($authId, $v['id']),
+				'is_follow' => AppFunc::isFollow($authId, $v['id']),
+				'fans_count' => count(AppFunc::getUserFans($v['id'])),
 			];
 		}
 		return $list;

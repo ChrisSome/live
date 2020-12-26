@@ -445,16 +445,19 @@ class Community extends FrontUserController
 				[$list, $count] = AdminUserPost::getInstance()->findAll($where, null, 'created_at,desc', true, $page, $size);
 				$result['list'] = ['count' => $count, 'data' => FrontService::handPosts($list, $this->authId)];
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+				break;
 			case 2: // 回帖
 				$where = ['user_id' => $userId, 'status' => [AdminPostComment::SHOW_IN_FRONT, 'in']];
 				[$list, $count] = AdminPostComment::getInstance()->findAll($where, null, 'created_at,desc', true, $page, $size);
 				$result['list'] = ['count' => $count, 'data' => FrontService::handComments($list, $this->authId)];
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+				break;
 			case 3: // 资讯评论
 				$where = ['user_id' => $userId, 'status' => [AdminInformationComment::SHOW_IN_FRONT, 'in']];
 				[$list, $count] = AdminInformationComment::getInstance()->findAll($where, null, 'created_at,desc', true, $page, $size);
 				$result['list'] = ['count' => $count, 'data' => FrontService::handInformationComment($list, $this->authId)];
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+				break;
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}

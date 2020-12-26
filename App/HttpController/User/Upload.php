@@ -2,6 +2,7 @@
 
 namespace App\HttpController\User;
 
+use Exception;
 use App\lib\Utils;
 use App\lib\ClassArr;
 use App\lib\OssService;
@@ -38,7 +39,7 @@ class Upload extends FrontUserController
 			$uploadObj = $classObj->initClass('image', $classStats, [$request, 'image']);
 			$uploadObj->upload_type = $uploadType;
 			$file = $uploadObj->upload();
-		} catch (\Exception $e) {
+		} catch (Exception $e) {
 			$this->output(400, $e->getMessage(), []);
 		}
 		if (empty($file)) $this->output(400, "上传失败", []);

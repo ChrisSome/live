@@ -10,7 +10,6 @@ use App\Model\SeasonMatchList;
 use App\Model\AdminCompetition;
 use App\Model\AdminSysSettings;
 use App\Utility\Message\Status;
-use App\Model\AdminClashHistory;
 use App\Model\SignalMatchLineUp;
 use App\Base\FrontUserController;
 use App\Model\SeasonAllTableDetail;

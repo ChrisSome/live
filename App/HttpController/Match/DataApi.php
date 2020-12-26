@@ -136,11 +136,11 @@ class DataApi extends FrontUserController
 					// 晋升数据映射 & 球队数据映射
 					$promotionMapper = $teamIds = $teamMapper = [];
 					$rows = empty($tables[0]['rows']) ? [] : $tables[0]['rows'];
-					array_walk($promotions, function ($v, $k) use (&$promotionMapper) {
+					array_walk($promotions, function ($v) use (&$promotionMapper) {
 						$id = intval($v['id']);
 						$promotionMapper[$id] = $v['name_zh'];
 					});
-					array_walk($rows, function ($v, $k) use (&$teamIds) {
+					array_walk($rows, function ($v) use (&$teamIds) {
 						$id = intval($v['team_id']);
 						if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
 					});
@@ -168,11 +168,18 @@ class DataApi extends FrontUserController
 						];
 					}
 				} else {
-					$list = $teamIds = [];
+					$list = $teamIds = $stageIds = [];
+					array_walk($tables, function ($v) use (&$stageIds) {
+						$id = intval($v['stage_id']);
+						if ($id > 0 && !in_array($id, $stageIds)) $stageIds[] = $id;
+					});
+					$stageMapper = empty($stageIds) ? [] : AdminStageList::getInstance()
+						->findAll(['id' => [$stageIds, 'in']], 'stage_id,season_id,name_zh', null,
+							false, 0, 0, 'stage_id,*,true');
 					foreach ($tables as $k => $v) {
 						$rows = empty($v['rows']) ? [] : $v['rows'];
 						$items = [];
-						array_walk($rows, function ($vv, $kk) use (&$items, &$teamIds) {
+						array_walk($rows, function ($vv) use (&$items, &$teamIds) {
 							$id = intval($vv['team_id']);
 							if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
 							if ($id > 0) $items[] = [
@@ -188,6 +195,9 @@ class DataApi extends FrontUserController
 								'goals_against' => $vv['goals_against'],
 							];
 						});
+						$id = intval($v['stage_id']);
+						$stageInfo = empty($stageMapper[$id]) ? [] : $stageMapper[$id];
+						$list[] = ['list' => $items, 'group' => $v['group'], 'stage' => $stageInfo];
 						$list[] = ['list' => $items, 'group' => $v['group']];
 					}
 					// 填充数据
@@ -254,7 +264,7 @@ class DataApi extends FrontUserController
 			$tmp = SeasonTeamPlayer::getInstance()->findOne(['season_id' => $selectSeasonId], 'players_stats,teams_stats');
 			if ($type == 3) {
 				$tmp = json_decode($tmp['players_stats'], true);
-				if (!empty($tmp)) array_walk($tmp, function ($v, $k) use (&$result) {
+				if (!empty($tmp)) array_walk($tmp, function ($v) use (&$result) {
 					$result[] = [
 						'player_id' => $v['player']['id'],
 						'name_zh' => $v['player']['name_zh'],
@@ -276,7 +286,7 @@ class DataApi extends FrontUserController
 				});
 			} elseif ($type == 4) { // 最佳球队
 				$tmp = json_decode($tmp['teams_stats'], true);
-				if (!empty($tmp)) array_walk($tmp, function ($v, $k) use (&$result) {
+				if (!empty($tmp)) array_walk($tmp, function ($v) use (&$result) {
 					$result[] = [
 						'team_id' => $v['team']['id'],
 						'name_zh' => $v['team']['name_zh'],
@@ -457,18 +467,17 @@ class DataApi extends FrontUserController
 	 */
 	public function teamInfo()
 	{
-		$params = $this->param();
 		// 类型校验
-		$type = empty($params['type']) || intval($params['type']) < 1 ? 1 : intval($params['type']);
+		$type = $this->param('type', true, 1);
 		if (!in_array($type, [1, 2, 3, 4, 5])) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		// 球队信息
-		$teamId = empty($params['team_id']) || intval($params['team_id']) < 1 ? 0 : intval($params['team_id']);
+		$teamId = $this->param('team_id', true);
 		$team = $teamId < 1 ? null : AdminTeam::getInstance()->findOne(['team_id' => $teamId]);
 		if (empty($team)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 		// 赛季信息
 		$season = [];
 		$currentSeasonId = $selectSeasonId = 0;
-		$competitionId = empty($params['competition_id']) || intval($params['competition_id']) < 1 ? 0 : intval($params['competition_id']);
+		$competitionId = $this->param('competition_id', true, intval($team['competition_id']));
 		$competition = $competitionId < 1 ? null : AdminCompetition::getInstance()->findOne(['competition_id' => $competitionId]);
 		if (!empty($competition)) {
 			$season = AdminSeason::getInstance()->findAll(['competition_id' => $competitionId], 'id,season_id,year');
@@ -533,6 +542,7 @@ class DataApi extends FrontUserController
 				$changeOutPlayers = AdminPlayerChangeClub::getInstance()->findAll($where, '*', 'transfer_time,desc');
 				$result['format_change_out_players'] = FrontService::handChangePlayer($changeOutPlayers);
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+				break;
 			case 2:
 				$tableData = $promotion = [];
 				$tmp = SeasonAllTableDetail::getInstance()->findOne(['season_id' => $selectSeasonId]);
@@ -625,13 +635,14 @@ class DataApi extends FrontUserController
 					'competition_describe' => $competitionDescribe,
 				];
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+				break;
 			case 3:
 				// 输出数据
 				$result = [];
 				$tmp = SeasonMatchList::getInstance()->findAll(['season_id' => $selectSeasonId, 'home_team_id|away_team_id' => $teamId]);
 				if (!empty($tmp)) {
 					$competitionIds = $teamIds = [];
-					array_walk($tmp, function ($v, $k) use (&$competitionIds, &$teamIds) {
+					array_walk($tmp, function ($v) use (&$competitionIds, &$teamIds) {
 						$id = intval($v['competition_id']);
 						if ($id > 0 && !in_array($id, $competitionIds)) $competitionIds[] = $id;
 						$id = intval($v['home_team_id']);
@@ -664,6 +675,7 @@ class DataApi extends FrontUserController
 					}
 				}
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+				break;
 			case 4:
 				$teamStr = $playerStr = '';
 				$seasonTeamPlayerKey = 'season_team_player_' . $selectSeasonId;
@@ -671,9 +683,9 @@ class DataApi extends FrontUserController
 				if (empty($tmp)) {
 					$tmp = SeasonTeamPlayer::getInstance()->findOne(['season_id' => $selectSeasonId], 'teams_stats,players_stats');
 					if (!empty($tmp)) {
-						$teamStr = preg_replace('/\[?(,\s)?\{\"team\":\s\{\"id\":\s(?!' . $teamId . ')\d+,((?!,\s\{\"team\":).)+/', '', $tmp['teams_stats']);
+						$teamStr = preg_replace('/\[?(,\s)?{\"team\":\s{\"id\":\s(?!' . $teamId . ')\d+,((?!,\s{\"team\":).)+/', '', $tmp['teams_stats']);
 						$teamStr = trim($teamStr, '[,]');
-						$playerStr = preg_replace('/\[?(,\s)?\{\"team\":\s\{\"id\":\s(?!' . $teamId . ')\d+,((?!,\s\{\"team\":).)+/', '', $tmp['players_stats']);
+						$playerStr = preg_replace('/\[?(,\s)?{\"team\":\s{\"id\":\s(?!' . $teamId . ')\d+,((?!,\s{\"team\":).)+/', '', $tmp['players_stats']);
 						$playerStr = '[' . trim($playerStr, '[,]') . ']';
 						Cache::set($seasonTeamPlayerKey, ['teams' => $teamStr, 'players' => $playerStr], 300);
 					}
@@ -753,6 +765,7 @@ class DataApi extends FrontUserController
 				// 输出数据
 				$result = ['team_data' => $teamData, 'key_player' => $keyPlayers];
 				$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+				break;
 			case 5: //阵容
 				// 战队信息映射
 				$players = $playerIds = [];

@@ -62,7 +62,7 @@ use EasySwoole\EasySwoole\Task\TaskManager;
  *          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  *                     佛祖保佑        永无BUG
  */
-class FootBallMatch extends FrontUserController
+class FootballMatch extends FrontUserController
 {
 	protected $isCheckSign = false;
 	protected $needCheckToken = false;
@@ -1362,7 +1362,7 @@ class FootBallMatch extends FrontUserController
 	 */
 	public function fixMatch()
 	{
-		$matchId = empty($this->params['match_id']) || intval($this->params['match_id']) < 1 ? 0 : intval($this->params['match_id']);
+		$matchId = $this->param('match_id', true);
 		$url = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s';
 		$url = sprintf($url, $this->user, $this->secret, $matchId);
 		$tmp = Tool::getInstance()->postApi($url);
