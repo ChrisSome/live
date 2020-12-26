@@ -17,6 +17,7 @@ use App\Model\AdminUserPhonecode;
 use App\Model\AdminUserSetting;
 use App\Storage\OnlineUser;
 use App\Task\PhoneTask;
+use App\Task\SerialPointTask;
 use App\Task\TestTask;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Config;
@@ -195,7 +196,7 @@ class Login extends FrontUserController
         $valitor->addColumn('open_id')->required('open_id不能为空');
         $uid = $this->request()->getCookieParams('front_id');
         $user = AdminUser::create()->get(['id'=>$uid]);
-        if (!$user) {
+        if (!$user || !empty($user->third_wx_unionid)) {
             return $this->writeJson(Statuses::CODE_LOGIN_ERR, Statuses::$msg[Statuses::CODE_LOGIN_ERR]);
 
         }
@@ -226,6 +227,12 @@ class Login extends FrontUserController
             if (!$bool) {
                 return $this->writeJson(Statuses::CODE_BINDING_ERR, Statuses::$msg[Statuses::CODE_BINDING_ERR]);
             } else {
+                //绑定完时候加积分
+                $data['task_id'] = 'special';
+                $data['user_id'] = $this->auth['id'];
+
+                TaskManager::getInstance()->async(new SerialPointTask($data));
+
                 return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK], $wxInfo);
 
             }

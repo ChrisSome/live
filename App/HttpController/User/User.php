@@ -555,7 +555,6 @@ class User extends FrontUserController
         $data['user_id'] = $this->auth['id'];
 
         TaskManager::getInstance()->async(new SerialPointTask($data));
-        Log::getInstance()->info('do-comment4');
 
         Cache::set('userCom' . $this->auth['id'], 1, 5);
         $info->last_respon_time = date('Y-m-d H:i:s');

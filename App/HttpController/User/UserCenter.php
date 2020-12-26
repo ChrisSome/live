@@ -823,8 +823,13 @@ class UserCenter   extends FrontUserController{
         $return['d_value'] = AppFunc::getPointsToNextLevel($user_info->id);
         $return ['t_value'] = AppFunc::getPointOfLevel($user_info->level);
         if (!$user_info->third_wx_unionid) {
-            $return ['special'] = ['id' => 4, 'name' => '分享好友', 'status' => 1, 'times_per_day' => 1, 'icon' =>'http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg', 'points_per_time' => 200];
+            $special_status = 1; //可用
+        } else {
+            $special_status = 0; //不可用
+
         }
+        $return['special'] = ['id' => 4, 'name' => '完善资料', 'status' => $special_status, 'times_per_day' => 1, 'icon' =>'http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg', 'points_per_time' => 200];
+
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
     }
