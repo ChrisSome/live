@@ -405,10 +405,10 @@ class UserCenter extends FrontUserController
 					$comment['content'] = base64_decode($comment['content']);
 					$userId = intval($comment['user_id']);
 					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
-					$postId = intval($v['post_id']);
+					$postId = intval($comment['post_id']);
 					$post = empty($postMapper[$postId]) ? [] : $postMapper[$postId];
 					if (!empty($post)) $post['content'] = mb_substr(base64_decode($post['content']), 0, 20);
-					$commentId = intval($v['parent_id']);
+					$commentId = intval($comment['parent_id']);
 					$parent = empty($postCommentMapper[$commentId]) ? [] : $postCommentMapper[$commentId];
 					if (!empty($parent)) $parent['content'] = mb_substr(base64_decode($parent['content']), 0, 20);
 					$list[] = [
