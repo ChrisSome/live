@@ -900,6 +900,8 @@ class DataApi extends FrontUserController
             $result['competition_describe'] = $competitionDescribe;
             //积分榜
             $tmp = Utils::queryHandler(SeasonAllTableDetail::getInstance(), 'season_id=?', $selectSeasonId);
+//            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], json_decode($tmp['tables'], true));
+
             if (!empty($tmp)) {
                 $promotions = json_decode($tmp['promotions'], true);
                 $tables = json_decode($tmp['tables'], true);
@@ -960,7 +962,8 @@ class DataApi extends FrontUserController
                                 'goals_against' => $vv['goals_against'],
                             ];
                         });
-                        $list[] = ['list' => $items, 'group' => $v['group']];
+                        $stageInfo = AdminStageList::create()->field(['stage_id', 'season_id', 'name_zh'])->where('stage_id', $v['stage_id'])->get();
+                        $list[] = ['list' => $items, 'group' => $v['group'], 'stage' => $stageInfo];
                     }
                     // 填充数据
                     if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),

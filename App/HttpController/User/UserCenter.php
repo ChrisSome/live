@@ -820,7 +820,7 @@ class UserCenter   extends FrontUserController{
         $user_info = AdminUser::getInstance()->field(['id', 'photo', 'level', 'is_offical', 'level', 'point'])->where('id', $this->auth['id'])->get();
 
         $return = ['user_info' => $user_info, 'task_list' => $user_tasks];
-        $return['d_value'] = AppFunc::getPointsToNextLevel($user_info->id);
+        $return['d_value'] = AppFunc::getPointsToNextLevel($user_info);
         $return ['t_value'] = AppFunc::getPointOfLevel($user_info->level);
         if (!$user_info->third_wx_unionid) {
             $special_status = 1; //可用
@@ -875,7 +875,8 @@ class UserCenter   extends FrontUserController{
         $user_info = [
             'level' => $user->level,
             'point' => $user->point,
-            'd_value' => AppFunc::getPointsToNextLevel($user_id)
+            'd_value' => AppFunc::getPointsToNextLevel($user),
+            't_value' => AppFunc::getPointOfLevel($user->level)
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user_info);
 

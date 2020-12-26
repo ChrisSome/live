@@ -354,12 +354,11 @@ class AppFunc
 
     /**
      * 距离下一级相差多少分
-     * @param $uid
+     * @param $user
      * @return float|int
      */
-    public static function getPointsToNextLevel($uid)
+    public static function getPointsToNextLevel($user)
     {
-        $user = AdminUser::getInstance()->where('id', $uid)->get();
 
         $level = $user->level;
         $point = $user->point;
