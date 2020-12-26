@@ -429,7 +429,7 @@ class UserCenter extends FrontUserController
 					$user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
 					$informationId = intval($informationComment['information_id']);
 					$information = empty($informationMapper[$informationId]) ? [] : $informationMapper[$informationId];
-					if (!empty($information)) $information['content'] = mb_substr(html_entity_decode($information['content']), 0, 20);
+					if (!empty($information)) $information['content'] = mb_substr(strip_tags(html_entity_decode($information['content'])), 0, 20);
 					$list[] = [
 						'user_info' => $user,
 						'status' => $v['status'],
