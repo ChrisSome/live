@@ -446,7 +446,7 @@ class DataApi extends FrontUserController
         // 赛季 & 当前赛季
         $season = [];
         $currentSeasonId = $selectSeasonId = 0;
-        $competitionId = intval($this->params['competition_id']);
+        $competitionId = !empty($this->params['competition_id']) ? intval($this->params['competition_id']) : $team['competition_id'];
 
         $competition = Utils::queryHandler(AdminCompetition::getInstance(), 'competition_id=?', $competitionId);
         if (!empty($competition)) {
@@ -520,6 +520,7 @@ class DataApi extends FrontUserController
             case 2:
                 $tableData = $promotion = [];
                 $tmp = Utils::queryHandler(SeasonAllTableDetail::getInstance(), 'season_id=?', $selectSeasonId);
+
                 if (!empty($tmp)) {
                     $tables = json_decode($tmp['tables'], true);
                     // 晋升信息映射
