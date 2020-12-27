@@ -399,8 +399,8 @@ class FootballApi extends FrontUserController
 		
 		// 历史交锋 与 近期战绩
 		$match = SeasonMatchList::getInstance()->where('status_id', 8)
-			->where('home_team_id=' . $homeTid . ' or away_team_id=' . $homeTid . ' or home_team_id=' . $awayTid . ' or away_team_id=' . $awayTid)
-			->where('is_delete', 0)->order('match_time', 'DESC')->all();
+			->where('(home_team_id=' . $homeTid . ' or away_team_id=' . $homeTid . ' or home_team_id=' . $awayTid . ' or away_team_id=' . $awayTid.')')
+			->where('is_delete', 0)->order('match_time', 'desc')->all();
 		$formatHistoryMatches = $homeRecentMatches = $awayRecentMatches = [];
 		foreach ($match as $itemMatch) {
 			if (($itemMatch['home_team_id'] == $homeTid && $itemMatch['away_team_id'] == $awayTid) ||
@@ -418,7 +418,7 @@ class FootballApi extends FrontUserController
 		// 近期赛程
 		$matchSchedule = SeasonMatchList::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
 			->where('(home_team_id=' . $homeTid . ' or away_team_id=' . $homeTid . ' or home_team_id=' . $awayTid . ' or away_team_id=' . $awayTid . ')')
-			->where('match_time', time(), '>=')->where('is_delete', 0)->order('match_time', 'DESC')->all();
+			->where('match_time', time(), '>=')->where('is_delete', 0)->order('match_time', 'desc')->all();
 		foreach ($matchSchedule as $scheduleItem) {
 			if ($scheduleItem['home_team_id'] == $homeTid || $scheduleItem['away_team_id'] == $awayTid) {
 				$homeRecentSchedule[] = $scheduleItem;
