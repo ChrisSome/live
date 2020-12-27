@@ -683,7 +683,7 @@ class Community extends FrontUserController
 
     public function normalProblemList()
     {
-        $normal_problems = AdminNormalProblems::getInstance()->all();
+        $normal_problems = AdminNormalProblems::getInstance()->where('status', 1)->all();
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $normal_problems);
 
     }
