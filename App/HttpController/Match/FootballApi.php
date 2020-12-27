@@ -680,8 +680,12 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
 
         }
-
-        $formatMatch = FrontService::formatMatchThree([$match], $this->auth['id'], []);
+        //用户关注的比赛
+        $userInterestMatchArr = [];
+        if ($userInterestMatches = AdminInterestMatches::create()->where('uid', $this->auth['id'])->get()) {
+            $userInterestMatchArr = json_decode($userInterestMatches->match_ids, true);
+        }
+        $formatMatch = FrontService::formatMatchThree([$match], $this->auth['id'], $userInterestMatchArr);
         if (!$return = $formatMatch[0]) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 
@@ -730,7 +734,7 @@ class FootballApi extends FrontUserController
                     }
                 }
 
-                $return_data = [
+                $match_info = [
                     'signal_count' => ['goal' => $goal_tlive, 'corner' => $corner_tlive, 'yellow_card' => $yellow_card_tlive, 'red_card' => $red_card_tlive],
                     'match_trend' => $match_trend,
                     'match_id' => $matchId,
@@ -740,17 +744,10 @@ class FootballApi extends FrontUserController
                     'score' => ['home' => $score[2], 'away' => $score[3]],
 
                 ];
-            } else if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
-                /**
-                 * 比赛未结束 信息从cache中拿
-                 *
-                 */
-                $return_data = json_decode($match_data_info, true);
-
             } else {
-                $return_data = [];
+                $match_info = [];
             }
-            $return['matching_info'] = $return_data;
+            $return['matching_info'] = $match_info;
 
         }
 
