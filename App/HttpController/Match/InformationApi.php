@@ -286,7 +286,7 @@ class InformationApi extends FrontUserController
                 'item_id', false, null, 'item_id,item_id,1');
             // 回复数据映射
             $childGroupMapper = [];
-            $subSql = 'select count(*)+1 from admin_information_comments x where x.top_comment_id=a.top_comment_id and x.information_id=? and x.status=? having (count(*)+1)<=3';
+            $subSql = 'select count(*)+1 from admin_information_comments x where x.id=a.top_comment_id and x.information_id=? and x.status=? having (count(*)+1)<=3';
             $tmp = Utils::queryHandler(AdminInformationComment::getInstance(),
                 'information_id=? and status=? and top_comment_id in(' . $commentIdsStr . ') and exists(' . $subSql . ')',
                 [$informationId, AdminInformationComment::STATUS_NORMAL, $informationId, AdminInformationComment::STATUS_NORMAL],

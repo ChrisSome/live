@@ -136,7 +136,6 @@ class Match extends Base
         $messages = [];
 
         if ($lastMessages) {
-            Log::getInstance()->info('ssss');
             foreach ($lastMessages as $lastMessage) {
                 $senderUser = $lastMessage->getSenderNickname();
                 $data['message_id'] = $lastMessage['id'];
