@@ -97,6 +97,7 @@ class  FrontService
 				'title' => $v['title'],
 				'cat_id' => $categoryId,
 				'status' => $v['status'],
+				'updated_at' => $v['updated_at'],
 				'created_at' => $v['created_at'],
 				'is_refine' => intval($v['is_refine']),
 				'respon_number' => $v['respon_number'],

@@ -6,7 +6,9 @@ use App\lib\Tool;
 use App\Model\AdminUser;
 use App\lib\FrontService;
 use App\Model\AdminMatch;
+use easySwoole\Cache\Cache;
 use App\Model\SeasonMatchList;
+use App\Model\AdminMatchTlive;
 use App\Model\AdminCompetition;
 use App\Model\AdminSysSettings;
 use App\Utility\Message\Status;
@@ -470,6 +472,59 @@ class FootballApi extends FrontUserController
 		$competitionId = $match['competition_id'];
 		$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $competitionId]);
 		if (!empty($competition['type'])) $match['competition_type'] = $competition['type'];
+		if (empty($match['matching_info'])) {
+			$matchTlive = AdminMatchTlive::getInstance()->where('match_id', $matchId);
+			if (!empty($matchTlive)) { //已结束并且同步数据
+				$tlive = json_decode($matchTlive['tlive'], true);
+				$stats = json_decode($matchTlive['stats'], true);
+				$score = json_decode($matchTlive['score'], true);
+				$match_trend = json_decode($matchTlive['match_trend'], true);
+				$goal_tlive = [];
+				$corner_tlive = [];
+				$red_card_tlive = [];
+				$yellow_card_tlive = [];
+				if ($tlive) {
+					foreach ($tlive as $item) {
+						$item['time'] = intval($item['time']);
+						if ($item['type'] == 1) { //进球
+							$goal_tlive[] = $item;
+						} else if ($item['type'] == 2) { //角球
+							$corner_tlive[] = $item;
+						} else if ($item['type'] == 3) { //黄牌
+							$yellow_card_tlive[] = $item;
+						} else if ($item['type'] == 4) { //红牌
+							$red_card_tlive[] = $item;
+						} else {
+							continue;
+						}
+						unset($item);
+					}
+				}
+				$matchStats = [];
+				if ($stats) {
+					foreach ($stats as $stat) {
+						if ($stat['type'] == 21 || $stat['type'] == 22 || $stat['type'] == 23 || $stat['type'] == 24 ||  $stat['type'] == 25) {
+							$matchStats[] = $stat;
+						}
+					}
+				}
+				$return_data = [
+					'signal_count' => ['goal' => $goal_tlive, 'corner' => $corner_tlive, 'yellow_card' => $yellow_card_tlive, 'red_card' => $red_card_tlive],
+					'match_trend' => $match_trend,
+					'match_id' => $matchId,
+					'time' => 0,
+					'status' => 8,
+					'match_stats' => $matchStats,
+					'score' => ['home' => $score[2], 'away' => $score[3]],
+				];
+			} else if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
+				// 比赛未结束 信息从cache中拿
+				$return_data = json_decode($match_data_info, true);
+			} else {
+				$return_data = [];
+			}
+			$match['matching_info'] = $return_data;
+		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $match);
 	}
 }
