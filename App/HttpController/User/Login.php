@@ -341,13 +341,7 @@ class Login extends FrontUserController
             //是否utf8编码
             return $this->writeJson(Statuses::CODE_UNVALID_CODE, Statuses::$msg[Statuses::CODE_UNVALID_CODE], $sensitive->word);
 
-        }
-//        else if (!preg_match('/^[a-zA-Z0-9_\u4e00-\u9fa5]{2,16}$/', $this->params['nickname'])) {
-//            //昵称
-//            return $this->writeJson(Statuses::CODE_W_FORMAT_NICKNAME, Statuses::$msg[Statuses::CODE_W_FORMAT_NICKNAME]);
-//
-//        }
-        else if (AdminUser::getInstance()->where('nickname', $this->params['nickname'])->get()) {
+        } else if (AdminUser::getInstance()->where('nickname', $this->params['nickname'])->get()) {
             //是否重复
             return $this->writeJson(Statuses::CODE_USER_DATA_EXIST, Statuses::$msg[Statuses::CODE_USER_DATA_EXIST]);
 

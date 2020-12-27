@@ -445,14 +445,14 @@ class Community extends FrontUserController
 
         }
 
-
+        Log::getInstance()->info('post add params-' . json_encode($this->params));
         $request = $this->request();
         $data = $request->getRequestParam('content', 'title', 'cat_id');
 
         $validate = new Validate();
-        $validate->addColumn('cat_id')->required();
-        $validate->addColumn('title')->required()->lengthMin(1);
-        $validate->addColumn('content')->required()->lengthMin(1);
+        $validate->addColumn('cat_id')->required('请先选择分类');
+        $validate->addColumn('title')->required('请填写标题')->lengthMin(1);
+        $validate->addColumn('content')->required('请填写内容')->lengthMin(1);
         if (!$validate->validate($data)) {
             return $this->writeJson(Status::CODE_W_PARAM, $validate->getError()->__toString());
         } else if (AppFunc::have_special_char($this->params['title'])) {
@@ -470,17 +470,13 @@ class Community extends FrontUserController
             $data['imgs'] = $this->params['imgs'];
         }
         Cache::set('user_publish_post_' . $this->auth['id'], 1, 10);
-        if (!$this->params['is_save']) {
+        if (!$this->params['is_save']) { //发布
 
             if ($this->auth['status'] == AdminUser::STATUS_FORBIDDEN) {
                 return $this->writeJson(Status::CODE_STATUS_FORBIDDEN, Status::$msg[Status::CODE_STATUS_FORBIDDEN]);
-            } else if ((int)$data['cat_id'] == 0) {
-                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
             }
-            //发布
 
             $sensitiveWords = AdminSensitive::getInstance()->where('status', AdminSensitive::STATUS_NORMAL)->field(['word'])->all();
-
             if ($sensitiveWords) {
                 foreach ($sensitiveWords as $sword) {
                     if (!$sword['word']) continue;
@@ -514,7 +510,7 @@ class Community extends FrontUserController
             }
             if (!empty($this->params['pid'])) {
                 AdminUserPost::getInstance()->update($data, ['id' => $this->params['pid']]);
-                $pid = $this->params['pid'];
+                $pid = (int)$this->params['pid'];
             } else {
                 $pid = AdminUserPost::getInstance()->insert($data);
             }

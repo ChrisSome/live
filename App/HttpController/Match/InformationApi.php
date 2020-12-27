@@ -300,7 +300,7 @@ class InformationApi extends FrontUserController
                 $id = intval($v['id']);
                 $userId = intval($v['user_id']);
                 $children = empty($childGroupMapper[$id]) ? [] : $childGroupMapper[$id];
-                $childrenCount = empty($childCountMapper[$id]) ? [] : $childCountMapper[$id];
+                $childrenCount = empty($childCountMapper[$id]) ? 0 : $childCountMapper[$id];
                 $userInfo = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
                 $comments[] = [
                     'id' => $id,

@@ -47,6 +47,7 @@ class Status
 
     const CODE_WRONG_MATCH = 326;      //没有相关比赛
     const CODE_PHONE_NOT_EXISTS = 327;      //被禁言
+    const CODE_WRING_CATEGORY = 328;      //被禁言
 
 
 
@@ -100,6 +101,7 @@ class Status
         self::CODE_STATUS_FORBIDDEN => '用户已被禁言',
         self::CODE_WRONG_MATCH => '暂无此场比赛资料',
         self::CODE_PHONE_NOT_EXISTS => '手机号不存在',
+        self::CODE_WRING_CATEGORY => '请先选择分类',
 
 
 
@@ -111,6 +113,6 @@ class Status
         self::CODE_SENSITIVE_WORD => '敏感词',
         self::CODE_WRONG_INTERNET => '网络繁忙, 请稍后重试',
 
-        self::CODE_UNVALID_CODE => '格式错误，请重新编辑',
+        self::CODE_UNVALID_CODE => '暂不支持emoji表情哦',
     ];
 }
