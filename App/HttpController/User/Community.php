@@ -31,7 +31,7 @@ class Community extends FrontUserController
 {
 	protected $isCheckSign = false;
 	protected $needCheckToken = false;
-	
+
 	/**
 	 * 社区首页内容
 	 * @throws
@@ -95,7 +95,7 @@ class Community extends FrontUserController
 		if ($result === false) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 前端模糊搜索
 	 * @throws
@@ -172,7 +172,7 @@ class Community extends FrontUserController
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 我关注的人的帖子列表
 	 * @throws
@@ -192,7 +192,7 @@ class Community extends FrontUserController
 		[$list, $count] = AdminUserPost::getInstance()->findAll($where, $fields, 'created_at,desc', true, $page, $size);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 	}
-	
+
 	/**
 	 * 发帖
 	 * @throws
@@ -285,7 +285,7 @@ class Community extends FrontUserController
 		}
 		$this->output(Status::CODE_ADD_POST, Status::$msg[Status::CODE_ADD_POST]);
 	}
-	
+
 	/**
 	 * 热搜
 	 * @throws
@@ -301,7 +301,7 @@ class Community extends FrontUserController
 		$result = ['hot_search' => $hotSearch, 'default_search_content' => $defaultSearchContent];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 帖子详情
 	 * @throws
@@ -387,7 +387,7 @@ class Community extends FrontUserController
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 帖子二级评论列表
 	 * @throws
@@ -421,7 +421,7 @@ class Community extends FrontUserController
 		if (!empty($list)) $result['childComment'] = FrontService::handComments($list, $this->authId);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 1发帖 2回帖 3资讯评论 列表
 	 * @throws
@@ -461,7 +461,7 @@ class Community extends FrontUserController
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 关注及粉丝列表
 	 * @throws
@@ -494,7 +494,7 @@ class Community extends FrontUserController
 		$result = ['count' => count($users), 'data' => $users];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 用户基本资料
 	 * @throws
@@ -523,7 +523,7 @@ class Community extends FrontUserController
 		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user);
 	}
-	
+
 	/**
 	 * 常见问题清单
 	 * @throws
@@ -531,10 +531,10 @@ class Community extends FrontUserController
 	public function normalProblemList()
 	{
 		// 获取清单
-		$result = AdminNormalProblems::getInstance()->all();
+		$result = AdminNormalProblems::getInstance()->findAll(['status' => 0]);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 回复的评论
 	 * @throws
@@ -553,7 +553,7 @@ class Community extends FrontUserController
 		[$list, $count] = AdminPostComment::getInstance()->findAll($where, null, 'created_at,desc', true, $page, $size);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 	}
-	
+
 	/**
 	 * 评论内容详情
 	 * @throws
