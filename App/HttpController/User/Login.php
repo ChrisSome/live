@@ -214,7 +214,7 @@ class Login extends FrontUserController
         if (!empty($aWxInfo['errcode'])) {
             return $this->writeJson(Statuses::CODE_ERR, $aWxInfo['errmsg']);
         } else {
-            if ($user = AdminUser::create()->where('third_wx_unionid', base64_encode($aWxInfo['unionid']))->get()) {
+            if (AdminUser::create()->where('third_wx_unionid', base64_encode($aWxInfo['unionid']))->get()) {
                 return $this->writeJson(Statuses::CODE_BIND_WX, Statuses::$msg[Statuses::CODE_BIND_WX]);
 
             }
