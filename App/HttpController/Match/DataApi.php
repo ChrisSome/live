@@ -282,13 +282,15 @@ class DataApi extends FrontUserController
             //转会
             $format_history = [];
             if ($history = AdminPlayerChangeClub::getInstance()->field(['player_id', 'from_team_id', 'to_team_id', 'transfer_type', 'transfer_time'])->where('player_id', $player_id)->all()) {
+
                 foreach ($history as $k => $item) {
 
+                    if (!$item['from_team_id'] && !$item['to_team_id']) continue;
                     $from_team = $item->fromTeamInfo();
+                    $to_team = $item->ToTeamInfo();
                     if ($from_team) {
                         $from_team_info = ['name_zh' => $from_team->name_zh, 'logo' => $from_team->logo, 'team_id' => $from_team->team_id];
                     }
-                    $to_team = $item->ToTeamInfo();
                     if ($to_team) {
                         $to_team_info = ['name_zh' => $to_team->name_zh, 'logo' => $to_team->logo, 'team_id' => $to_team->team_id];
 
@@ -901,7 +903,7 @@ class DataApi extends FrontUserController
             $result['competition_describe'] = $competitionDescribe;
             //积分榜
             $tmp = Utils::queryHandler(SeasonAllTableDetail::getInstance(), 'season_id=?', $selectSeasonId);
-//            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], json_decode($tmp['tables'], true));
+//            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $tmp);
 
             if (!empty($tmp)) {
                 $promotions = json_decode($tmp['promotions'], true);
