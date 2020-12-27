@@ -49,7 +49,7 @@ class  FrontService {
 
         // 点赞/收藏数据映射
         $tmp = Utils::queryHandler(AdminUserOperate::getInstance(),
-            '(type=1 or type=2) and item_type=1 and is_cancel=0 and item_id in(' . join(',', $postIds) . ')', null,
+            '(type=1 or type=2) and item_type=1 and user_id=' . $authId . ' and is_cancel=0 and item_id in(' . join(',', $postIds) . ')', null,
             '*', false);
         foreach ($tmp as $v) {
             $key = $v['item_id'] . '_' . $v['type'];
@@ -585,15 +585,11 @@ class  FrontService {
             $has_living = 0;
             $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
             $steamLike = $match->steamLink();
-//            $round = json_decode($match->round, true);
             $item['home_team_name'] = $match->home_team_name;
             $item['home_team_logo'] = $match->home_team_logo;
             $item['away_team_name'] = $match->away_team_name;
             $item['away_team_logo'] = $match->away_team_logo;
             $item['round'] = $match->round;
-
-//            $item['group_num'] = $round['group_num']; //第几组
-//            $item['round_num'] = $round['round_num']; //第几轮
             $item['competition_id'] = $match->competition_id;
             $item['competition_name'] = $match->competition_name;
             $item['competition_color'] = $match->competition_color;
@@ -614,8 +610,6 @@ class  FrontService {
             $item['away_scores'] = $match->away_scores;  //主队比分
             $item['coverage'] = $match->coverage;  //阵容 动画
             $item['steamLink'] = !empty($steamLike['mobile_link']) ? $steamLike['mobile_link'] : '' ;  //直播地址
-//            $item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
-//            $item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
 
             $data[] = $item;
 
