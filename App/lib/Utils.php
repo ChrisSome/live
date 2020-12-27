@@ -66,7 +66,7 @@ class Utils {
                 $group = ' group by ' . $orderOrGroup['group'];
             }
         }
-        if (!empty($group) && !empty($order)) $order = $group . $order;
+        if (!empty($group)) $order = $group . $order;
         if (is_null($bind)) $bind = [];
         if (!is_array($bind)) $bind = [intval($bind)];
         $limit = $needPager ? ' limit ' . (($page - 1) * $size) . ',' . $size : '';

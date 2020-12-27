@@ -9,6 +9,7 @@ use App\Model\AdminAlphaMatch;
 use App\Model\AdminInterestMatches;
 use App\Model\AdminMatch;
 use App\Model\AdminSeason;
+use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
@@ -1012,6 +1013,26 @@ class AppFunc
     {
         if (!$match || !$data) return '0';
         return number_format($data/$match,1);
+    }
+
+
+    /**
+     * 是否有敏感词
+     * @param $str
+     * @return string
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
+     */
+    public static function checkSensitive($str)
+    {
+        $sensitiveWords = AdminSensitive::getInstance()->where('status', AdminSensitive::STATUS_NORMAL)->field(['word'])->all();
+        foreach ($sensitiveWords as $sword) {
+            if (!$sword['word']) continue;
+            if (strstr($str, $sword['word'])) return $sword['word'];
+
+        }
+        return '';
+
     }
 
 }

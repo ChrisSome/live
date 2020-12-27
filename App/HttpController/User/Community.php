@@ -430,12 +430,81 @@ class Community extends FrontUserController
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
     }
+    public function postAdd()
+    {
+        if (Cache::get('user_publish_post_' . $this->auth['id'])) {
+            return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
+        }
+        if (!$uid = $this->auth['id']) {
+            return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
+        }
+        $validate = new Validate();
+        $validate->addColumn('cat_id')->required('请先选择分类')->min(1, '请选择分类');
+        $validate->addColumn('title')->required('请填写标题')->lengthMin(1, '请填写标题');
+        $validate->addColumn('content')->required('请填写内容')->lengthMin(1, '请前些内容');
+        if (!$validate->validate($this->params)) {
+            return $this->writeJson(Status::CODE_W_PARAM, $validate->getError()->__toString());
+        } else if (AppFunc::have_special_char($this->params['title'])) {
+            return $this->writeJson(Status::CODE_UNVALID_CODE, Status::$msg[Status::CODE_UNVALID_CODE]);
+        }
 
+        $data = $this->params;
+        $info = [
+            'title' => trim($data['title']),
+            'content' => base64_encode(addslashes(htmlspecialchars($data['content']))),
+            'cat_id' => (int)$data['cat_id'],
+            'user_id' => (int)$this->auth['id'],
+            'imgs' => $this->params['imgs']
+        ];
+        //保存
+        if ($this->params['is_save']) {
+            $info['status'] = AdminUserPost::NEW_STATUS_SAVE;
+            if (!empty($this->params['pid'])) {
+                $bool = AdminUserPost::create()->update($info, ['id' => (int)$data['pid']]);
+            } else {
+                $bool = AdminUserPost::create()->insert($info);
+            }
+            if ($bool) {
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+            } else {
+                return $this->writeJson(Status::CODE_ADD_POST, Status::$msg[Status::CODE_ADD_POST]);
+
+            }
+
+        } else {
+            //发布
+            $sensitiveTitle = AppFunc::checkSensitive(trim($info['title']));
+            $sensitiveContent = AppFunc::checkSensitive(trim($data['content']));
+            if ($sensitiveTitle || $sensitiveContent) {
+                //发送站内信
+                $message = [
+                    'title' => '帖子未通过审核',
+                    'content' => sprintf('您发布的帖子【%s】包含敏感词【%s】，未发送成功，已移交至草稿箱，请检查修改后再提交', $data['title'], $sensitiveTitle ? $sensitiveTitle : $sensitiveContent),
+                    'status' => 0,
+                    'user_id' => $this->auth['id'],
+                    'type' => 1,
+                    'post_id' => (int)$this->params['pid'],
+
+                ];
+                AdminMessage::getInstance()->insert($message);
+            }
+
+            if ($postId = $this->params['pid']) {
+                $info['status'] = AdminUserPost::NEW_STATUS_NORMAL;
+                $boolInsert = AdminUserPost::create()->update($info, ['id' =>$postId]);
+            } else {
+                $boolInsert = AdminUserPost::create()->insert($info);
+            }
+            if ($boolInsert) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+            return $this->writeJson(Status::CODE_ADD_POST, Status::$msg[Status::CODE_ADD_POST]);
+        }
+
+    }
     /**
      * 发帖
      * @return bool
      */
-    public function postAdd()
+    public function postAddBak()
     {
         if (Cache::get('user_publish_post_' . $this->auth['id'])) {
             return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);

@@ -100,7 +100,7 @@ class Status
         self::CODE_USER_STATUS_CANCLE => '该账户已被注销',
         self::CODE_STATUS_FORBIDDEN => '用户已被禁言',
         self::CODE_WRONG_MATCH => '暂无此场比赛资料',
-        self::CODE_PHONE_NOT_EXISTS => '手机号不存在',
+        self::CODE_PHONE_NOT_EXISTS => '手机号不存在,请注册后登录',
         self::CODE_WRING_CATEGORY => '请先选择分类',
 
 
