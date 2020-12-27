@@ -19,6 +19,7 @@ use App\Storage\OnlineUser;
 use App\Task\PhoneTask;
 use App\Task\SerialPointTask;
 use App\Task\TestTask;
+use App\Utility\Log\Log;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Task\TaskManager;
@@ -213,7 +214,7 @@ class Login extends FrontUserController
         if (!empty($aWxInfo['errcode'])) {
             return $this->writeJson(Statuses::CODE_ERR, $aWxInfo['errmsg']);
         } else {
-            if ($user = AdminUser::getInstance()->where('third_wx_unionid', base64_encode($aWxInfo['unionid']))->get()) {
+            if ($user = AdminUser::create()->where('third_wx_unionid', base64_encode($aWxInfo['unionid']))->get()) {
                 return $this->writeJson(Statuses::CODE_BIND_WX, Statuses::$msg[Statuses::CODE_BIND_WX]);
 
             }
@@ -223,7 +224,7 @@ class Login extends FrontUserController
                 'third_wx_unionid' => base64_encode($aWxInfo['unionid']),
                 'photo' => $aWxInfo['headimgurl']
             ];
-            $bool = AdminUser::create()->update($wxInfo, ['id'=>$user['id']]);
+            $bool = $user->update($wxInfo);
             if (!$bool) {
                 return $this->writeJson(Statuses::CODE_BINDING_ERR, Statuses::$msg[Statuses::CODE_BINDING_ERR]);
             } else {
@@ -252,7 +253,6 @@ class Login extends FrontUserController
         if (json_last_error()) {
             return $this->writeJson(Statuses::CODE_ERR, 'json parse error');
         }
-
         if (!empty($aWxInfo['errcode'])) {
             return $this->writeJson(Statuses::CODE_ERR, $aWxInfo['errmsg']);
         } else {

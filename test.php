@@ -1,4 +1,4 @@
 <?php
 
-$a = null;
-var_dump(json_decode($a, true));
+$a = 'oU5Yytw61amff89PxH0EgAyYyELc';
+var_dump(base64_encode($a));
