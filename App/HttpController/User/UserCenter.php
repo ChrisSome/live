@@ -937,7 +937,7 @@ class UserCenter   extends FrontUserController{
                 return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
             } else {
-                $information_comment = AdminInformationComment::STATUS_DELETE;
+                $information_comment->status = AdminInformationComment::STATUS_DELETE;
                 $information_comment->update();
                 return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 
