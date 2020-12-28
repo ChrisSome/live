@@ -959,6 +959,10 @@ class UserCenter   extends FrontUserController{
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
+        if (AppFunc::have_special_char($this->params['content'])) {
+            return $this->writeJson(Status::CODE_UNVALID_CODE, Status::$msg[Status::CODE_UNVALID_CODE]);
+
+        }
         $data['content'] = addslashes(htmlspecialchars($this->params['content']));
         $data['user_id'] = $this->auth['id'];
         if ($this->params['img']) {
