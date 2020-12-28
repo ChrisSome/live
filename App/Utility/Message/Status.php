@@ -48,6 +48,7 @@ class Status
     const CODE_WRONG_MATCH = 326;      //没有相关比赛
     const CODE_PHONE_NOT_EXISTS = 327;      //被禁言
     const CODE_WRING_CATEGORY = 328;      //被禁言
+    const CODE_MATCH_COUNT_LIMIT = 329;      //最多只能添加50场比赛
 
 
 
@@ -102,6 +103,7 @@ class Status
         self::CODE_WRONG_MATCH => '暂无此场比赛资料',
         self::CODE_PHONE_NOT_EXISTS => '手机号不存在,请注册后登录',
         self::CODE_WRING_CATEGORY => '请先选择分类',
+        self::CODE_MATCH_COUNT_LIMIT => '最多只能关注50场比赛哦',
 
 
 

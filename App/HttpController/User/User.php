@@ -10,6 +10,7 @@ use App\lib\FrontService;
 use App\lib\PasswordTool;
 use App\Model\AdminInformation;
 use App\Model\AdminInformationComment;
+use App\Model\AdminInterestMatches;
 use App\Model\AdminMessage;
 use App\Model\AdminPostComment;
 use App\Model\AdminUser;
@@ -399,6 +400,14 @@ class User extends FrontUserController
             $match_id = $this->params['match_id'];
             if ($this->params['type'] == 'add')
             {
+                //用户关注的比赛数量
+                if ($userInterestMatchRes = AdminInterestMatches::create()->where('uid', $uid)->get()) {
+                    $count = count(json_decode($userInterestMatchRes->match_ids, true));
+                    if ($count >= 50) {
+                        return $this->writeJson(Status::CODE_MATCH_COUNT_LIMIT, Status::$msg[Status::CODE_MATCH_COUNT_LIMIT]);
+
+                    }
+                }
                 $res = AppFunc::userDoInterestMatch($match_id, $uid);
             } else if($this->params['type'] == 'del') {
                 $res = AppFunc::userDelInterestMatch($match_id, $uid);
