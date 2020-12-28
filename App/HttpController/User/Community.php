@@ -531,7 +531,7 @@ class Community extends FrontUserController
 	public function normalProblemList()
 	{
 		// 获取清单
-		$result = AdminNormalProblems::getInstance()->findAll(['status' => 1]);
+		$result = AdminNormalProblems::getInstance()->findAll(['status' => 1, 'formal_time' => [date('Y-m-d H:i:s'), '<=']]);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
 
