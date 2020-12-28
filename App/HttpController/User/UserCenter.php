@@ -782,17 +782,13 @@ class UserCenter   extends FrontUserController{
 
         }
         $data = [];
-        if ($operate->item_type == 1) {
-            $post = AdminUserPost::getInstance()->where('id', $operate->item_id)->field(['id', 'content'])->get();
+        if ($operate->item_type == 1 && $post = AdminUserPost::getInstance()->where('id', $operate->item_id)->field(['id', 'content'])->get()) {
             $data = ['item_id' => $id, 'item_type' => 1, 'content' => base64_decode($post->content), 'title' => $post->title];
-        } else if ($operate->item_type == 2) {
-            $post_comment = AdminPostComment::getInstance()->where('id', $id)->field(['id', 'content'])->get();
+        } else if ($operate->item_type == 2 && $post_comment = AdminPostComment::getInstance()->where('id', $id)->field(['id', 'content'])->get()) {
             $data = ['item_id' => $id, 'item_type' => 2, 'content' => $post_comment->content];
-        } else if ($operate->item_type == 4) {
-            $information_comment = AdminInformationComment::getInstance()->where('id', $id)->field(['id', 'content'])->get();
+        } else if ($operate->item_type == 4 && $information_comment = AdminInformationComment::getInstance()->where('id', $id)->field(['id', 'content'])->get()) {
             $data = ['item_id' => $id, 'item_type' => 3, 'content' => $information_comment->content];
-        } else if ($operate->item_type== 5) {
-            $chat_message = ChatHistory::getInstance()->where('id', $id)->get();
+        } else if ($operate->item_type== 5 && $chat_message = ChatHistory::getInstance()->where('id', $id)->get()) {
             $data = ['item_id' => $id, 'item_type' => 5, 'content' => $chat_message->content];
         }
         $data['info'] = $operate->info;

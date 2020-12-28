@@ -497,7 +497,7 @@ class Community extends FrontUserController
             }
             //帖子信息
             $postInfo = AdminUserPost::create()->where('id', $boolInsert)->get();
-            $formatPost = FrontService::handPosts([$postInfo], 0);
+            $formatPost = FrontService::handPosts([$postInfo], $this->auth['id']);
             $returnPost = isset($formatPost[0]) ? $formatPost[0] : [];
             if ($boolInsert) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnPost);
             return $this->writeJson(Status::CODE_ADD_POST, Status::$msg[Status::CODE_ADD_POST]);
