@@ -276,12 +276,17 @@ class Community extends FrontUserController
 		}
 		// 保存
 		$data['status'] = AdminUserPost::NEW_STATUS_SAVE;
-		if ($postId < 1 && AdminUserPost::getInstance()->insert($data)) {
-			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+		if ($postId < 1) {
+			$postId = AdminUserPost::getInstance()->insert($data);
+		} else { // 更新
+			$postId = AdminUserPost::getInstance()->saveDataById($postId, $data) ? $postId : 0;
 		}
-		// 更新
-		if ($postId > 0 && AdminUserPost::getInstance()->saveDataById($postId, $data)) {
-			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+		if ($postId > 0) {
+			//帖子信息
+			$post = AdminUserPost::getInstance()->findOne(['id' => $postId]);
+			$post = FrontService::handPosts([$post], $this->authId);
+			$post = empty($post[0]) ? [] : $post[0];
+			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $post);
 		}
 		$this->output(Status::CODE_ADD_POST, Status::$msg[Status::CODE_ADD_POST]);
 	}

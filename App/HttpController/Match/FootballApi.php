@@ -130,7 +130,7 @@ class FootballApi extends FrontUserController
 	//			['competition_id' => 544, 'short_name_zh' => '中乙'],
 	//		],
 	//	];
-	
+
 	/**
 	 * 赛事列表
 	 * @throws
@@ -153,7 +153,7 @@ class FootballApi extends FrontUserController
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 比赛列表
 	 * @throws
@@ -187,7 +187,7 @@ class FootballApi extends FrontUserController
 		$result = ['playing' => $playing, 'today' => $today, 'tomorrow' => $tomorrow];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 正在进行中比赛列表
 	 * @throws
@@ -202,7 +202,7 @@ class FootballApi extends FrontUserController
 		$result = ['list' => $formatMatch, 'user_interest_count' => count($interestMatchArr)];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 用户关注的比赛列表
 	 * @throws
@@ -216,7 +216,7 @@ class FootballApi extends FrontUserController
 		$list = empty($list) ? [] : FrontService::formatMatchThree($list, $this->authId, $matchIds);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => count($list)]);
 	}
-	
+
 	/**
 	 * 赛程列表
 	 * @throws
@@ -244,7 +244,7 @@ class FootballApi extends FrontUserController
 		$list = empty($list) ? [] : FrontService::formatMatchThree($list, $this->authId, $interestMatchArr);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}
-	
+
 	/**
 	 * 赛果列表
 	 * @throws
@@ -273,7 +273,7 @@ class FootballApi extends FrontUserController
 		$list = empty($list) ? [] : FrontService::formatMatchThree($list, $this->authId, $interestMatchArr);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}
-	
+
 	/**
 	 * 单场比赛阵容详情
 	 * @throws
@@ -283,7 +283,7 @@ class FootballApi extends FrontUserController
 		// 参数校验
 		$matchId = $this->param('match_id', true);
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		
+
 		$homeFirstPlayers = $homeAlternatePlayers = $awayFirstPlayers = $awayAlternatePlayers = [];
 		$signalMatchLineUp = SignalMatchLineUp::getInstance()->findOne(['match_id' => $matchId]);
 		if (!empty($signalMatchLineUp)) {
@@ -347,7 +347,7 @@ class FootballApi extends FrontUserController
 		$awayTeamInfo['awayFormation'] = $awayFormation;
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['home' => $homeTeamInfo, 'away' => $awayTeamInfo]);
 	}
-	
+
 	/**
 	 * 历史交锋
 	 * @throws
@@ -357,19 +357,19 @@ class FootballApi extends FrontUserController
 		$matchId = $this->param('match_id', true);
 		$match = $matchId < 1 ? null : AdminMatch::getInstance()->findOne(['match_id' => $matchId, 'is_delete' => 0]);
 		if (empty($match)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-		
+
 		//积分排名
 		$season = $match->competitionName();
 		$currentSeasonId = empty($season['cur_season_id']) ? 0 : intval($season['cur_season_id']);
-		
+
 		if ($currentSeasonId < 1) {
 			$intRank = ['homeIntvalRank' => null, 'awayIntvalRank' => null];
 		} else {
 			$res = SeasonAllTableDetail::getInstance()->findOne(['season_id' => $currentSeasonId]);
-			
+
 			$tables = empty($res['tables']) ? [] : json_decode($res['tables'], true);
 			$promotions = empty($res['promotions']) ? [] : json_decode($res['promotions'], true);
-			
+
 			$homeIntRank = $awayIntRank = [];
 			if (!empty($promotions)) {
 				$rows = empty($tables[0]['rows']) ? [] : $tables[0]['rows'];
@@ -393,13 +393,13 @@ class FootballApi extends FrontUserController
 			}
 			$intRank = ['homeIntvalRank' => $homeIntRank, 'awayIntvalRank' => $awayIntRank];
 		}
-		
+
 		$homeTid = $match['home_team_id'];
 		$awayTid = $match['away_team_id'];
-		
+
 		// 历史交锋 与 近期战绩
 		$match = SeasonMatchList::getInstance()->where('status_id', 8)
-			->where('(home_team_id=' . $homeTid . ' or away_team_id=' . $homeTid . ' or home_team_id=' . $awayTid . ' or away_team_id=' . $awayTid.')')
+			->where('(home_team_id=' . $homeTid . ' or away_team_id=' . $homeTid . ' or home_team_id=' . $awayTid . ' or away_team_id=' . $awayTid . ')')
 			->where('is_delete', 0)->order('match_time', 'desc')->all();
 		$formatHistoryMatches = $homeRecentMatches = $awayRecentMatches = [];
 		foreach ($match as $itemMatch) {
@@ -440,7 +440,7 @@ class FootballApi extends FrontUserController
 		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 直播间公告
 	 * @throws
@@ -452,7 +452,7 @@ class FootballApi extends FrontUserController
 		$result = empty($setting['sys_value']) ? '' : $setting['sys_value'];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 比赛信息
 	 * @throws
@@ -464,16 +464,19 @@ class FootballApi extends FrontUserController
 		if ($matchId < 1) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		$match = AdminMatch::getInstance()->findOne(['match_id' => $matchId]);
 		if (empty($match)) $this->output(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
-		$match = FrontService::formatMatchThree([$match], $this->authId, []);
+		//用户关注的比赛
+		$interestMatches = AdminInterestMatches::getInstance()->findOne(['uid' => $this->authId]);
+		$interestMatchArr = empty($interestMatches['match_ids']) ? [] : json_decode($interestMatches['match_ids'], true);
+		$match = FrontService::formatMatchThree([$match], $this->authId, $interestMatchArr);
 		$match = empty($match[0]) ? null : $match[0];
 		if (empty($match)) $this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-		
 		$match['competition_type'] = 0;
 		$competitionId = $match['competition_id'];
 		$competition = AdminCompetition::getInstance()->findOne(['competition_id' => $competitionId]);
 		if (!empty($competition['type'])) $match['competition_type'] = $competition['type'];
 		if (empty($match['matching_info'])) {
 			$matchTlive = AdminMatchTlive::getInstance()->where('match_id', $matchId);
+			$matchInfo = [];
 			if (!empty($matchTlive)) { //已结束并且同步数据
 				$tlive = json_decode($matchTlive['tlive'], true);
 				$stats = json_decode($matchTlive['stats'], true);
@@ -488,11 +491,11 @@ class FootballApi extends FrontUserController
 						$item['time'] = intval($item['time']);
 						if ($item['type'] == 1) { //进球
 							$goal_tlive[] = $item;
-						} else if ($item['type'] == 2) { //角球
+						} elseif ($item['type'] == 2) { //角球
 							$corner_tlive[] = $item;
-						} else if ($item['type'] == 3) { //黄牌
+						} elseif ($item['type'] == 3) { //黄牌
 							$yellow_card_tlive[] = $item;
-						} else if ($item['type'] == 4) { //红牌
+						} elseif ($item['type'] == 4) { //红牌
 							$red_card_tlive[] = $item;
 						} else {
 							continue;
@@ -503,12 +506,12 @@ class FootballApi extends FrontUserController
 				$matchStats = [];
 				if ($stats) {
 					foreach ($stats as $stat) {
-						if ($stat['type'] == 21 || $stat['type'] == 22 || $stat['type'] == 23 || $stat['type'] == 24 ||  $stat['type'] == 25) {
+						if ($stat['type'] == 21 || $stat['type'] == 22 || $stat['type'] == 23 || $stat['type'] == 24 || $stat['type'] == 25) {
 							$matchStats[] = $stat;
 						}
 					}
 				}
-				$return_data = [
+				$matchInfo = [
 					'signal_count' => ['goal' => $goal_tlive, 'corner' => $corner_tlive, 'yellow_card' => $yellow_card_tlive, 'red_card' => $red_card_tlive],
 					'match_trend' => $match_trend,
 					'match_id' => $matchId,
@@ -517,13 +520,8 @@ class FootballApi extends FrontUserController
 					'match_stats' => $matchStats,
 					'score' => ['home' => $score[2], 'away' => $score[3]],
 				];
-			} else if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
-				// 比赛未结束 信息从cache中拿
-				$return_data = json_decode($match_data_info, true);
-			} else {
-				$return_data = [];
 			}
-			$match['matching_info'] = $return_data;
+			$match['matching_info'] = $matchInfo;
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $match);
 	}

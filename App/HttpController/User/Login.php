@@ -363,12 +363,6 @@ class Login extends FrontUserController
 		if (AppFunc::have_special_char($nickname)) {
 			$this->output(StatusMapper::CODE_UNVALID_CODE, StatusMapper::$msg[StatusMapper::CODE_UNVALID_CODE], $sensitive->word);
 		}
-		// 账号格式校验
-		/*
-        if (!preg_match('/^[a-zA-Z0-9_\u4e00-\u9fa5]{2,16}$/', $nickname)) {
-            return $this->writeJson(Statuses::CODE_W_FORMAT_NICKNAME, Statuses::$msg[Statuses::CODE_W_FORMAT_NICKNAME]);
-        }
-        */
 		// 是否重复
 		if (AdminUser::getInstance()->findOne(['nickname' => $nickname])) {
 			$this->output(StatusMapper::CODE_USER_DATA_EXIST, StatusMapper::$msg[StatusMapper::CODE_USER_DATA_EXIST]);

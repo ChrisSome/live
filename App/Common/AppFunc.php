@@ -2,13 +2,13 @@
 
 namespace App\Common;
 
-use App\Model\AdminUser;
 use App\lib\FrontService;
 use App\Model\AdminMatch;
 use App\Model\AdminSeason;
 use App\Storage\OnlineUser;
 use easySwoole\Cache\Cache;
 use App\Model\AdminZoneList;
+use App\Model\AdminSensitive;
 use App\Model\AdminAlphaMatch;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserSetting;
@@ -925,5 +925,23 @@ class AppFunc
 	{
 		if (!$match || !$data) return '0';
 		return number_format($data / $match, 1);
+	}
+
+	/**
+	 * 是否有敏感词
+	 * @param $str
+	 * @return string
+	 * @throws
+	 */
+	public static function checkSensitive($str)
+	{
+		$sensitiveWords = AdminSensitive::getInstance()->where('status', AdminSensitive::STATUS_NORMAL)->field(['word'])->all();
+		foreach ($sensitiveWords as $sword) {
+			if (!$sword['word']) continue;
+			if (strstr($str, $sword['word'])) return $sword['word'];
+
+		}
+		return '';
+
 	}
 }

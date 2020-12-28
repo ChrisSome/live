@@ -29,7 +29,7 @@ class UserCenter extends FrontUserController
 {
 	protected $isCheckSign = false;
 	protected $needCheckToken = true;
-	
+
 	/**
 	 * 个人中心首页
 	 * @throws
@@ -54,7 +54,7 @@ class UserCenter extends FrontUserController
 		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 收藏夹
 	 * @throws
@@ -106,7 +106,7 @@ class UserCenter extends FrontUserController
 		$total = empty($total[0]['total']) ? 0 : intval($total[0]['total']);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $total]);
 	}
-	
+
 	/**
 	 * 用户资料编辑
 	 * @throws
@@ -166,16 +166,15 @@ class UserCenter extends FrontUserController
 		}
 		$this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 	}
-	
+
 	/**
 	 * 消息中心
 	 * @throws
 	 */
 	public function messageCenter()
 	{
-		$params = $this->param();
 		// 类型校验
-		$type = empty($params['type']) || intval($params['type']) < 1 ? 0 : intval($params['type']);
+		$type = $this->param('type', true);
 		if ($type > 4) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 分页参数
 		$page = $this->param('page', true, 1);
@@ -406,7 +405,7 @@ class UserCenter extends FrontUserController
 						'status' => $v['status'],
 						'item_type' => $itemType,
 						'message_id' => $messageId,
-						'post_comment_info' =>$comment,
+						'post_comment_info' => $comment,
 						'created_at' => $v['created_at'],
 					];
 				} elseif ($itemType == 2) { // 帖子评论
@@ -479,19 +478,18 @@ class UserCenter extends FrontUserController
 			$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 		}
 	}
-	
+
 	/**
 	 * 读消息
 	 * @throws
 	 */
 	public function readMessage()
 	{
-		$params = $this->param();
 		// 类型
-		$type = empty($params['type']) ? 0 : intval($params['type']);
+		$type = $this->param('type', true);
 		if ($type != 1 && $type != 2) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 消息ID
-		$messageId = empty($params['message_id']) ? 0 : intval($params['message_id']);
+		$messageId = $this->param('message_id', true);
 		if ($type == 1) {
 			// 消息数据
 			$message = AdminMessage::getInstance()->findOne($messageId);
@@ -502,18 +500,16 @@ class UserCenter extends FrontUserController
 		AdminMessage::getInstance()->setField('status', AdminMessage::STATUS_READ, ['user_id' => $this->authId]);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 	}
-	
+
 	/**
 	 * 用户设置
 	 * @throws
 	 */
 	public function userSetting()
 	{
-		$params = $this->param();
 		$method = $this->request()->getMethod();;
-		Log::getInstance()->info('params-' . json_encode($params));
 		// 类型 1notice 2push 3private
-		$type = empty($params['type']) ? 0 : intval($params['type']);
+		$type = $this->param('type', true);
 		if ($type != 1 && $type != 2 && $type != 3) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 配置数据
 		$setting = AdminUserSetting::getInstance()->findOne(['user_id' => $this->authId]);
@@ -530,14 +526,14 @@ class UserCenter extends FrontUserController
 		}
 		if ($type == 1) {
 			$column = 'notice';
-			$value = empty($params['notice']) ? '' : $params['notice']; // start goal over only_notice_my_interest
+			$value = $this->param('notice'); // start goal over only_notice_my_interest
 			$tmp = empty($value) ? [] : json_decode($value, true);
 			if (!isset($tmp['start']) || !isset($tmp['goal'])
 				|| !isset($tmp['only_notice_my_interest'])
 				|| !isset($tmp['over'])) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		} elseif ($type == 2) {
 			$column = 'push';
-			$value = empty($params['push']) ? '' : $params['push']; // start goal over
+			$value = $this->param('push'); // start goal over
 			$tmp = empty($value) ? [] : json_decode($value, true);
 			if (!isset($tmp['start']) || !isset($tmp['goal'])
 				|| !isset($tmp['open_push']) || !isset($tmp['information'])
@@ -547,7 +543,7 @@ class UserCenter extends FrontUserController
 			// see_my_post(1所有 2我关注的 3我的粉丝 4仅自己)
 			// see_my_post_comment(1所有 2我关注的 3我的粉丝 4仅自己)
 			// see_my_information_comment(1所有 2我关注的 3我的粉丝 4仅自己)
-			$value = empty($params['private']) ? '' : $params['private'];
+			$value = $this->param('private');
 			$tmp = empty($value) ? [] : json_decode($value, true);
 			if (!isset($tmp['see_my_post']) || !isset($tmp['see_my_post_comment']) ||
 				!isset($tmp['see_my_information_comment'])) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -559,23 +555,22 @@ class UserCenter extends FrontUserController
 		}
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 	}
-	
+
 	/**
 	 * 修改密码
 	 * @throws
 	 */
 	public function changePassword()
 	{
-		$params = $this->param();
 		// 密码校验
-		$password = empty($params['new_pass']) ? null : trim($params['new_pass']);
+		$password = $this->param('new_pass');
 		if (empty($password)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 格式校验
 		$isOk = preg_match('/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,12}$/', $password);
 		if (!$isOk) $this->output(Status::CODE_W_FORMAT_PASS, Status::$msg[Status::CODE_W_FORMAT_PASS]);
 		// 验证码状态更新
-		// $mobile = empty($params['mobile']) ? null : trim($params['mobile']);
-		// $code = empty($params['phone_code']) ? null : trim($params['phone_code']);
+		// $mobile = $this->param('mobile');
+		// $code = $this->param('phone_code');
 		// $phoneCode = empty($mobile) ? null : AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile);
 		// if (empty($phoneCode) || empty($code) || $phoneCode['status'] != 0 || $phoneCode['code'] != $code) {
 		// 	$this->output(Status::CODE_W_PHONE_CODE, Status::$msg[Status::CODE_W_PHONE_CODE]);
@@ -586,7 +581,7 @@ class UserCenter extends FrontUserController
 		if ($isOk) $this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 		$this->output(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 	}
-	
+
 	/**
 	 * 用户被点赞列表 包括帖子与评论
 	 * @throws
@@ -678,7 +673,7 @@ class UserCenter extends FrontUserController
 		});
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 违规中心
 	 * @throws
@@ -694,16 +689,15 @@ class UserCenter extends FrontUserController
 			->findAll(['user_id' => $this->authId], $fields, 'created_at,desc', true, $page, $size);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'count' => $count]);
 	}
-	
+
 	/**
 	 * 违规记录详情
 	 * @throws
 	 */
 	public function foulItemInfo()
 	{
-		$params = $this->param();
 		// 违规数据
-		$id = empty($params['operate_id']) || intval($params['operate_id']) < 1 ? 0 : intval($params['operate_id']);
+		$id = $this->param('operate_id', true);
 		$operate = $id < 1 ? null : AdminUserFoulCenter::getInstance()->findOne($id);
 		if (empty($operate)) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		// 输出数据
@@ -732,17 +726,16 @@ class UserCenter extends FrontUserController
 		$result['reason'] = $operate['reason'];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 草稿箱列表
 	 * @throws
 	 */
 	public function drafts()
 	{
-		$params = $this->param();;
 		// 分页参数
 		$page = $this->param('page', true, 1);
-		$size = empty($params['size']) ? 20 : $params['size'];
+		$size = $this->param('size', true, 20);
 		// 分页数据
 		$where = ['status' => AdminUserPost::NEW_STATUS_SAVE, 'user_id' => $this->authId];
 		[$list, $count] = AdminUserPost::getInstance()
@@ -750,18 +743,17 @@ class UserCenter extends FrontUserController
 		$list = empty($list) ? [] : FrontService::handPosts($list, $this->authId);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $list, 'count' => $count]);
 	}
-	
+
 	/**
 	 * 删除
 	 * @throws
 	 */
 	public function delItem()
 	{
-		$params = $this->param();;
 		// 类型
-		$type = empty($params['type']) ? 0 : intval($params['type']);
+		$type = $this->param('type', true);
 		// 选项ID
-		$id = empty($params['item_id']) ? 0 : intval($params['item_id']);
+		$id = $this->param('item_id', true);
 		if ($type != 1 && $type != 2 && $type != 3) $this->output(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 		if ($type == 1) { // 删除帖子
 			$post = AdminUserPost::getInstance()->findOne(['id' => $id, 'user_id' => $this->authId]);
@@ -781,7 +773,7 @@ class UserCenter extends FrontUserController
 		AdminInformationComment::getInstance()->setField('status', AdminInformationComment::STATUS_DELETE, $id);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 	}
-	
+
 	/**
 	 * 任务列表
 	 * @throws
@@ -809,7 +801,7 @@ class UserCenter extends FrontUserController
 		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 做任务加积分，这里只能是每日签到与分享
 	 * @throws
@@ -857,7 +849,7 @@ class UserCenter extends FrontUserController
 		];
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
 	}
-	
+
 	/**
 	 * 积分明细
 	 * @throws
@@ -873,7 +865,7 @@ class UserCenter extends FrontUserController
 			->findAll(['user_id' => $this->authId], $fields, 'created_at,desc', true, $page, $size);
 		$this->output(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $list, 'total' => $count]);
 	}
-	
+
 	/**
 	 * 用户反馈
 	 * @throws

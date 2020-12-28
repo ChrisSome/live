@@ -389,10 +389,11 @@ class DataApi extends FrontUserController
 				->findAll(['player_id' => $playerId], 'player_id,from_team_id,transfer_time,to_team_id,transfer_type', 'transfer_time,desc');
 			if (!empty($tmp)) {
 				foreach ($tmp as $v) {
-					$toTeam = $v->ToTeamInfo();
-					if (!empty($toTeam)) $toTeam = ['name_zh' => $toTeam['name_zh'], 'logo' => $toTeam['logo'], 'team_id' => $toTeam['team_id']];
+					if (empty($v['from_team_id']) && empty($v['to_team_id'])) continue;
 					$fromTeam = $v->fromTeamInfo();
+					$toTeam = $v->ToTeamInfo();
 					if (!empty($fromTeam)) $fromTeam = ['name_zh' => $fromTeam['name_zh'], 'logo' => $fromTeam['logo'], 'team_id' => $fromTeam['team_id']];
+					if (!empty($toTeam)) $toTeam = ['name_zh' => $toTeam['name_zh'], 'logo' => $toTeam['logo'], 'team_id' => $toTeam['team_id']];
 					$result['change_club_history'][] = [
 						'to_team_info' => empty($toTeam) ? [] : $toTeam,
 						'from_team_info' => empty($fromTeam) ? [] : $fromTeam,
