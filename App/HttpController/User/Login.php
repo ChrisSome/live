@@ -20,6 +20,7 @@ use App\Task\PhoneTask;
 use App\Task\SerialPointTask;
 use App\Task\TestTask;
 use App\Utility\Log\Log;
+use Carbon\Traits\Test;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Task\TaskManager;
@@ -173,11 +174,19 @@ class Login extends FrontUserController
             return $this->writeJson(Statuses::CODE_W_PARAM, $valitor->getError()->__toString());
 
         }
+        if (Cache::get('user-send-msg-' . $mobile) >= 10) {
+            return $this->writeJson(Statuses::CODE_PHONE_CODE_LIMIT, Statuses::$msg[Statuses::CODE_PHONE_CODE_LIMIT]);
+        }
 
         $code = Tool::getInstance()->generateCode();
         //异步task
 
         $res = TaskManager::getInstance()->async(new PhoneTask(['code' => $code, 'mobile' => $mobile, 'name' => '短信验证码']));
+        if (!$mobileCodeCache = Cache::get('user-send-msg-' . $mobile)) {
+            Cache::set('user-send-msg-' . $mobile, 1, 60 * 60 * 24);
+        } else {
+            Cache::inc('user-send-msg-' . $mobile, 1);
+        }
         return $this->writeJson(Statuses::CODE_OK, '验证码以发送至尾号' . substr($mobile, -4) .'手机', $res);
 
     }
