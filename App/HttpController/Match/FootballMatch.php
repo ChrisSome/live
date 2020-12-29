@@ -10,19 +10,10 @@ use App\Model\AdminClashHistory;
 use App\Model\AdminCompetition;
 use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
-use App\Model\AdminInterestMatches;
-use App\Model\AdminInterestMatchesBak;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
-use App\Model\AdminMatchBak;
-use App\Model\AdminSysSettings;
-use App\Model\AdminSysSettingsBak;
-use App\Model\AdminUserInterestCompetition;
-use App\Model\AdminUserInterestCompetitionBak;
-use App\Model\SeasonMatchListOne;
 use App\Model\Test;
 use App\Task\TestTask;
-use EasySwoole\Component\Process\Manager;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
@@ -41,7 +32,6 @@ use App\Model\AdminUserSetting;
 use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
 use App\Model\SeasonTeamPlayerBak;
-use App\Storage\OnlineUser;
 use App\Task\MatchNotice;
 use App\Utility\Log\Log;
 use App\lib\Tool;
@@ -51,10 +41,6 @@ use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
-use EasySwoole\ORM\DbManager;
-use EasySwoole\Redis\Redis as Redis;
-use EasySwoole\RedisPool\Redis as RedisPool;
-use EasySwoole\EasySwoole\Config;
 
 /**
  *                             _ooOoo_
@@ -1375,7 +1361,7 @@ class FootBallMatch extends FrontUserController
     public function matchTlive()
     {
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
-
+        Log::getInstance()->info('match-tlive-start');
         if ($decode = json_decode($res, true)) {
             $match_info = [];
             foreach ($decode as $item) {
