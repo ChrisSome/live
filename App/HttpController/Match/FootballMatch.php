@@ -1361,18 +1361,18 @@ class FootBallMatch extends FrontUserController
     public function matchTlive()
     {
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
-        Log::getInstance()->info('match-tlive-start');
         if ($decode = json_decode($res, true)) {
             $match_info = [];
             foreach ($decode as $item) {
 
                 //无效比赛 跳过
                 if (!$match = AdminMatch::getInstance()->where('match_id', $item['id'])->get()) {
+                    Log::getInstance()->info('match do not exist-' . $item['id']);
                     continue;
                 }
 
                 //比赛结束 跳过
-                if (AdminMatchTlive::getInstance()->where('match_id', $item['id'])->get()) {
+                if (AdminMatchTlive::getInstance()->where('match_id', $item['id'])->where('is_stop', 1)->get()) {
                     continue;
                 }
                 $status = $item['score'][1];
@@ -1391,12 +1391,18 @@ class FootBallMatch extends FrontUserController
                 }
 
                 //比赛趋势
-                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
-                $match_trend = json_decode($match_res, true);
-                if ($match_trend['code'] != 0) {
-                    $match_trend_info = [];
-                } else {
-                    $match_trend_info = $match_trend['results'];
+//                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
+//                $match_trend = json_decode($match_res, true);
+//                if ($match_trend['code'] != 0) {
+//                    $match_trend_info = [];
+//                } else {
+//                    $match_trend_info = $match_trend['results'];
+//                }
+
+
+                $match_trend_info = [];
+                if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
+                    $match_trend_info = json_decode($matchTrendRes->match_trend, true);
                 }
                 //设置比赛进行时间
                 AppFunc::setPlayingTime($item['id'], $item['score']);
@@ -1562,15 +1568,51 @@ class FootBallMatch extends FrontUserController
     }
 
 
+    /**
+     * 更新比赛趋势，一分钟一次
+     * @throws \Throwable
+     */
+    public function updateMatchTrend()
+    {
+        //进行中的比赛
+        if ($playingMatches = AdminMatch::create()->field(['match_id'])->where('status_id', FootballApi::STATUS_PLAYING, 'in')->all()) {
+            foreach ($playingMatches as $playingMatch) {
+                //比赛趋势
+                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $playingMatch['match_id']));
+                $match_trend = json_decode($match_res, true);
+
+                if ($match_trend['code'] != 0) {
+                    $match_trend_info = [];
+                } else {
+                    $match_trend_info = $match_trend['results'];
+                }
+
+                if ($matchTlive = AdminMatchTlive::create()->where('match_id', $playingMatch['match_id'])->get()) {
+                    $matchTlive->match_trend = json_encode($match_trend_info);
+                    $matchTlive->update();
+                } else {
+                    $insertData = [
+                        'match_id' => $playingMatch['match_id'],
+                        'match_trend' => json_encode($match_trend_info)
+                    ];
+                    AdminMatchTlive::create()->insert($insertData);
+                }
+            }
+
+        }
+
+    }
 
     function test() {
-        $max = AdminPlayerChangeClub::getInstance()->max('updated_at');
 
-        $url = sprintf('https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&id=%s', $this->user, $this->secret, $max+1);
-        $res = Tool::getInstance()->postApi($url);
-        $resp = json_decode($res, true);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $resp);
+//        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+//        if ($decode = json_decode($res, true)) {
+//
+//        }
+        $cache = Cache::get('match_tlive_' . 3486992);
 
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $cache);
 
 
     }

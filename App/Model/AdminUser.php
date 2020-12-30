@@ -4,6 +4,7 @@ namespace App\Model;
 
 use App\Base\BaseModel;
 use App\lib\Tool;
+use App\Utility\Log\Log;
 use EasySwoole\Mysqli\QueryBuilder;
 
 class AdminUser extends BaseModel
@@ -121,15 +122,33 @@ class AdminUser extends BaseModel
         $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
 
         $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
-
-        $userInterestCompetition = json_decode($res->competition_ids, true);
+        $userInterestCompetition = isset($res->competition_ids) ? json_decode($res->competition_ids, true) : [];
         if ($userInterestCompetition) {
             $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
         } else {
-            $selectCompetitionIdArr = $default;
+            $selectCompetitionIdArr = [];
         }
 
         return [array_values($selectCompetitionIdArr), $interestMatchArr];
+    }
+
+    public static function getUserShowCompetitionIdBak($uid)
+    {
+        //默认赛事
+        $recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
+        $default = json_decode($recommandCompetitionId->sys_value, true);
+        if (!$uid) return [$default, []];
+
+        //用户关注的赛事
+        if ($userInterestComRes = AdminUserInterestCompetition::create()->where('user_id', $uid)->get()) {
+            $userInterestCompetition = json_decode($userInterestComRes->competition_ids, true);
+            $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
+        } else {
+            $selectCompetitionIdArr = [];
+        }
+
+        //用户关注
+
     }
 
 }

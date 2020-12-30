@@ -3,7 +3,6 @@
 namespace App\Common;
 
 
-use App\HttpController\Match\FootballApi;
 use App\lib\FrontService;
 use App\Model\AdminAlphaMatch;
 use App\Model\AdminInterestMatches;
@@ -11,7 +10,6 @@ use App\Model\AdminMatch;
 use App\Model\AdminSeason;
 use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
-use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
 use App\Model\AdminZoneList;
 use App\Storage\OnlineUser;

@@ -78,29 +78,36 @@ class MatchNotice  implements TaskInterface
         } else if ($type == 12) { //结束通知
             //比赛可能出现0-0的情况，所以不能用last_incident_goal处理
             $item = $this->taskData['item'];
-            $time = AppFunc::getPlayingTime($match_id);
-            $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
-            $match_trend = json_decode($match_res, true);
-            if ($match_trend['code'] != 0) {
-                $match_trend_info = [];
+            $data = [
+                'score' => isset($item['score']) ? json_encode($item['score']) : '',
+                'incidents' => isset($item['incidents']) ? json_encode($item['incidents']) : '',
+                'stats' => isset($item['stats']) ? json_encode($item['stats']) : '',
+                'tlive' => isset($item['tlive']) ? json_encode($item['tlive']) : '',
+                'match_id' => $item['id'],
+                'is_stop' => 1
+            ];
+            if (!$matchTlive = AdminMatchTlive::create()->where('match_id', $match_id)->get()) {
+                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
+                $match_trend = json_decode($match_res, true);
+                if ($match_trend['code'] != 0) {
+                    $match_trend_info = [];
+                } else {
+                    $match_trend_info = $match_trend['results'];
+                }
+                $data['match_trend'] = json_encode($match_trend_info);
+
+                AdminMatchTlive::getInstance()->insert($data);
+
             } else {
-                $match_trend_info = $match_trend['results'];
+                unset($data['match_id']);
+                AdminMatchTlive::create()->update($data, ['match_id', $match_id]);
             }
 
-            if (!AdminMatchTlive::getInstance()->where('match_id', $match_id)->get()) {
-//                $match_trend = $this->taskData['match_trend'];
-                $data = [
-                    'score' => isset($item['score']) ? json_encode($item['score']) : '',
-                    'incidents' => isset($item['incidents']) ? json_encode($item['incidents']) : '',
-                    'stats' => isset($item['stats']) ? json_encode($item['stats']) : '',
-                    'tlive' => isset($item['tlive']) ? json_encode($item['tlive']) : '',
-                    'match_trend' => json_encode($match_trend_info),
-                    'match_id' => $item['id']
-                ];
-                AdminMatchTlive::getInstance()->insert($data);
-            }
+
+
             if (!AppFunc::isInHotCompetition($match->competition_id)) return;
             list($home, $away) = AppFunc::getFinalScore($item['score'][2], $item['score'][3]);
+            $time = AppFunc::getPlayingTime($match_id);
             $this->userNotice($type, $match_id, $home, $away, 0, $time);
             $this->userPush($type, $match_id, $home, $away, $match->competition_id);
 

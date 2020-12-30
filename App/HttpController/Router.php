@@ -108,6 +108,7 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/footBall/updateMatchSeason', '/Match/FootballMatch/updateMatchSeason');   //赛季比赛
             $r->addRoute(['GET'], '/footBall/updateSeasonTeamPlayer', '/Match/FootballMatch/updateSeasonTeamPlayer');   //赛季比赛
             $r->addRoute(['GET'], '/footBall/updateYesterdayMatch', '/Match/FootballMatch/updateYesterdayMatch');   //赛季比赛
+            $r->addRoute(['GET'], '/footBall/updateMatchTrend', '/Match/FootballMatch/updateMatchTrend');   //赛季比赛
 
 
 

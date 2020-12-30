@@ -62,13 +62,15 @@ class Match extends Base
             return $data;
         });
         if ($match) {
-            $matchTlive = DbManager::getInstance()->invoke(function ($client) use ($matchId) {
-                $tliveModel = AdminMatchTlive::invoke($client);
-                $data = $tliveModel->where('match_id', $matchId)->get();
-                return $data;
-            });
-
-            if ($matchTlive) { //已结束并且同步数据
+            if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
+                /**
+                 * 比赛未结束 信息从cache中拿
+                 *
+                 */
+                $return_data = json_decode($match_data_info, true);
+                $tlive = json_decode(Cache::get('match_tlive_' . $matchId), true) ?: [];
+                $stats = json_decode(Cache::get('match_stats_' . $matchId), true) ?: [];
+            } else if ($matchTlive = AdminMatchTlive::create()->where('match_id', $matchId)->get()) {
                 $tlive = json_decode($matchTlive->tlive, true);
                 $stats = json_decode($matchTlive->stats, true);
                 $score = json_decode($matchTlive->score, true);
@@ -115,20 +117,12 @@ class Match extends Base
                     'score' => ['home' => $score[2], 'away' => $score[3]],
 
                 ];
-            } else if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
-                /**
-                 * 比赛未结束 信息从cache中拿
-                 *
-                 */
-                $return_data = json_decode($match_data_info, true);
-                $tlive = json_decode(Cache::get('match_tlive_' . $matchId), true) ?: [];
-                $stats = json_decode(Cache::get('match_stats_' . $matchId), true) ?: [];
-
             } else {
                 $return_data = [];
                 $tlive = [];
                 $stats = [];
             }
+
         } else {
             $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_WRONG_MATCH, WebSocketStatus::$msg[WebSocketStatus::STATUS_WRONG_MATCH]));
             return;

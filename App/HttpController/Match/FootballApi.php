@@ -196,11 +196,13 @@ class FootballApi extends FrontUserController
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
 
         list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
-        if (!$selectCompetitionIdArr)   return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+        $response = ['list' => [], 'user_interest_count' => count($interestMatchArr)];
+        if (!$selectCompetitionIdArr)   return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $response);
 
         $playingMatch = AdminMatch::create()->where('is_delete', 0)
             ->where('competition_id', $selectCompetitionIdArr, 'in')
             ->where('status_id', self::STATUS_PLAYING, 'in')
+            ->order('match_time', 'ASC')
             ->all();
 
         $formatMatch = FrontService::formatMatchThree($playingMatch, $uid, $interestMatchArr);
@@ -215,7 +217,10 @@ class FootballApi extends FrontUserController
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
         //需要展示的赛事id 以及用户关注的比赛
         list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
-
+        if (!$selectCompetitionIdArr) {
+            $response = ['list' => [], 'count' => []];
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $response);
+        }
         $page = isset($this->params['page']) ? (int)$this->params['page'] : 1;
         $limit = isset($this->params['size']) ? (int)$this->params['size'] : 20;
         if ($this->params['time'] == date('Y-m-d')) {
@@ -254,6 +259,10 @@ class FootballApi extends FrontUserController
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
         //需要展示的赛事id 以及用户关注的比赛
         list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
+        if (!$selectCompetitionIdArr) {
+            $response = ['list' => [], 'total' => 0];
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $response);
+        }
         $page = isset($this->params['page']) ? (int)$this->params['page'] : 1;
         $size = isset($this->params['size']) ? (int)$this->params['size'] : 20;
         $start = strtotime($this->params['time']);
@@ -420,8 +429,8 @@ class FootballApi extends FrontUserController
 
         } else {
             $res = SeasonAllTableDetail::getInstance()->where('season_id', $currentSeasonId)->get();
-            $decode = json_decode($res->tables, true);
-            $promotions = json_decode($res->promotions, true);
+            $decode = isset($res->tables) ? json_decode($res->tables, true) : [];
+            $promotions = isset($res->promotions) ? json_decode($res->promotions, true) : [];
 
             $homeIntvalRank = $awayIntvalRank = null;
             if ($promotions) {
