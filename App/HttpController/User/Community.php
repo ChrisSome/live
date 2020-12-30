@@ -491,6 +491,7 @@ class Community extends FrontUserController
 
             if ($postId = $this->params['pid']) {
                 $info['status'] = AdminUserPost::NEW_STATUS_NORMAL;
+                $info['created_at'] = date('Y-m-d H:i:s');
                 $boolInsert = AdminUserPost::create()->update($info, ['id' =>$postId]);
                 $postInfo = AdminUserPost::create()->where('id', $this->params['pid'])->get();
             } else {
