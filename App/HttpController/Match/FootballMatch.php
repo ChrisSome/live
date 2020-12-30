@@ -835,10 +835,10 @@ class FootBallMatch extends FrontUserController
         $res = Tool::getInstance()->postApi($url);
         $decode = json_decode($res, true);
         $decodeDatas = $decode['results'];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
 
         if (!$decodeDatas) return false;
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
+        $statusId = $decodeDatas['score'][1];
         $match->home_scores = json_encode($decodeDatas['score'][2]);
         $match->away_scores = json_encode($decodeDatas['score'][3]);
         $match->status_id = $decodeDatas['score'][1];
@@ -857,7 +857,8 @@ class FootBallMatch extends FrontUserController
             'incidents' => isset($decodeDatas['incidents']) ? json_encode($decodeDatas['incidents']) : '',
             'tlive' => isset($decodeDatas['tlive']) ? json_encode($decodeDatas['tlive']) : '',
             'match_id' => $decodeDatas['id'],
-            'match_trend' => json_encode($match_trend_info)
+            'match_trend' => json_encode($match_trend_info),
+            'is_stop' => ($statusId == 8) ? 1 : 0
         ];
         if (!$res = AdminMatchTlive::getInstance()->where('match_id', $match_id)->get()) {
             AdminMatchTlive::getInstance()->insert($match_tlive_data);
