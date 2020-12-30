@@ -8,6 +8,7 @@ use App\Model\AdminMatchTlive;
 use App\Model\AdminUser;
 use App\Model\ChatHistory;
 use App\Storage\OnlineUser;
+use App\Utility\Log\Log;
 use App\WebSocket\Actions\Broadcast\BroadcastAdmin;
 use App\WebSocket\Actions\User\UserOutRoom;
 use easySwoole\Cache\Cache;
@@ -98,20 +99,6 @@ class WebSocketEvents
 
     }
 
-    static function userClose($server, $iUserId)
-    {
-        $fds = Base::getInstance()->smembers("members:".$iUserId);
-        foreach ($fds as $fd) {
-            // 移除用户并广播告知
-            OnlineUser::getInstance()->delete($fd);
-            $broadcastAdminMessage = new BroadcastAdmin;
-            $broadcastAdminMessage->setContent("您在别的地方登陆，这边被强制下线");
-            $server->push($fd, $broadcastAdminMessage->__toString());
-            ServerManager::getInstance()->getSwooleServer()->close($fd);
-        }
-        Base::getInstance()->del("members:".$iUserId);
-
-    }
     /**
      * 链接被关闭时
      * @param swoole_server $server
@@ -121,22 +108,9 @@ class WebSocketEvents
      */
     static function onClose(\swoole_server $server, int $fd, int $reactorId)
     {
-
+        Log::getInstance()->info('fd was closed-' . $fd);
         OnlineUser::getInstance()->delete($fd);
+        ServerManager::getInstance()->getSwooleServer()->close($fd);
 
-        $info = $server->connection_info($fd);
-        if (isset($info['websocket_status']) && $info['websocket_status'] !== 0) {
-           if ($mid = Cache::get($fd)) {
-               // 移除用户并广播告知
-               OnlineUser::getInstance()->delete($fd);
-
-            }
-
-            $message = new UserOutRoom;
-            $message->setUserFd($fd);
-//            TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $fd]));
-            ServerManager::getInstance()->getSwooleServer()->close($fd);
-
-        }
     }
 }

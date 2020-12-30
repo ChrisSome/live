@@ -97,8 +97,6 @@ class OnlineUser
     {
         $info = $this->get($fd);
         if ($info) {
-//            $key = sprintf(self::LIST_ONLINE, $info['match_id']);
-//            Login::getInstance()->lrem($key, 0, $info['mid']);
             return $this->table->del($fd);
         }
 
