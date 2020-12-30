@@ -100,7 +100,8 @@ class MatchNotice  implements TaskInterface
 
             } else {
                 unset($data['match_id']);
-                AdminMatchTlive::create()->update($data, ['match_id', $match_id]);
+                if ($matchTlive->is_stop == 1) return;
+                AdminMatchTlive::create()->update($data, ['match_id' => $match_id]);
             }
 
 
