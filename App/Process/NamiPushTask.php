@@ -33,6 +33,7 @@ class NamiPushTask extends AbstractProcess
     {
 
         Timer::getInstance()->loop(30 * 1000, function () {
+            Log::getInstance()->info('push start');
             $res = Tool::getInstance()->postApi(sprintf($this->url, $this->user, $this->secret));
             if ($decode = json_decode($res, true)) {
                 $match_info = [];
@@ -62,15 +63,6 @@ class NamiPushTask extends AbstractProcess
                     if (!AppFunc::isInHotCompetition($match->competition_id)) {
                         continue;
                     }
-
-                    //比赛趋势
-//                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
-//                $match_trend = json_decode($match_res, true);
-//                if ($match_trend['code'] != 0) {
-//                    $match_trend_info = [];
-//                } else {
-//                    $match_trend_info = $match_trend['results'];
-//                }
 
 
                     $match_trend_info = [];
