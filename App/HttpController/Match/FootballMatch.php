@@ -13,6 +13,7 @@ use App\Model\AdminHonorList;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
 use App\Model\Test;
+use App\Storage\OnlineUser;
 use App\Task\TestTask;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
@@ -834,7 +835,7 @@ class FootBallMatch extends FrontUserController
         $res = Tool::getInstance()->postApi($url);
         $decode = json_decode($res, true);
         $decodeDatas = $decode['results'];
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
 
         if (!$decodeDatas) return false;
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
@@ -860,6 +861,9 @@ class FootBallMatch extends FrontUserController
         ];
         if (!$res = AdminMatchTlive::getInstance()->where('match_id', $match_id)->get()) {
             AdminMatchTlive::getInstance()->insert($match_tlive_data);
+        } else {
+            unset($match_tlive_data['match_id']);
+            AdminMatchTlive::create()->update($match_tlive_data, ['match_id' => $decodeDatas['id']]);
         }
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
@@ -1604,15 +1608,10 @@ class FootBallMatch extends FrontUserController
     }
 
     function test() {
+        $fd = $this->params['fd'];
+        $onlineUser = OnlineUser::getInstance()->get($fd);
 
-//        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
-//        if ($decode = json_decode($res, true)) {
-//
-//        }
-        $cache = Cache::get('match_tlive_' . 3486992);
-
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $cache);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $onlineUser);
 
 
     }
