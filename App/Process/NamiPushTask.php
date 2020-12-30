@@ -34,18 +34,18 @@ class NamiPushTask extends AbstractProcess
 
         Timer::getInstance()->loop(30 * 1000, function () {
             $res = Tool::getInstance()->postApi(sprintf($this->url, $this->user, $this->secret));
-
             if ($decode = json_decode($res, true)) {
                 $match_info = [];
                 foreach ($decode as $item) {
 
                     //无效比赛 跳过
                     if (!$match = AdminMatch::getInstance()->where('match_id', $item['id'])->get()) {
+                        Log::getInstance()->info('match do not exist-' . $item['id']);
                         continue;
                     }
 
                     //比赛结束 跳过
-                    if (AdminMatchTlive::getInstance()->where('match_id', $item['id'])->get()) {
+                    if (AdminMatchTlive::getInstance()->where('match_id', $item['id'])->where('is_stop', 1)->get()) {
                         continue;
                     }
                     $status = $item['score'][1];
@@ -64,12 +64,18 @@ class NamiPushTask extends AbstractProcess
                     }
 
                     //比赛趋势
-                    $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
-                    $match_trend = json_decode($match_res, true);
-                    if ($match_trend['code'] != 0) {
-                        $match_trend_info = [];
-                    } else {
-                        $match_trend_info = $match_trend['results'];
+//                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
+//                $match_trend = json_decode($match_res, true);
+//                if ($match_trend['code'] != 0) {
+//                    $match_trend_info = [];
+//                } else {
+//                    $match_trend_info = $match_trend['results'];
+//                }
+
+
+                    $match_trend_info = [];
+                    if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
+                        $match_trend_info = json_decode($matchTrendRes->match_trend, true);
                     }
                     //设置比赛进行时间
                     AppFunc::setPlayingTime($item['id'], $item['score']);
@@ -199,15 +205,8 @@ class NamiPushTask extends AbstractProcess
                 /**
                  * 异步的话要做进程间通信，本身也有开销，不如做成同步的，push将数据交给底层，本身不等待
                  */
-//            $update_task_status = TaskManager::getInstance()->async(new MatchUpdate(['match_info_list' => $match_info]));
-//            if ($update_task_status <= 0) {
-//                Log::getInstance()->info('delivery failed, match list info-' . json_encode($match_info));
-//            }
 
                 if (!empty($match_info)) {
-//                    if (empty($match_info)) {
-//                        return;
-//                    }
                     $tool = Tool::getInstance();
                     $server = ServerManager::getInstance()->getSwooleServer();
                     $start_fd = 0;
@@ -225,6 +224,7 @@ class NamiPushTask extends AbstractProcess
                         foreach ($conn_list as $fd) {
                             $connection = $server->connection_info($fd);
                             if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+
                                 Log::getInstance()->info('push succ' . $fd);
                                 $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
                             } else {
@@ -238,6 +238,7 @@ class NamiPushTask extends AbstractProcess
                 }
 
             }
+
 
         });
     }
