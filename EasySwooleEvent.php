@@ -100,8 +100,8 @@ class EasySwooleEvent implements Event
         /**
          * timer定时
          */
-        $nami_task = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
-        ServerManager::getInstance()->getSwooleServer()->addProcess($nami_task);
+//        $nami_task = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
+//        ServerManager::getInstance()->getSwooleServer()->addProcess($nami_task);
         // template
         $viewDir = EASYSWOOLE_ROOT . '/App/Views';
         $cacheDir = EASYSWOOLE_ROOT . '/Temp/Template';
