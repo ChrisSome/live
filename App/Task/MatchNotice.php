@@ -153,7 +153,7 @@ class MatchNotice  implements TaskInterface
 
         $start_fd = 0;
         while (true) {
-            $conn_list = $server->getClientList($start_fd, 10);
+            $conn_list = $server->getClientList($start_fd, 100);
             if ($conn_list===false or count($conn_list) === 0) break;
             $start_fd = end($conn_list);
             foreach ($conn_list as $fd) {

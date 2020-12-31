@@ -1365,7 +1365,7 @@ class FootBallMatch extends FrontUserController
      */
     public function matchTlive()
     {
-        Log::getInstance()->info('push-start');
+        Log::getInstance()->info('tlive-start');
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
         Log::getInstance()->info('accept namiData success');
         if ($decode = json_decode($res, true)) {
@@ -1397,15 +1397,8 @@ class FootBallMatch extends FrontUserController
                     continue;
                 }
 
-                //比赛趋势
-//                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
-//                $match_trend = json_decode($match_res, true);
-//                if ($match_trend['code'] != 0) {
-//                    $match_trend_info = [];
-//                } else {
-//                    $match_trend_info = $match_trend['results'];
-//                }
 
+                Log::getInstance()->info('push-start');
 
                 $match_trend_info = [];
                 if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
@@ -1550,7 +1543,7 @@ class FootBallMatch extends FrontUserController
                     'match_info_list' => isset($match_info) ? $match_info : []
                 ];
                 while (true) {
-                    $conn_list = $server->getClientList($start_fd, 10);
+                    $conn_list = $server->getClientList($start_fd, 100);
                     if (!$conn_list || count($conn_list) === 0) {
                         break;
                     }
@@ -1612,10 +1605,12 @@ class FootBallMatch extends FrontUserController
     }
 
     function test() {
-        $fd = $this->params['fd'];
-        $onlineUser = OnlineUser::getInstance()->get($fd);
+        $onlineUser = OnlineUser::getInstance()->table();
+        foreach ($onlineUser as $item) {
+            $data[] = $item;
+        }
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $onlineUser);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
 
     }

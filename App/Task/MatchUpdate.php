@@ -45,7 +45,7 @@ class MatchUpdate  implements TaskInterface
             'match_info_list' => $match_info_list
         ];
         while (true) {
-            $conn_list = $server->getClientList($start_fd, 10);
+            $conn_list = $server->getClientList($start_fd, 100);
             if (!$conn_list || count($conn_list) === 0) {
                 break;
             }
