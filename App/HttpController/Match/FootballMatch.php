@@ -1365,7 +1365,9 @@ class FootBallMatch extends FrontUserController
      */
     public function matchTlive()
     {
+        Log::getInstance()->info('push-start');
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+        Log::getInstance()->info('accept namiData success');
         if ($decode = json_decode($res, true)) {
             $match_info = [];
             foreach ($decode as $item) {
@@ -1437,6 +1439,7 @@ class FootBallMatch extends FrontUserController
                     if ($match_tlive_count_new > $match_tlive_count_old) { //直播文字
                         Cache::set('match_tlive_count' . $item['id'], $match_tlive_count_new, 60 * 240);
                         $diff = array_slice($item['tlive'], $match_tlive_count_old);
+                        Log::getInstance()->info('push content-' . json_encode($diff) . '-match_id-' . $item['id']);
                         (new WebSocket())->contentPush($diff, $item['id']);
                     }
 
