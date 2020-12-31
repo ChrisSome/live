@@ -403,7 +403,7 @@ class Login extends FrontUserController
                 'goal' => 1, //进球
                 'over' => 1, //结束
                 'red_card' => 1, //红牌
-                'yellow' => 1, //黄牌
+                'yellow_card' => 1, //黄牌
                 'show_time_axis' => 1 //显示时间轴
             ];
             $push = ['start' => 1, 'goal' => 1, 'over' => 1,  'open_push' => 1, 'information' => 1];
