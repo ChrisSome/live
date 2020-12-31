@@ -1395,15 +1395,6 @@ class FootBallMatch extends FrontUserController
                     continue;
                 }
 
-                //比赛趋势
-//                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
-//                $match_trend = json_decode($match_res, true);
-//                if ($match_trend['code'] != 0) {
-//                    $match_trend_info = [];
-//                } else {
-//                    $match_trend_info = $match_trend['results'];
-//                }
-
 
                 $match_trend_info = [];
                 if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
