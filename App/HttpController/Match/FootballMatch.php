@@ -1383,7 +1383,7 @@ class FootBallMatch extends FrontUserController
                     continue;
                 }
                 $status = $item['score'][1];
-                if (!in_array($status, [1, 2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
+                if (!in_array($status, [2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
                     continue;
                 }
 
@@ -1398,7 +1398,7 @@ class FootBallMatch extends FrontUserController
                 }
 
 
-                Log::getInstance()->info('push-start');
+                Log::getInstance()->info('push-start' . $item['id']);
 
                 $match_trend_info = [];
                 if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
