@@ -507,7 +507,6 @@ class UserCenter   extends FrontUserController{
      */
     public function userSetting()
     {
-        Log::getInstance()->info('params-' . json_encode($this->params));
         if (!$type = $this->params['type']) { //1notice 2push 3private
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
@@ -558,12 +557,62 @@ class UserCenter   extends FrontUserController{
 
             }
 
-            if (!$user_setting = AdminUserSetting::getInstance()->where('user_id', $this->auth['id'])->get()) {
+            AdminUserSetting::getInstance()->update([$column=>$data], ['user_id' => $this->auth['id']]);
 
-                AdminUserSetting::getInstance()->insert(['user_id' => $this->auth['id'], $column=>$data]);
-            } else {
-                AdminUserSetting::getInstance()->update([$column=>$data], ['user_id' => $this->auth['id']]);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+
+
+        }
+    }
+
+    /**
+     * 用户设置
+     * @return bool
+     */
+    public function userBasketballSetting()
+    {
+        if (!$type = $this->params['type']) { //1notice 2push
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+        }
+        if ($this->request()->getMethod() == 'GET') {
+            if (!$setting = AdminUserSetting::getInstance()->where('user_id', $this->auth['id'])->get()) {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
             }
+            if ($type == 1) {
+                $data = json_decode($setting->basketball_notice, true);
+            } else if ($type == 2) {
+                $data = json_decode($setting->basketball_push, true);
+            } else {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+            }
+
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+
+        } else {
+            if ($type == 1) {
+                $decode = json_decode($this->params['basketball_notice'], true);
+                if (!isset($decode['start']) || !isset($decode['over']) || !isset($decode['only_notice_my_interest'])) {
+                    return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+                }
+                $column = 'basketball_notice';
+                $data = $this->params['basketball_notice'];//start goal over only_notice_my_interest
+            } else if ($type == 2) {
+                $decode = json_decode($this->params['basketball_push'], true);
+                if (!isset($decode['start']) || !isset($decode['over']) || !isset($decode['open_push'])) {
+                    return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+                }
+                $column = 'basketball_push';
+                $data = $this->params['basketball_push'];//start goal over
+            } else {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+            }
+
+            AdminUserSetting::getInstance()->update([$column=>$data], ['user_id' => $this->auth['id']]);
+
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 
 
@@ -588,11 +637,11 @@ class UserCenter   extends FrontUserController{
         }
         $phoneCode = AdminUserPhonecode::getInstance()->getLastCodeByMobile($this->params['mobile']);
 
-//        if (!$phoneCode || $phoneCode->status != 0 || $phoneCode->code != $this->params['phone_code']) {
-//
-//            return $this->writeJson(Status::CODE_W_PHONE_CODE, Status::$msg[Status::CODE_W_PHONE_CODE]);
-//
-//        }
+        if (!$phoneCode || $phoneCode->status != 0 || $phoneCode->code != $this->params['phone_code']) {
+
+            return $this->writeJson(Status::CODE_W_PHONE_CODE, Status::$msg[Status::CODE_W_PHONE_CODE]);
+
+        }
         $user = AdminUser::getInstance()->find($this->auth['id']);
         $password_hash = PasswordTool::getInstance()->generatePassword($password);
 

@@ -406,15 +406,23 @@ class Login extends FrontUserController
                 'yellow_card' => 1, //黄牌
                 'show_time_axis' => 1 //显示时间轴
             ];
+            $football_notice = [
+                'only_notice_my_interest' => 0,  //仅提示我关注的
+                'start' => 1, //比赛开始
+                'over' => 1, //结束
+            ];
             $push = ['start' => 1, 'goal' => 1, 'over' => 1,  'open_push' => 1, 'information' => 1];
+            $football_push = ['start' => 1, 'over' => 1,  'open_push' => 1];
             $private = ['see_my_post' => 1, 'see_my_post_comment' => 1, 'see_my_information_comment' => 1];
-            TaskManager::getInstance()->async(function () use($rs, $notice, $push, $private){
+            TaskManager::getInstance()->async(function () use($rs, $notice, $push, $private, $football_notice, $football_push){
 
                 $settingData = [
                     'user_id'    => $rs,
                     'notice' => json_encode($notice),
                     'push' => json_encode($push),
-                    'private' => json_encode($private)
+                    'private' => json_encode($private),
+                    'basketball_notice' => json_encode($football_notice),
+                    'basketball_push' => json_encode($football_push)
                 ];
                 AdminUserSetting::getInstance()->insert($settingData);
                 //写用户关注赛事
