@@ -32,9 +32,6 @@ class MatchUpdate  implements TaskInterface
         if (!$match_info_list) {
             Log::getInstance()->info('match_info_list_empty');
             return;
-        } else {
-            Log::getInstance()->info('match_info_list_not_empty');
-
         }
 
         $tool = Tool::getInstance();

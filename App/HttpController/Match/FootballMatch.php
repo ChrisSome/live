@@ -1398,7 +1398,6 @@ class FootBallMatch extends FrontUserController
                 }
 
 
-                Log::getInstance()->info('push-start' . $item['id']);
 
                 $match_trend_info = [];
                 if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
@@ -1527,7 +1526,6 @@ class FootBallMatch extends FrontUserController
                 ];
 
                 $match_info[] = $signal_match_info;
-//                Cache::set('match_data_info' .$item['id'], json_encode($signal_match_info), 60 * 240);
                 AppFunc::setMatchingInfo($item['id'], json_encode($signal_match_info));
                 unset($signal_match_info);
             }
@@ -1538,29 +1536,22 @@ class FootBallMatch extends FrontUserController
             if (!empty($match_info)) {
                 $tool = Tool::getInstance();
                 $server = ServerManager::getInstance()->getSwooleServer();
-                $start_fd = 0;
                 $returnData = [
                     'event' => 'match_update',
                     'match_info_list' => isset($match_info) ? $match_info : []
                 ];
-                while (true) {
-                    $conn_list = $server->getClientList($start_fd, 100);
-                    if (!$conn_list || count($conn_list) === 0) {
-                        break;
-                    }
-                    $start_fd = end($conn_list);
 
-                    foreach ($conn_list as $fd) {
-                        $connection = $server->connection_info($fd);
-                        if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-
-                            Log::getInstance()->info('push succ' . $fd);
-                            $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
-                        } else {
-                            Log::getInstance()->info('lost-connection-' . $fd);
-                        }
+                $onlineUsers = OnlineUser::getInstance()->table();
+                foreach ($onlineUsers as $fd => $onlineUser) {
+                    $connection = $server->connection_info($fd);
+                    if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+                        Log::getInstance()->info('push succ' . $fd);
+                        $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
+                    } else {
+                        Log::getInstance()->info('lost-connection-' . $fd);
                     }
                 }
+
             } else {
                 Log::getInstance()->info('333333333');
 
