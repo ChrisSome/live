@@ -30,6 +30,8 @@ class AppFunc
     const USER_MESS_TYPE_TABLE = 'user_message_number:uid:%s';  //用与存各类消息数量的哈希表
 
     const USER_INTEREST_MATCH = 'user_insterest_match:match_id:%s';  //关注此场比赛的用户
+    const MATCHING_TIME = 'matching_time:match_id:%s';  //比赛进行的时间
+    const MATCHING_INFO = 'matching_info:match_id:%s';  //比赛进行的时间
     const USER_BLACK_LIST = 'user_black_list:%s';
     const USERS_IN_ROOM = 'users_in_room:%s'; //该房间下的用户  roomid
 
@@ -775,7 +777,10 @@ class AppFunc
 
     public static function getPlayingTime($match_id)
     {
-        $time = Cache::get('match_time_' . $match_id);
+//        $time = Cache::get('match_time_' . $match_id);
+        RedisPool::invoke('redis', function(Redis $redis) use ($match_id, &$time) {
+            $time = $redis->get(sprintf(self::MATCHING_TIME, $match_id));
+        });
         return $time ?: 0;
     }
 
@@ -792,9 +797,26 @@ class AppFunc
         } else {
             $time = 0;
         }
-        Cache::set('match_time_' . $match_id, $time, 60 * 240);
+        RedisPool::invoke('redis', function(Redis $redis) use ($time, $match_id) {
+            $redis->set(sprintf(self::MATCHING_TIME, $match_id), $time, 60 * 240);
+        });
+//        Cache::set('match_time_' . $match_id, $time, 60 * 240);
 
         return $time;
+    }
+
+    public static function setMatchingInfo($match_id, $matching_info)
+    {
+        RedisPool::invoke('redis', function(Redis $redis) use ($matching_info, $match_id) {
+            $redis->set(sprintf(self::MATCHING_INFO, $match_id), $matching_info, 60 * 240);
+        });
+    }
+
+    public static function getMatchingInfo($match_id) {
+        RedisPool::invoke('redis', function(Redis $redis) use ($match_id, &$matching_info) {
+            $matching_info = $redis->get(sprintf(self::MATCHING_INFO, $match_id));
+        });
+        return $matching_info;
     }
 
 

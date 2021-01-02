@@ -62,7 +62,7 @@ class Match extends Base
             return $data;
         });
         if ($match) {
-            if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
+            if ($match_data_info = AppFunc::getMatchingInfo($match->match_id)) {
                 /**
                  * 比赛未结束 信息从cache中拿
                  *

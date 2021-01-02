@@ -1527,7 +1527,8 @@ class FootBallMatch extends FrontUserController
                 ];
 
                 $match_info[] = $signal_match_info;
-                Cache::set('match_data_info' .$item['id'], json_encode($signal_match_info), 60 * 240);
+//                Cache::set('match_data_info' .$item['id'], json_encode($signal_match_info), 60 * 240);
+                AppFunc::setMatchingInfo($item['id'], json_encode($signal_match_info));
                 unset($signal_match_info);
             }
             /**

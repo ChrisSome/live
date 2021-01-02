@@ -124,7 +124,7 @@ class InformationApi extends FrontUserController
             }
             if ($decode['match']) {
                 $matches = AdminMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
-                $formatMatches = FrontService::formatMatch($matches, 0);
+                $formatMatches = FrontService::formatMatchThree($matches, 0, []);
             } else {
                 $formatMatches = [];
             }
