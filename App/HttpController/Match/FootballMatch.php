@@ -447,8 +447,8 @@ class FootBallMatch extends FrontUserController
                         'home_team_logo' => $home_team->logo,
                         'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
                         'away_team_logo' => $away_team->logo,
-                        'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
-                        'competition_color' => $competition->primary_color
+                        'competition_name' => isset($competition->short_name_zh) ? $competition->short_name_zh : $competition->name_zh,
+                        'competition_color' => isset($competition->primary_color) ? $competition->primary_color : ''
                     ];
 
                     Log::getInstance()->info('insert_match_id-1-' . $data['id']);

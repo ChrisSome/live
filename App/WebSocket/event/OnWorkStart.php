@@ -9,9 +9,7 @@
 namespace App\WebSocket\event;
 
 
-use App\Process\KeepUser;
 use App\Storage\OnlineUser;
-use App\Utility\Log\Log;
 use EasySwoole\Component\Timer;
 use EasySwoole\EasySwoole\ServerManager;
 
@@ -27,12 +25,13 @@ class OnWorkStart
                 $online = OnlineUser::getInstance();
                 $server = ServerManager::getInstance()->getSwooleServer();
 
-                foreach ($online->table() as $mid => $info) {
+                foreach ($online->table() as $fd => $info) {
                     if (!isset($info['fd'])) continue;
                     $connection = $server->connection_info($info['fd']);
-                    if (!is_array($connection) || $connection['websocket_status'] != 3) {
+                    $time = $info['last_heartbeat'];
+                    if (!is_array($connection) || $connection['websocket_status'] != 3 || $time + 60 < time()) {
                         //删除
-                        $online->heartbeatCheck($info['fd']);
+                        $online->delete($fd);
                     }
                 }
             });

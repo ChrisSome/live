@@ -3,6 +3,7 @@
 namespace App\Storage;
 
 use App\Model\AdminUser;
+use App\Utility\Log\Log;
 use EasySwoole\Component\Singleton;
 use EasySwoole\Component\TableManager;
 use Swoole\Table;
