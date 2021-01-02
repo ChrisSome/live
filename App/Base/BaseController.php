@@ -37,6 +37,7 @@ abstract class BaseController extends Controller
             $this->response()->write(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $this->response()->withHeader('Content-type', 'application/json;charset=utf-8');
             $this->response()->end();
+            return true;
         } else {
             Log::getInstance()->info('APi RESPONSE THROW A EXCEPTION');
             return false;
