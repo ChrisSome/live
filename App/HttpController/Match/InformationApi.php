@@ -33,11 +33,6 @@ use EasySwoole\Validate\Validate;
 class InformationApi extends FrontUserController
 {
 
-    protected $trend_detail = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s'; //获取比赛趋势详情
-    private $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
-    private $user = 'mark9527';
-    private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
-
 
     /**
      * 标题栏
@@ -476,6 +471,12 @@ class InformationApi extends FrontUserController
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
+
+    }
+
+
+    public function getBasketballInformationList()
+    {
 
     }
 
