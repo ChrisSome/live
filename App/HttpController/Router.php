@@ -137,7 +137,8 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/information/getCategoryInformation', '/Match/InformationApi/getCategoryInformation');   //二级评论列表
 
             //篮球资讯
-            $r->addRoute(['GET'], '/information/basketballInformationList', '/Match/InformationApi/basketballInformationList');   //二级评论列表
+            $r->addRoute(['GET'], '/information/basketballInformationTitleBar', '/Match/InformationApi/basketballInformationTitleBar');   //篮球title栏
+            $r->addRoute(['GET'], '/information/basketballInformationList', '/Match/InformationApi/basketballInformationList');   //篮球资讯列表
 
 
 

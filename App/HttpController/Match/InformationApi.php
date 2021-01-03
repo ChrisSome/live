@@ -476,11 +476,8 @@ class InformationApi extends FrontUserController
     }
 
 
-    public function basketballInformationList()
+    public function basketballInformationTitleBar()
     {
-        //title bar
-
-
         $format = [
             [
                 'competition_id' => 0,
