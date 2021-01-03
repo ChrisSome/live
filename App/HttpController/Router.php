@@ -136,6 +136,10 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/information/informationChildComment', '/Match/InformationApi/informationChildComment');   //二级评论列表
             $r->addRoute(['GET'], '/information/getCategoryInformation', '/Match/InformationApi/getCategoryInformation');   //二级评论列表
 
+            //篮球资讯
+            $r->addRoute(['GET'], '/information/basketballInformationList', '/Match/InformationApi/basketballInformationList');   //二级评论列表
+
+
 
             //个人中心
             $r->addRoute(['GET'], '/user/UserCenter', '/User/UserCenter/UserCenter');   //个人中心

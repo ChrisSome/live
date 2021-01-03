@@ -359,8 +359,8 @@ class AppFunc
     public static function getPointsToNextLevel($user)
     {
 
-        $level = $user->level;
-        $point = $user->point;
+        $level = $user->level; //5
+        $point = $user->point;  //2050
         if ($level < 30) {
             $D_value = $level * 500 - $point;
         } else if ($level >= 30 && $level < 60) {

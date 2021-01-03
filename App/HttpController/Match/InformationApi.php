@@ -17,6 +17,7 @@ use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
 use App\Model\AdminUserOperate;
+use App\Model\BasketBallCompetition;
 use App\Storage\OnlineUser;
 use App\Task\SerialPointTask;
 use App\Utility\Message\Status;
@@ -475,8 +476,36 @@ class InformationApi extends FrontUserController
     }
 
 
-    public function getBasketballInformationList()
+    public function basketballInformationList()
     {
+        $information = AdminCompetition::getInstance()->limit(10)->all();
+        foreach ($information as $item) {
+            $data = [
+                'competition_id' => $item['competition_id'],
+                'category_id' => $item['category_id'],
+                'country_id' => $item['country_id'],
+                'name_zh' => $item['name_zh'],
+                'short_name_zh' => $item['short_name_zh'],
+                'type' => $item['type'],
+                'cur_season_id' => $item['cur_season_id'],
+                'cur_stage_id' => $item['cur_stage_id'],
+                'cur_round' => $item['cur_round'],
+                'round_count' => $item['round_count'],
+                'logo' => $item['logo'],
+                'title_holder' => $item['title_holder'],
+                'most_titles' => $item['most_titles'],
+                'newcomers' => $item['newcomers'],
+                'divisions' => $item['divisions'],
+                'host' => $item['host'],
+                'primary_color' => $item['primary_color'],
+                'secondary_color' => $item['secondary_color'],
+                'updated_time' => $item['updated_time'],
+                'updated_at' => $item['updated_at'],
+            ];
+
+            unset($item['id']);
+            BasketBallCompetition::getInstance()->insert($data);
+        }
 
     }
 
