@@ -504,5 +504,27 @@ class InformationApi extends FrontUserController
 
     }
 
+    public function basketballInformationList()
+    {
+        $type = !empty($this->params['type']) ? (int)$this->params['type'] : 1;
+        if (!isset($this->params['basketComid'])) {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+        }
+        $userId = (int)$this->auth['id'];
+        $page = !empty($this->params['page']) ? (int)$this->params['page'] : 1;
+        $size = !empty($this->params['size']) ? (int)$this->params['size'] : 15;
+        //头条或转会
+        if (!$this->params['basketComid']) {
+            $basketballInformation = AdminInformation::create()->where('type', $type)->where('sport_type', 1)->getLimit($page, $size, 'created_at', 'DESC');
+        } else {
+            $basketballInformation = AdminInformation::create()->where('type', 3)->where('sport_type', 1)->where('competition_id', (int)$this->params['basketComid'])->getLimit($page, $size, 'created_at', 'DESC');
+
+        }
+        $formatInformation = FrontService::formatInformation($basketballInformation, $userId);
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatInformation);
+
+    }
+
 
 }

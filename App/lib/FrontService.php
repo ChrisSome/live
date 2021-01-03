@@ -633,7 +633,7 @@ class  FrontService {
      * @return array
      * @throws
      */
-    public static function handInformation2($informationList, $authId): array
+    public static function formatInformation($informationList, $authId): array
     {
         if (empty($informationList)) return [];
         // 映射数据
