@@ -120,7 +120,7 @@ class InformationApi extends FrontUserController
             }
             if ($decode['match']) {
                 $matches = AdminMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
-                $formatMatches = FrontService::formatMatch($matches, 0);
+                $formatMatches = FrontService::formatMatchThree($matches, 0, []);
             } else {
                 $formatMatches = [];
             }
@@ -478,34 +478,32 @@ class InformationApi extends FrontUserController
 
     public function basketballInformationList()
     {
-        $information = AdminCompetition::getInstance()->limit(10)->all();
-        foreach ($information as $item) {
-            $data = [
-                'competition_id' => $item['competition_id'],
-                'category_id' => $item['category_id'],
-                'country_id' => $item['country_id'],
-                'name_zh' => $item['name_zh'],
-                'short_name_zh' => $item['short_name_zh'],
-                'type' => $item['type'],
-                'cur_season_id' => $item['cur_season_id'],
-                'cur_stage_id' => $item['cur_stage_id'],
-                'cur_round' => $item['cur_round'],
-                'round_count' => $item['round_count'],
-                'logo' => $item['logo'],
-                'title_holder' => $item['title_holder'],
-                'most_titles' => $item['most_titles'],
-                'newcomers' => $item['newcomers'],
-                'divisions' => $item['divisions'],
-                'host' => $item['host'],
-                'primary_color' => $item['primary_color'],
-                'secondary_color' => $item['secondary_color'],
-                'updated_time' => $item['updated_time'],
-                'updated_at' => $item['updated_at'],
-            ];
+        //title bar
 
-            unset($item['id']);
-            BasketBallCompetition::getInstance()->insert($data);
+
+        $format = [
+            [
+                'competition_id' => 0,
+                'short_name_zh' => '头条',
+                'type' => 1
+            ],
+            [
+                'competition_id' => 0,
+                'short_name_zh' => '转会',
+                'type' => 2
+            ]
+        ];
+        if ($basketball = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::BASKETBALL_COMPETITION)->get()) {
+            $basCompetitionIds = json_decode($basketball->sys_value, true);
+            if ($basCompetitionArr = BasketBallCompetition::getInstance()->where('competition_id', $basCompetitionIds, 'in')->all()) {
+                foreach ($basCompetitionArr as $item) {
+                    $format[] = ['competition_id' => $item['competition_id'], 'short_name_zh' => $item['short_name_zh'], 'type' => 3];
+                }
+            }
         }
+
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $format);
 
     }
 

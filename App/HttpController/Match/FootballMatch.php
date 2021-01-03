@@ -447,8 +447,8 @@ class FootBallMatch extends FrontUserController
                         'home_team_logo' => $home_team->logo,
                         'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
                         'away_team_logo' => $away_team->logo,
-                        'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
-                        'competition_color' => $competition->primary_color
+                        'competition_name' => isset($competition->short_name_zh) ? $competition->short_name_zh : $competition->name_zh,
+                        'competition_color' => isset($competition->primary_color) ? $competition->primary_color : ''
                     ];
 
                     Log::getInstance()->info('insert_match_id-1-' . $data['id']);
@@ -1365,7 +1365,9 @@ class FootBallMatch extends FrontUserController
      */
     public function matchTlive()
     {
+        Log::getInstance()->info('tlive-start');
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+        Log::getInstance()->info('accept namiData success');
         if ($decode = json_decode($res, true)) {
             $match_info = [];
             foreach ($decode as $item) {
@@ -1381,7 +1383,7 @@ class FootBallMatch extends FrontUserController
                     continue;
                 }
                 $status = $item['score'][1];
-                if (!in_array($status, [1, 2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
+                if (!in_array($status, [2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
                     continue;
                 }
 
@@ -1394,6 +1396,7 @@ class FootBallMatch extends FrontUserController
                 if (!AppFunc::isInHotCompetition($match->competition_id)) {
                     continue;
                 }
+
 
 
                 $match_trend_info = [];
@@ -1428,6 +1431,7 @@ class FootBallMatch extends FrontUserController
                     if ($match_tlive_count_new > $match_tlive_count_old) { //直播文字
                         Cache::set('match_tlive_count' . $item['id'], $match_tlive_count_new, 60 * 240);
                         $diff = array_slice($item['tlive'], $match_tlive_count_old);
+                        Log::getInstance()->info('push content-' . json_encode($diff) . '-match_id-' . $item['id']);
                         (new WebSocket())->contentPush($diff, $item['id']);
                     }
 
@@ -1522,7 +1526,7 @@ class FootBallMatch extends FrontUserController
                 ];
 
                 $match_info[] = $signal_match_info;
-                Cache::set('match_data_info' .$item['id'], json_encode($signal_match_info), 60 * 240);
+                AppFunc::setMatchingInfo($item['id'], json_encode($signal_match_info));
                 unset($signal_match_info);
             }
             /**
@@ -1532,27 +1536,19 @@ class FootBallMatch extends FrontUserController
             if (!empty($match_info)) {
                 $tool = Tool::getInstance();
                 $server = ServerManager::getInstance()->getSwooleServer();
-                $start_fd = 0;
                 $returnData = [
                     'event' => 'match_update',
                     'match_info_list' => isset($match_info) ? $match_info : []
                 ];
-                while (true) {
-                    $conn_list = $server->getClientList($start_fd, 10);
-                    if (!$conn_list || count($conn_list) === 0) {
-                        break;
-                    }
-                    $start_fd = end($conn_list);
 
-                    foreach ($conn_list as $fd) {
-                        $connection = $server->connection_info($fd);
-                        if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-
-                            Log::getInstance()->info('push succ' . $fd);
-                            $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
-                        } else {
-                            Log::getInstance()->info('lost-connection-' . $fd);
-                        }
+                $onlineUsers = OnlineUser::getInstance()->table();
+                foreach ($onlineUsers as $fd => $onlineUser) {
+                    $connection = $server->connection_info($fd);
+                    if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+                        Log::getInstance()->info('push succ' . $fd);
+                        $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
+                    } else {
+                        Log::getInstance()->info('lost-connection-' . $fd);
                     }
                 }
             } else {
@@ -1600,10 +1596,12 @@ class FootBallMatch extends FrontUserController
     }
 
     function test() {
-        $fd = $this->params['fd'];
-        $onlineUser = OnlineUser::getInstance()->get($fd);
+        $onlineUser = OnlineUser::getInstance()->table();
+        foreach ($onlineUser as $item) {
+            $data[] = $item;
+        }
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $onlineUser);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
 
     }

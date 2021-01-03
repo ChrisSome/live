@@ -3,6 +3,7 @@
 namespace App\Storage;
 
 use App\Model\AdminUser;
+use App\Utility\Log\Log;
 use EasySwoole\Component\Singleton;
 use EasySwoole\Component\TableManager;
 use Swoole\Table;
@@ -36,11 +37,11 @@ class OnlineUser
     }
 
     /**
-     * 设置一条用户信息
+     * 设置用户信息
      * @param $fd
-     * @param $mid
      * @param $info
      * @return mixed
+     * @throws \Throwable
      */
     function set($fd, $info)
     {
@@ -50,9 +51,9 @@ class OnlineUser
         } else {
             $user_level = 0;
         }
+        $fd = (int)$fd;
         return $this->table->set($fd, [
             'fd' => $fd,
-//            'mid' => $info['mid'],
             'nickname' => $info['nickname'],
             'user_id' => (int)$info['user_id'],
             'level' => (int)$user_level,

@@ -150,43 +150,33 @@ class MatchNotice  implements TaskInterface
                 'basic' => AppFunc::getBasic($match_id)
             ]
         ];
-
-        $start_fd = 0;
-        while (true) {
-            $conn_list = $server->getClientList($start_fd, 10);
-            if ($conn_list===false or count($conn_list) === 0) break;
-            $start_fd = end($conn_list);
-            foreach ($conn_list as $fd) {
-
-                if (!$user = OnlineUser::getInstance()->get($fd)) {
-                    continue;
+        $onlineUsers = OnlineUser::getInstance()->table();
+        foreach ($onlineUsers as $fd => $onlineUser) {
+            if (!$user = OnlineUser::getInstance()->get($fd)) {
+                continue;
+            } else {
+                if (!$user['user_id']) { //未登录
+                    $is_interest = false;
                 } else {
-                    if (!AppFunc::isNotice($user['user_id'], $match_id, $type)) {
-
-                    }
-                    if (!$user['user_id']) { //未登录
+                    if (!$interest = AdminInterestMatches::getInstance()->where('uid', $user['user_id'])->get()) {
                         $is_interest = false;
                     } else {
-                        if (!$interest = AdminInterestMatches::getInstance()->where('uid', $user['user_id'])->get()) {
-                            $is_interest = false;
+                        if (in_array($match_id, json_decode($interest->match_ids))) {
+                            $is_interest = true;
                         } else {
-                            if (in_array($match_id, json_decode($interest->match_ids))) {
-                                $is_interest = true;
-                            } else {
-                                $is_interest = false;
+                            $is_interest = false;
 
-                            }
                         }
-
                     }
-                }
-                $returnData['is_interest'] = $is_interest;
-                $connection = $server->connection_info($fd);
-                if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-                    Log::getInstance()->info('match-notice-4' . $match_id . '-type-' . $type . '-fd-' . $fd);
 
-                    $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
                 }
+            }
+            $returnData['is_interest'] = $is_interest;
+            $connection = $server->connection_info($fd);
+            if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+                Log::getInstance()->info('match-notice-4' . $match_id . '-type-' . $type . '-fd-' . $fd);
+
+                $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
             }
         }
 

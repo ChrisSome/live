@@ -704,6 +704,7 @@ class FootballApi extends FrontUserController
         if ($competition = AdminCompetition::create()->where('competition_id', $competition_id)->get()) {
             $return['competition_type'] = $competition->type;
         }
+
         $matchId = $return['match_id'];
         if (!$return['matching_info']) {
             if ($matchTlive = AdminMatchTlive::getInstance()->where('match_id', $return['match_id'])->get()) { //已结束并且同步数据

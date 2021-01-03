@@ -62,7 +62,7 @@ class Match extends Base
             return $data;
         });
         if ($match) {
-            if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
+            if ($match_data_info = AppFunc::getMatchingInfo($match->match_id)) {
                 /**
                  * 比赛未结束 信息从cache中拿
                  *
@@ -155,18 +155,6 @@ class Match extends Base
         ];
         $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $respon));
 
-//        $fds = AppFunc::getUsersInRoom($matchId);
-//        $server = ServerManager::getInstance()->getSwooleServer();
-//        $response = [
-//            'event' => 'welcome-user',
-//            'data' => $user
-//        ];
-//        foreach ($fds as $fd) {
-//            $connection = $server->connection_info($fd);
-//            if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-//                $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $response));
-//            }
-//        }
         return;
     }
 
@@ -191,11 +179,6 @@ class Match extends Base
             return  ;
         }
 
-//        if (!$this->checkUserRight($fd, $args, $message)) {
-//            $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, $message));
-//
-//            return  ;
-//        }
 
         if ($onlineInfo = OnlineUser::getInstance()->get($fd)) {
             if ($onlineInfo['match_id'] == 0) {
@@ -225,6 +208,37 @@ class Match extends Base
 
             return  ;
         }
+
+    }
+
+    public function getOnlineUser()
+    {
+        $tool = Tool::getInstance();
+        $server = ServerManager::getInstance()->getSwooleServer();
+        $start_fd = 0;
+        $fdServer = $onlineUserArr = [];
+        while (true) {
+            $conn_list = $server->getClientList($start_fd, 100);
+            if (!$conn_list || count($conn_list) === 0) {
+                break;
+            }
+            $start_fd = end($conn_list);
+
+            foreach ($conn_list as $fd) {
+                $fdServer[] = $fd;
+            }
+        }
+
+        $onLineUsers = OnlineUser::getInstance()->table();
+        foreach ($onLineUsers as $fd => $user) {
+            $onlineUserArr[] = $user;
+        }
+
+        $return['fdServer'] = $fdServer;
+        $return['fdOnline'] = $onlineUserArr;
+        $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $return));
+
+
 
     }
 

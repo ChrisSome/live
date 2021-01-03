@@ -59,7 +59,6 @@ class WebSocketEvents
      */
     static function onOpen(\swoole_websocket_server $server, \swoole_http_request $request)
     {
-        Log::getInstance()->info('fd was created');
         $fd = $request->fd;
         $user_online = OnlineUser::getInstance()->get($fd);
         //这里也可以做一个唯一标志 考虑以后有用
