@@ -721,7 +721,7 @@ class FootBallMatch extends FrontUserController
                         $pushInfo = [
                             'title' => $title,
                             'content' => $content,
-                            'payload' => ['item_id' => $match->match_id, 'type' => 1],
+                            'payload' => ['item_id' => $match->match_id, 'item_type' => 1],
                             'notice_id' => $rs,
 
                         ];
