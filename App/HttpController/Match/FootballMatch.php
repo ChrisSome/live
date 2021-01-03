@@ -1514,7 +1514,7 @@ class FootBallMatch extends FrontUserController
 
 
                 }
-                $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow' => $yellow_card_tlive_total, 'red' => $red_card_tlive_total];
+                $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow_card' => $yellow_card_tlive_total, 'red_card' => $red_card_tlive_total];
                 $signal_match_info['match_trend'] = $match_trend_info;
                 $signal_match_info['match_id'] = $item['id'];
                 $signal_match_info['time'] = AppFunc::getPlayingTime($item['id']);
