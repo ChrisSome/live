@@ -1570,8 +1570,12 @@ class FootBallMatch extends FrontUserController
      */
     public function matchTlive()
     {
+        Log::getInstance()->info('push match tlive start');
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+
         if ($decode = json_decode($res, true)) {
+            Log::getInstance()->info('accept data success');
+
             $match_info = [];
             foreach ($decode as $item) {
 
@@ -1600,7 +1604,7 @@ class FootBallMatch extends FrontUserController
                     continue;
                 }
 
-
+                Log::getInstance()->info('still have match to push');
 
                 $match_trend_info = [];
                 if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
@@ -1626,7 +1630,6 @@ class FootBallMatch extends FrontUserController
 
                 }
                 $corner_count_tlive = [];
-                $match_tlive_count_new = 0;
                 $corner_count_new = 0;
 
                 $goal_count_new = 0;
@@ -1636,6 +1639,8 @@ class FootBallMatch extends FrontUserController
                 $goal_tlive_total = [];
                 $yellow_card_tlive_total = [];
                 $red_card_tlive_total = [];
+                Log::getInstance()->info('hand tlive column');
+
                 if (isset($item['tlive'])) {
 
                     //上一次文字总数量
@@ -1697,6 +1702,7 @@ class FootBallMatch extends FrontUserController
                 }
 
 
+                Log::getInstance()->info('hand matching_info-' . $item['id']);
 
                 $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow_card' => $yellow_card_tlive_total, 'red_card' => $red_card_tlive_total];
                 $signal_match_info['match_trend'] = $match_trend_info;
@@ -1713,6 +1719,9 @@ class FootBallMatch extends FrontUserController
                 AppFunc::setMatchingInfo($item['id'], json_encode($signal_match_info));
                 unset($signal_match_info);
             }
+
+            Log::getInstance()->info('start push matching_info_list');
+
             /**
              * 异步的话要做进程间通信，本身也有开销，不如做成同步的，push将数据交给底层，本身不等待
              */
@@ -1737,9 +1746,12 @@ class FootBallMatch extends FrontUserController
                 }
 
             } else {
-                Log::getInstance()->info('333333333');
+                Log::getInstance()->info('do not have match to hand');
 
             }
+
+        } else {
+            Log::getInstance()->info('accept data failed');
 
         }
     }
