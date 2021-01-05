@@ -1039,38 +1039,35 @@ class FootBallMatch extends FrontUserController
      */
     public function teamHonor()
     {
+        $max = AdminTeamHonor::getInstance()->max('updated_at');
+        $url = sprintf($this->team_honor, $this->user, $this->secret, $max + 1);
+        $res = Tool::getInstance()->postApi($url);
+        $resp = json_decode($res, true);
 
-        while (true){
-            $max = AdminTeamHonor::getInstance()->max('updated_at');
-            $url = sprintf($this->team_honor, $this->user, $this->secret, $max + 1);
-            $res = Tool::getInstance()->postApi($url);
-            $resp = json_decode($res, true);
+        if ($resp['code'] == 0) {
+            if ($resp['query']['total'] == 0) {
+                Log::getInstance()->info('球队荣誉更新完成');
 
-            if ($resp['code'] == 0) {
-                if ($resp['query']['total'] == 0) {
-                    return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
-                }
-                $decode = $resp['results'];
-                foreach ($decode as $item) {
-                    $data = [
-                        'team_id' => $item['id'],
-                        'honors' => json_encode($item['honors']),
-                        'team' => json_encode($item['team']),
-                        'update_at' => $item['updated_at']
-                    ];
-                    if (!AdminTeamHonor::getInstance()->where('team_id', $item['id'])->get()) {
-                        AdminTeamHonor::getInstance()->insert($data);
-                    } else {
-                        $team_id = $data['team_id'];
-                        unset($data['team_id']);
-                        AdminTeamHonor::getInstance()->update($data, ['team_id'=> $team_id]);
-                    }
-                }
-                $this->start_id = $resp['query']['max_id'];
-            } else {
-                break;
             }
+            $decode = $resp['results'];
+            foreach ($decode as $item) {
+                $data = [
+                    'team_id' => $item['id'],
+                    'honors' => json_encode($item['honors']),
+                    'team' => json_encode($item['team']),
+                    'update_at' => $item['updated_at']
+                ];
+                if (!AdminTeamHonor::getInstance()->where('team_id', $item['id'])->get()) {
+                    AdminTeamHonor::getInstance()->insert($data);
+                } else {
+                    $team_id = $data['team_id'];
+                    unset($data['team_id']);
+                    AdminTeamHonor::getInstance()->update($data, ['team_id'=> $team_id]);
+                }
+            }
+        } else {
+            Log::getInstance()->info('更新球队荣誉通信失效');
+
         }
 
     }
