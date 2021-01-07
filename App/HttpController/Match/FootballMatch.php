@@ -10,6 +10,7 @@ use App\Model\AdminClashHistory;
 use App\Model\AdminCompetition;
 use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
+use App\Model\AdminInterestMatches;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
 use App\Model\Test;
@@ -239,8 +240,8 @@ class FootBallMatch extends FrontUserController
                     'home_team_logo' => $home_team->logo,
                     'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
                     'away_team_logo' => $away_team->logo,
-                    'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
-                    'competition_color' => $competition->primary_color
+                    'competition_name' => $competition ? $competition->short_name_zh : '',
+                    'competition_color' => $competition ? $competition->primary_color : ''
                 ];
 
                 AdminMatch::getInstance()->insert($insertData);
@@ -292,8 +293,8 @@ class FootBallMatch extends FrontUserController
                     'home_team_logo' => $home_team->logo,
                     'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
                     'away_team_logo' => $away_team->logo,
-                    'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
-                    'competition_color' => $competition->primary_color
+                    'competition_name' => $competition ? $competition->short_name_zh : '',
+                    'competition_color' => $competition ? $competition->primary_color : ''
                 ];
                 SeasonMatchList::getInstance()->insert($insertData);
             }
@@ -1596,12 +1597,9 @@ class FootBallMatch extends FrontUserController
     }
 
     function test() {
-        $onlineUser = OnlineUser::getInstance()->table();
-        foreach ($onlineUser as $item) {
-            $data[] = $item;
-        }
+        $userInterestMatchRes = AdminInterestMatches::create()->where('uid', 30)->get();
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], count(json_decode($userInterestMatchRes->match_ids)));
 
 
     }

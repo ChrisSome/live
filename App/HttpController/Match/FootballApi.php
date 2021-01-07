@@ -37,6 +37,7 @@ use App\Model\AdminUserInterestCompetition;
 use App\Model\SeasonAllTableDetail;
 use App\Model\SeasonMatchList;
 use App\Model\SignalMatchLineUp;
+use App\Storage\OnlineUser;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
@@ -297,7 +298,7 @@ class FootballApi extends FrontUserController
         $matchIds = json_decode($res->match_ids, true);
         if (!$matchIds) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
 
-        $matches = AdminMatch::getInstance()->where('match_id', $matchIds, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
+        $matches = AdminMatch::getInstance()->where('match_id', $matchIds, 'in')->order('match_time', 'ASC')->all();
         $data = FrontService::formatMatchThree($matches, $this->auth['id'], $matchIds);
         $count = count($data);
         $response = ['list' => $data, 'count' => $count];
@@ -602,31 +603,6 @@ class FootballApi extends FrontUserController
             ->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
         $awayRecentMatches = SeasonMatchList::getInstance()->where('status_id', 8)->where('home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
             ->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
-        //历史交锋 与 近期战绩
-//        $match = SeasonMatchList::create()->where('status_id', 8)->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
-//            ->where('is_delete', 0)->order('match_time', 'DESC')->all();
-//        $formatHistoryMatches = $homeRecentMatches = $awayRecentMatches = [];
-//        foreach ($match as $itemMatch) {
-//            if (($itemMatch['home_team_id'] == $homeTid && $itemMatch['away_team_id'] == $awayTid) || ($itemMatch['home_team_id'] == $awayTid && $itemMatch['away_team_id'] == $homeTid)) {
-//                $formatHistoryMatches[] = $itemMatch;
-//            }
-//
-//            if ($itemMatch['home_team_id'] == $homeTid || $itemMatch['away_team_id'] == $homeTid) {
-//                $homeRecentMatches[] = $itemMatch;
-//            }
-//
-//            if ($itemMatch['home_team_id'] == $awayTid || $itemMatch['away_team_id'] == $awayTid) {
-//                $awayRecentMatches[] = $itemMatch;
-//            }
-//        }
-
-
-
-        //近期赛程
-//        $homeRecentSchedule = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
-//            ->where('(home_team_id = ' . $homeTid . ' or away_team_id = ' . $homeTid . ')')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-//        $awayRecentSchedule = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
-//            ->where('(home_team_id = ' . $awayTid . ' or away_team_id = ' . $awayTid . ')')->where('is_delete', 0)->order('match_time', 'ASC')->all();
 
         //近期赛程
         $matchSchedule = SeasonMatchList::create()->where('status_id', self::STATUS_SCHEDULE, 'in')->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
@@ -669,11 +645,40 @@ class FootballApi extends FrontUserController
 
     }
 
-    public function test()
+    public function getTodayAllMatch()
     {
-        $time = Cache::get('time');
-        $count = Cache::get('count');
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], [$time, $count]);
+        $start = strtotime(date('Y-m-d'));
+        $end = $start + 60 * 60 * 24;
+        $order = 'CASE WHEN `status_id`=7 Then 1 ';  //点球
+        $order .= 'WHEN `status_id`=5 Then 2 '; //加时赛
+        $order .= 'WHEN `status_id`=4 Then 3 '; //下半场
+        $order .= 'WHEN `status_id`=3 Then 4 '; //中场
+        $order .= 'WHEN `status_id`=2 Then 5 '; //上半场
+        $order .= 'WHEN `status_id`=1 Then 6 '; //未开赛
+        $order .= 'WHEN `status_id`=8 Then 7 '; //完场
+        $order .= 'WHEN `status_id`=9 Then 8 '; //推迟
+        $order .= 'WHEN `status_id`=10 Then 9 '; //终断
+        $order .= 'WHEN `status_id`=11 Then 10 '; //腰斩
+        $order .= 'WHEN `status_id`=12 Then 11 '; //取消
+        $order .= 'WHEN `status_id`=13 Then 12 ELSE 0 END'; //取消
+
+        $page = !empty($this->params['page']) ? intval($this->params['page']) : 1;
+        $size = !empty($this->params['size']) ? (int)$this->params['size'] : 15;
+        $userId = !empty($this->auth['id']) ? (int)$this->auth['id'] : 0;
+
+        list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($userId);
+
+        $todayMatch = AdminMatch::getInstance()->where('match_time', $start, '>=')
+            ->where('competition_id', $selectCompetitionIdArr, 'in')
+            ->where('status_id', 0, '<>')
+            ->where('is_delete', 0)
+            ->where('match_time', $end, '<')->order($order, 'ASC')
+            ->order('match_time', 'ASC')
+            ->page($page, $size)->withTotalCount();
+        $list = $todayMatch->all(null);
+        $total = $todayMatch->lastQueryResult()->getTotalCount();
+        $formatTodayMatch = FrontService::formatMatchThree($list, $userId, $interestMatchArr);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $formatTodayMatch, 'count' => $total]);
 
 
     }
@@ -787,6 +792,24 @@ class FootballApi extends FrontUserController
             AdminMatchTlive::getInstance()->insert($data);
         }
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $resp);
+
+    }
+
+
+    public function getOnlineUserCount()
+    {
+        if (!$onlineUsers = OnlineUser::getInstance()->table()) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+        }
+        $formatUsers = [];
+        foreach ($onlineUsers as $onlineUser) {
+            $item['user_id'] = $onlineUser['user_id'];
+            $item['match_id'] = $onlineUser['match_id'];
+            $item['fd'] = $onlineUser['fd'];
+            $formatUsers[] = $item;
+            unset($item);
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatUsers);
 
     }
 

@@ -13,19 +13,16 @@ class Router extends AbstractRouter
     {
 //        // 未找到路由对应的方法
         $this->setMethodNotAllowCallBack(function (Request $request, Response $response) {
-            var_dump('未找到路由对应的方法');
-            var_dump($request->getUri()->getPath());
-            $response->write(Render::getInstance()->render('default.404'));
-            $response->withStatus(404);
+            $result = [
+                "code" => -1,
+                "msg"  => '错误路由',
+                "data" => []
+            ];
+            $response->write(json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $response->withHeader('Content-type', 'application/json;charset=utf-8');
+            $response->end();
         });
 
-        // 未找到路由匹配
-        $this->setRouterNotFoundCallBack(function (Request $request, Response $response) {
-            var_dump('未找到路由匹配');
-            var_dump($request->getUri()->getPath());
-            $response->write(Render::getInstance()->render('default.404'));
-            $response->withStatus(404);
-        });
 
         $routes->addGroup('/api', function (RouteCollector $r) {
             $r->addRoute(['GET'], '/user/login', '/User/Login');
@@ -178,9 +175,9 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/footBall/getClashHistory', '/Match/FootballApi/getClashHistory');   //历史交锋
             $r->addRoute(['GET'], '/footBall/noticeInMatch', '/Match/FootballApi/noticeInMatch');   //直播间公告
             $r->addRoute(['GET'], '/footBall/matchInfo', '/Match/FootballApi/getMatchInfo');   //比赛信息
+            $r->addRoute(['GET'], '/footBall/getTodayAllMatch', '/Match/FootballApi/getTodayAllMatch');   //今天所有比赛
 
-            $r->addRoute(['GET'], '/footBall/test', '/Match/FootballMatch/test');   //历史交锋
-            $r->addRoute(['GET'], '/footBall/time', '/Match/FootballApi/test');   //历史交锋
+            $r->addRoute(['GET'], '/footBall/test', '/Match/FootballApi/test');   //历史交锋
 
 
             $r->addRoute(['GET'], '/footBall/fixMatch', '/Match/FootballMatch/fixMatch');   //比赛查询

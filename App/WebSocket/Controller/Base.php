@@ -34,57 +34,6 @@ class Base extends Controller
 
 
 
-
-    public function checkUser2($fd, $jurisdiction)
-    {
-        Log::getInstance()->info('fd-' . $fd);
-        if (!$onLineUser = OnlineUser::getInstance()->get($fd)) {
-            return false;
-        }
-
-        if (isset($jurisdiction['login']) && !$onLineUser['user_id']) {
-            return false;
-        }
-        if (isset($jurisdiction['status']) && !$onLineUser['user_id']) {
-
-            if (!$user = AdminUser::getInstance()->find(['id' => $onLineUser['user_id']])) {
-                return false;
-            } else if (!in_array($user['status'], [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
-                return false;
-            }
-        }
-
-        return $onLineUser;
-
-    }
-
-    public function checkUser($fd)
-    {
-        if (!$onLineUser = OnlineUser::getInstance()->get($fd)) {
-            return [];
-        }
-        if (!$jurisdiction) {
-            return $onLineUser;
-        }
-
-        if (isset($jurisdiction['login']) && $onLineUser['user_id']) {
-            return $onLineUser;
-        }
-
-        if (isset($jurisdiction['status']) && $onLineUser['user_id']) {
-            $user_id = $onLineUser['user_id'];
-            $user = DbManager::getInstance()->invoke(function ($client) use ($user_id) {
-                $userModel = AdminUser::invoke($client)->find($user_id);
-                return $userModel;
-            });
-            if ($user && !in_array($user->status, [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
-                return $onLineUser;
-
-            }
-        }
-        return [];
-    }
-
     /**
      * 获取当前的用户
      * @return array|string

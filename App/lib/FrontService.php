@@ -448,7 +448,8 @@ class  FrontService {
             $item['competition_color'] = $match->competition_color;
             $item['match_time'] = date('H:i', $match['match_time']);
             $item['format_match_time'] = date('Y-m-d H:i', $match['match_time']); //开赛时间
-            $item['user_num'] = mt_rand(20, 150);
+//            $item['user_num'] = mt_rand(20, 150);
+            $item['user_num'] = count(AppFunc::getUsersInRoom($match->match_id));
             $item['match_id'] = $match->match_id;
             $item['is_start'] = $is_start;
             $item['status_id'] = $match->status_id;

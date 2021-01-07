@@ -9,6 +9,7 @@
 namespace EasySwoole\EasySwoole;
 
 use App\Process\Consumer;
+use App\Process\KeepUser;
 use App\Process\NamiPushTask;
 use App\Storage\OnlineUser;
 use App\Utility\Log\Log;
@@ -100,8 +101,8 @@ class EasySwooleEvent implements Event
         /**
          * timer定时
          */
-//        $nami_task = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
-//        ServerManager::getInstance()->getSwooleServer()->addProcess($nami_task);
+        $keet_user = (new KeepUser())->getProcess();
+        ServerManager::getInstance()->getSwooleServer()->addProcess($keet_user);
         // template
         $viewDir = EASYSWOOLE_ROOT . '/App/Views';
         $cacheDir = EASYSWOOLE_ROOT . '/Temp/Template';

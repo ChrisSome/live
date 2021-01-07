@@ -2,6 +2,7 @@
 
 namespace App\Storage;
 
+use App\Common\AppFunc;
 use App\Model\AdminUser;
 use App\Utility\Log\Log;
 use EasySwoole\Component\Singleton;
@@ -113,7 +114,12 @@ class OnlineUser
         foreach ($this->table as $item) {
             $time = $item['last_heartbeat'];
             if (($time + $ttl) < time()) {
+                //将链接从房间删掉
+                if ($item['match_id']) {
+                    AppFunc::userOutRoom($item['match_id'], $item['fd']);
+                }
                 $this->table->del($item['fd']);
+
             }
         }
     }
