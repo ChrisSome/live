@@ -86,7 +86,7 @@ class Login extends FrontUserController
             return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
 
         }
-        if ($cid = $this->params['cid']) {
+        if (!empty($this->params['cid'])) {
             $user->cid = $this->params['cid'];
             $user->update();
         }
@@ -97,20 +97,23 @@ class Login extends FrontUserController
            $redis->set(sprintf(UserModel::USER_TOKEN_KEY, $token), $uid);
         });
         //长链接绑定
-        $fd = $this->params['fd'];
-        $data = [
-            'fd' => $fd,
-            'nickname' => $user->nickname,
-            'user_id' => $user->id,
-            'last_heartbeat' => time(),
-            'match_id' => 0,
-            'level' => $user->level
-        ];
-        if (OnlineUser::getInstance()->get($fd)) {
-            OnlineUser::getInstance()->update($fd, $data);
-        } else {
-            OnlineUser::getInstance()->set($fd, $data);
+        if (!empty($this->params['fd'])) {
+            $fd = (int)$this->params['fd'];
+            $data = [
+                'fd' => (int)$fd,
+                'nickname' => $user->nickname,
+                'user_id' => $user->id,
+                'last_heartbeat' => time(),
+                'match_id' => 0,
+                'level' => $user->level
+            ];
+            if (OnlineUser::getInstance()->get($fd)) {
+                OnlineUser::getInstance()->update($fd, $data);
+            } else {
+                OnlineUser::getInstance()->set($fd, $data);
+            }
         }
+
         $user_info = [
             'id' => $user->id,
             'nickname' => $user->nickname,
