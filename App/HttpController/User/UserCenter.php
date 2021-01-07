@@ -562,6 +562,56 @@ class UserCenter   extends FrontUserController{
         }
     }
 
+    public function basketballSetting()
+    {
+        if (!$type = $this->params['type']) { //1notice 2push
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+        }
+        if ($this->request()->getMethod() == 'GET') {
+            if (!$setting = AdminUserSetting::getInstance()->where('user_id', $this->auth['id'])->get()) {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+            }
+            if ($type == 1) {
+                $data = json_decode($setting->basketball_notice, true);
+            } else if ($type == 2) {
+                $data = json_decode($setting->basketball_push, true);
+            } else {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+            }
+
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+
+        } else {
+            if ($type == 1) {
+                $decode = json_decode($this->params['notice'], true);
+                if (!isset($decode['start']) || !isset($decode['goal']) || !isset($decode['over']) || !isset($decode['only_notice_my_interest'])) {
+                    return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+                }
+                $column = 'basketball_notice';
+                $data = $this->params['basketball_notice'];
+            } else if ($type == 2) {
+                $decode = json_decode($this->params['basketball_push'], true);
+                if (!isset($decode['start']) || !isset($decode['over']) || !isset($decode['open_push'])) {
+                    return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+                }
+                $column = 'basketball_push';
+                $data = $this->params['basketball_push'];//start goal over
+            } else {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+            }
+
+            AdminUserSetting::getInstance()->update([$column=>$data], ['user_id' => $this->auth['id']]);
+
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+
+
+        }
+    }
+
     /**
      * 用户设置
      * @return bool

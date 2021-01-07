@@ -147,6 +147,8 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/user/readMessage', '/User/UserCenter/readMessage');   //读消息
             $r->addRoute(['GET'], '/user/userSetting', '/User/UserCenter/userSetting');   //用户设置
             $r->addRoute(['POST'], '/user/userSetting', '/User/UserCenter/userSetting');   //用户设置
+            $r->addRoute(['GET'], '/user/basketballSetting', '/User/UserCenter/basketballSetting');   //篮球设置
+            $r->addRoute(['POST'], '/user/basketballSetting', '/User/UserCenter/basketballSetting');   //篮球设置
             $r->addRoute(['POST'], '/user/changePassword', '/User/UserCenter/changePassword');   //用户设置
             $r->addRoute(['GET'], '/user/myFabolusInfo', '/User/UserCenter/myFabolusInfo'); //用户被点赞的帖子及评论列表
             $r->addRoute(['GET'], '/user/foulCenter', '/User/UserCenter/foulCenter'); //违规中心

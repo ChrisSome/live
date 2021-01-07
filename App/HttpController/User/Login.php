@@ -86,7 +86,8 @@ class Login extends FrontUserController
             return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
 
         }
-        if ($cid = $this->params['cid']) {
+
+        if (!empty($this->params['cid'])) {
             $user->cid = $this->params['cid'];
             $user->update();
         }
@@ -96,21 +97,13 @@ class Login extends FrontUserController
         RedisPool::invoke('redis', function(Redis $redis) use ($uid, $token) {
            $redis->set(sprintf(UserModel::USER_TOKEN_KEY, $token), $uid);
         });
-        //长链接绑定
-        $fd = $this->params['fd'];
-        $data = [
-            'fd' => $fd,
-            'nickname' => $user->nickname,
-            'user_id' => $user->id,
-            'last_heartbeat' => time(),
-            'match_id' => 0,
-            'level' => $user->level
+
+        $userSetting = $user->userSetting();
+        $formatUserSetting = [
+            'notice' => isset($userSetting->notice) ? json_decode($userSetting->notice, true) : [],
+            'basketball_notice' => isset($userSetting->basketball_notice) ? json_decode($userSetting->basketball_notice, true) : [],
+
         ];
-        if (OnlineUser::getInstance()->get($fd)) {
-            OnlineUser::getInstance()->update($fd, $data);
-        } else {
-            OnlineUser::getInstance()->set($fd, $data);
-        }
         $user_info = [
             'id' => $user->id,
             'nickname' => $user->nickname,
@@ -119,7 +112,7 @@ class Login extends FrontUserController
             'level' => $user->level,
             'is_offical' => $user->is_offical,
             'mobile' => $user->mobile,
-            'notice_setting' => json_decode($user->userSetting()->notice, true),
+            'user_setting' => $formatUserSetting,
             'wx_name' => $user->wx_name,
             'status' => $user->status
 
@@ -285,22 +278,30 @@ class Login extends FrontUserController
                     $redis->set(sprintf(UserModel::USER_TOKEN_KEY, $token), $uid);
                 });
                 //长链接绑定
-                $fd = $this->params['fd'];
-                $data = [
-                    'fd' => $fd,
-                    'nickname' => $user->nickname,
-                    'user_id' => $user->id,
-                    'last_heartbeat' => time(),
-                    'match_id' => 0,
-                    'level' => $user->level
-                ];
+                if (!empty($this->params['fd'])) {
+                    $fd = (int)$this->params['fd'];
+                    $data = [
+                        'fd' => $fd,
+                        'nickname' => $user->nickname,
+                        'user_id' => $user->id,
+                        'last_heartbeat' => time(),
+                        'match_id' => 0,
+                        'level' => $user->level
+                    ];
 
-                if (OnlineUser::getInstance()->get($fd)) {
-                    OnlineUser::getInstance()->update($fd, $data);
-                } else {
-                    OnlineUser::getInstance()->set($fd, $data);
+                    if (OnlineUser::getInstance()->get($fd)) {
+                        OnlineUser::getInstance()->update($fd, $data);
+                    } else {
+                        OnlineUser::getInstance()->set($fd, $data);
+                    }
                 }
 
+                $userSetting = $user->userSetting();
+                $formatUserSetting = [
+                    'notice' => isset($userSetting->notice) ? json_decode($userSetting->notice, true) : [],
+                    'basketball_notice' => isset($userSetting->basketball_notice) ? json_decode($userSetting->basketball_notice, true) : [],
+
+                ];
                 $user_info = [
                     'id' => $user->id,
                     'nickname' => $user->nickname,
@@ -309,7 +310,7 @@ class Login extends FrontUserController
                     'level' => $user->level,
                     'is_offical' => $user->is_offical,
                     'mobile' => $user->mobile,
-                    'notice_setting' => json_decode($user->userSetting()->notice, true),
+                    'user_setting' => $formatUserSetting,
                     'wx_name' => $user->wx_name,
                     'status' => $user->status
 
@@ -396,45 +397,40 @@ class Login extends FrontUserController
                 $redis->set($sUserKey, $rs);
             });
             $logon = true;
-            //写用户设置
+            //足球设置
             $notice = [
                 'only_notice_my_interest' => 0,  //仅提示我关注的
-                'start' => 1, //比赛开始
+                'start' => 1, //比赛开始   1声音震动 2声音 3震动 0关闭
                 'goal' => 1, //进球
                 'over' => 1, //结束
                 'red_card' => 1, //红牌
                 'yellow_card' => 1, //黄牌
-                'show_time_axis' => 1 //显示时间轴
+                'show_time_axis' => 1 //显示时间轴  1开启 0关闭
             ];
-            $football_notice = [
+            //篮球设置
+            $basketball_notice = [
                 'only_notice_my_interest' => 0,  //仅提示我关注的
-                'start' => 1, //比赛开始
+                'start' => 1, //比赛开始 1声音震动 2声音 3震动 0关闭
                 'over' => 1, //结束
             ];
             $push = ['start' => 1, 'goal' => 1, 'over' => 1,  'open_push' => 1, 'information' => 1];
-            $football_push = ['start' => 1, 'over' => 1,  'open_push' => 1];
+            $basketball_push = ['start' => 1, 'over' => 1,  'open_push' => 1];
             $private = ['see_my_post' => 1, 'see_my_post_comment' => 1, 'see_my_information_comment' => 1];
-            TaskManager::getInstance()->async(function () use($rs, $notice, $push, $private, $football_notice, $football_push){
+            TaskManager::getInstance()->async(function () use($rs, $notice, $push, $private, $basketball_notice, $basketball_push){
 
                 $settingData = [
                     'user_id'    => $rs,
                     'notice' => json_encode($notice),
                     'push' => json_encode($push),
                     'private' => json_encode($private),
-                    'basketball_notice' => json_encode($football_notice),
-                    'basketball_push' => json_encode($football_push)
+                    'basketball_notice' => json_encode($basketball_notice),
+                    'basketball_push' => json_encode($basketball_push)
                 ];
                 AdminUserSetting::getInstance()->insert($settingData);
                 //写用户关注赛事
-                $competitionIds = [];
-                if ($competitions = AdminSysSettings::getInstance()->where('sys_key', 'recommond_com')->get()) {
-                    foreach (json_decode($competitions->sys_value, true) as $item) {
-                        foreach ($item as $value) {
-                            $competitionIds[] = $value['competition_id'];
-                        }
-                    }
+                if ($recCompetitionRes = AdminSysSettings::getInstance()->where('sys_key', 'array_competition')->get()) {
                     $userInterestComData = [
-                        'competition_ids' => json_encode($competitionIds),
+                        'competition_ids' => $recCompetitionRes->sys_value,
                         'user_id' => $rs
                     ];
                     AdminUserInterestCompetition::getInstance()->insert($userInterestComData);
@@ -446,8 +442,8 @@ class Login extends FrontUserController
 
         }
         $user = AdminUser::getInstance()->where('id', $rs)->get();
-
-        if ($fd = $this->params['fd']) {
+        if (!empty($this->params['fd'])) {
+            $fd = (int)$this->params['fd'];
             $data = [
                 'fd' => $fd,
                 'nickname' => $user->nickname,
@@ -463,6 +459,12 @@ class Login extends FrontUserController
                 OnlineUser::getInstance()->set($fd, $data);
             }
         }
+        $userSetting = $user->userSetting();
+        $formatUserSetting = [
+            'notice' => isset($userSetting->notice) ? json_decode($userSetting->notice, true) : [],
+            'basketball_notice' => isset($userSetting->basketball_notice) ? json_decode($userSetting->basketball_notice, true) : [],
+
+        ];
         $user_info = [
             'id' => $user->id,
             'nickname' => $user->nickname,
@@ -471,7 +473,7 @@ class Login extends FrontUserController
             'level' => $user->level,
             'is_offical' => $user->is_offical,
             'mobile' => $user->mobile,
-            'notice_setting' => $notice,
+            'user_setting' => $formatUserSetting,
             'wx_name' => $user->wx_name
         ];
         if ($logon) {

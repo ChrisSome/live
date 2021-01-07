@@ -678,7 +678,7 @@ class FootballApi extends FrontUserController
         $list = $todayMatch->all(null);
         $total = $todayMatch->lastQueryResult()->getTotalCount();
         $formatTodayMatch = FrontService::formatMatchThree($list, $userId, $interestMatchArr);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $formatTodayMatch, 'count' => $total]);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $formatTodayMatch, 'count' => $total, 'user_interest_count' => count($interestMatchArr)]);
 
 
     }
