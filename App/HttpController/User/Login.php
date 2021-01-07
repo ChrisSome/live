@@ -113,7 +113,7 @@ class Login extends FrontUserController
                 OnlineUser::getInstance()->set($fd, $data);
             }
         }
-
+        $userSetting = $user->userSetting();
         $user_info = [
             'id' => $user->id,
             'nickname' => $user->nickname,
@@ -122,7 +122,7 @@ class Login extends FrontUserController
             'level' => $user->level,
             'is_offical' => $user->is_offical,
             'mobile' => $user->mobile,
-            'notice_setting' => json_decode($user->userSetting()->notice, true),
+            'notice_setting' => isset($userSetting->notice) ? json_decode($user->userSetting()->notice, true) : [],
             'wx_name' => $user->wx_name,
             'status' => $user->status
 
