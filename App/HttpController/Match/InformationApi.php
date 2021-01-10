@@ -200,7 +200,7 @@ class InformationApi extends FrontUserController
 
             $page = $this->params['page'] ?: 1;
             $size = $this->params['size'] ?: 10;
-            $model = AdminInformation::getInstance()->where('competition_id', $competition_id)->field(['id', 'title', 'fabolus_number', 'respon_number', 'img'])->where('status', AdminInformation::STATUS_NORMAL)->where('created_at', date('Y-m-d H:i:s', '>='))->getLimit($page, $size);
+            $model = AdminInformation::getInstance()->where('competition_id', $competition_id)->field(['id', 'title', 'fabolus_number', 'respon_number', 'img'])->where('status', AdminInformation::STATUS_NORMAL)->where('created_at', date('Y-m-d H:i:s'), '>=')->getLimit($page, $size);
             $list = $model->all(null);
             $informations = [];
             if ($list) {
