@@ -36,7 +36,21 @@ class InformationApi extends FrontUserController
 
 
     /**
-     * 标题栏
+     * 顶部标题栏
+     * @Api(name="titleBar",path="/api/information/titleBar",version="3.0")
+     * @ApiDescription(value="serverClient for titleBar)
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": [
+        {
+        "competition_id": 0,
+        "short_name_zh": "头条",
+        "type": 1
+        }
+        ]
+        })
      */
     public function titleBar()
     {
@@ -184,8 +198,14 @@ class InformationApi extends FrontUserController
 
     }
     /**
-     * 赛事比赛及相关资讯文章
-     * @return bool
+     * 赛事内容
+     * @Api(name="competitionContent",path="/api/information/competitionContent",version="3.0")
+     * @ApiDescription(value="serverClient for competitionContent)
+     * @Method(allow="{GET}")
+     * @Param(name="competition_id",type="int",required="",description="赛事id")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function competitionContent()
     {

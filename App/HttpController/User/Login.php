@@ -29,8 +29,18 @@ use EasySwoole\Redis\Redis as Redis;
 use EasySwoole\RedisPool\Redis as RedisPool;
 use EasySwoole\Validate\Validate;
 use App\Utility\Message\Status as Statuses;
+use EasySwoole\HttpAnnotation\AnnotationController;
+use EasySwoole\HttpAnnotation\AnnotationTag\Api;
+use EasySwoole\HttpAnnotation\AnnotationTag\Param;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiDescription;
+use EasySwoole\HttpAnnotation\AnnotationTag\Method;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiSuccess;
 
 
+/**
+ * Class Login
+ * @package App\HttpController\User
+ */
 class Login extends FrontUserController
 {
     protected $isCheckSign = false;
@@ -42,6 +52,19 @@ class Login extends FrontUserController
     {
         return $this->render('front.user.login');
     }
+
+
+
+    /**
+     * @Api(name="user-login",path="/api/user/doLogin",version="3.0")
+     * @ApiDescription(value="serverClient for UserLogin")
+     * @Method(allow="{POST}")
+     * @Param(name="mobile",type="string",required="",lengthMin="11",description="手机号")
+     * @Param(name="type",type="int,,description="登录类型")
+     * @Param(name="code",type="string,,description="验证码")
+     * @Param(name="password",type="string,,description="密码")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"id":4,"nickname":"Hdhdh","photo":"http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg","point":1010,"level":3,"is_offical":0,"mobile":"17343214247","user_setting":{"notice":{"only_notice_my_interest":0,"start":1,"goal":1,"over":1,"show_time_axis":1,"yellow_card":1,"red_card":1},"basketball_notice":{"only_notice_my_interest":0,"start":1,"over":1}},"wx_name":"秋秋","status":1,"front_token":"748eadf3c9d24127eabfe63dd5a5cef1","front_time":1610182754}})
+     */
     public function userLogin()
     {
         $valitor = new Validate();
@@ -114,19 +137,22 @@ class Login extends FrontUserController
             'mobile' => $user->mobile,
             'user_setting' => $formatUserSetting,
             'wx_name' => $user->wx_name,
-            'status' => $user->status
+            'status' => $user->status,
+            'front_token' => $token,
+            'front_time' => $time
 
         ];
-        $this->response()->setCookie('front_id', $user['id']);
-        $this->response()->setCookie('front_token', $token);
-        $this->response()->setCookie('front_time', $time);
         return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK], $user_info);
 
 
     }
 
     /**
-     * 退出登陆
+     * 退出登录
+     * @Api(name="user-logout",path="/api/user/logout",version="3.0")
+     * @ApiDescription(value="serverClient for UserLoginOut)
+     * @Method(allow="{POST}")
+     * @ApiSuccess({"code":0,"msg":"ok","data":null})
      */
     public function doLogout()
     {
@@ -140,7 +166,6 @@ class Login extends FrontUserController
         $this->response()->setCookie('front_id', '');
         $this->response()->setCookie('front_time', '');
 
-//        $this->response()->redirect("/api/user/login");
         return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
 
     }
@@ -148,12 +173,15 @@ class Login extends FrontUserController
 
 
     /**
-     * 用户短信验证码
-     * 不需要type区分
+     * 发送验证码
+     * @Api(name="userSendMessage",path="/api/user/userSendSmg",version="3.0")
+     * @ApiDescription(value="serverClient for sendMsg)
+     * @Method(allow="{GET}")
+     * @Param(name="mobile",type="string",required="",lengthMin="11",description="手机号")
+     * @ApiSuccess({"code":0,"msg":"验证码以发送至尾号0962手机","data":72})
      */
     public function userSendSmg()
     {
-
 
         $valitor = new Validate();
         $valitor->addColumn('mobile', '手机号码')->required('手机号不为空')
@@ -187,8 +215,13 @@ class Login extends FrontUserController
 
 
     /**
-     * 微信绑定接口
-     * @return bool
+     * 绑定微信
+     * @Api(name="userBindWx",path="/api/user/thirdLogin",version="3.0")
+     * @ApiDescription(value="serverClient for userBindWx)
+     * @Method(allow="{POST}")
+     * @Param(name="access_token",type="string",required="",description="")
+     * @Param(name="open_id",type="string",required="",description="")
+     * @ApiSuccess({"code":0,"msg":"验证码以发送至尾号0962手机","data":72})
      */
     public function bindWx()
     {
@@ -245,7 +278,15 @@ class Login extends FrontUserController
 
     }
 
-
+    /**
+     * 微信登录
+     * @Api(name="userLoginByWx",path="/api/user/wxLogin",version="3.0")
+     * @ApiDescription(value="serverClient for userLoginByWx)
+     * @Method(allow="{POST}")
+     * @Param(name="access_token",type="string",required="",description="")
+     * @Param(name="open_id",type="string",required="",description="")
+     * @ApiSuccess({"code":0,"msg":"验证码以发送至尾号0962手机","data":72})
+     */
     public function wxLogin()
     {
         $params = $this->params;
@@ -315,9 +356,6 @@ class Login extends FrontUserController
                     'status' => $user->status
 
                 ];
-                $this->response()->setCookie('front_id', $user['id']);
-                $this->response()->setCookie('front_token', $token);
-                $this->response()->setCookie('front_time', $time);
                 return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK], $user_info);
 
             }
@@ -327,9 +365,14 @@ class Login extends FrontUserController
     }
 
     /**
-     * 注册
-     * @return bool
-     * @throws \Exception
+     * 用户注册
+     * @Api(name="userLogin",path="/api/user/logon",version="3.0")
+     * @ApiDescription(value="serverClient for userLogin)
+     * @Method(allow="{POST}")
+     * @Param(name="nickname",type="string",required="",description="昵称")
+     * @Param(name="mobile",type="string",required="",description="手机号")
+     * @Param(name="password",type="string",required="",description="密码")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"id":4,"nickname":"Hdhdh","photo":"http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg","point":1010,"level":3,"is_offical":0,"mobile":"17343214247","user_setting":{"notice":{"only_notice_my_interest":0,"start":1,"goal":1,"over":1,"show_time_axis":1,"yellow_card":1,"red_card":1},"basketball_notice":{"only_notice_my_interest":0,"start":1,"over":1}},"wx_name":"秋秋","status":1,"front_token":"748eadf3c9d24127eabfe63dd5a5cef1","front_time":1610182754}})
      */
     public function logon()
     {
@@ -476,18 +519,21 @@ class Login extends FrontUserController
             'user_setting' => $formatUserSetting,
             'wx_name' => $user->wx_name
         ];
-        if ($logon) {
-            $this->response()->setCookie('front_id', $rs);
-            $this->response()->setCookie('front_time', $time);
-            $this->response()->setCookie('front_token', $token);
-            return $this->writeJson(Statuses::CODE_OK, 'OK', $user_info);
-        } else {
-            return $this->writeJson(Statuses::CODE_ERR, '用户不存在或密码错误');
-        }
+        if ($logon) return $this->writeJson(Statuses::CODE_OK, 'OK', $user_info);
+        return $this->writeJson(Statuses::CODE_ERR, '用户不存在或密码错误');
 
 
     }
 
+    /**
+     * 检查验证码
+     * @Api(name="checkPhoneCode",path="/api/user/checkPhoneCode",version="3.0")
+     * @ApiDescription(value="serverClient for checkPhoneCode)
+     * @Method(allow="{GET}")
+     * @Param(name="code",type="string",required="",description="验证码")
+     * @Param(name="mobile",type="string",required="",description="手机号")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
+     */
     public function checkPhoneCode()
     {
 
@@ -514,8 +560,12 @@ class Login extends FrontUserController
 
     /**
      * 忘记密码
-     * @return bool
-     * @throws \Exception
+     * @Api(name="forgetPass",path="/api/user/forgetPass",version="3.0")
+     * @ApiDescription(value="serverClient for forgetPass)
+     * @Method(allow="{POST}")
+     * @Param(name="mobile",type="string",required="",description="手机号")
+     * @Param(name="password",type="string",required="",description="密码")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function forgetPass()
     {

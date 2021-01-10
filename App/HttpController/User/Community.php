@@ -40,7 +40,7 @@ class Community extends FrontUserController
      * @var bool
      */
     protected $isCheckSign = false;
-    public $needCheckToken = false;
+    public $needCheckToken = true;
 
 
 
@@ -73,17 +73,148 @@ class Community extends FrontUserController
 
     /**
      * 帖子二级评论列表
+     * @Api(name="getAllChildComments",path="/api/community/getAllChildComments",version="3.0")
+     * @ApiDescription(value="serverClient for getAllChildComments)
+     * @Method(allow="{GET}")
+     * @Param(name="comment_id",type="int",required="",description="评论id")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "fatherComment": {
+        "id": 1,
+        "post_id": 1,
+        "post_title": "999999",
+        "parent_id": 0,
+        "parent_content": "",
+        "content": "所得到的所",
+        "created_at": "2020-09-07 19:37:32",
+        "fabolus_number": 1,
+        "is_fabolus": false,
+        "user_info": {
+        "id": 4,
+        "nickname": "Hdhdh",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "level": 3,
+        "is_offical": 0
+        },
+        "is_follow": false,
+        "respon_number": 4,
+        "top_comment_id": 0,
+        "t_u_info": {
+        "id": 4,
+        "mobile": "17343214247",
+        "nickname": "Hdhdh",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "level": 3,
+        "is_offical": 0
+        }
+        },
+        "childComment": [
+        {
+        "id": 17,
+        "post_id": 102,
+        "post_title": "加加看",
+        "parent_id": 3,
+        "parent_content": "胜多负少大",
+        "content": "sdfsdfsdf",
+        "created_at": "2020-10-05 16:21:01",
+        "fabolus_number": 0,
+        "is_fabolus": false,
+        "user_info": {
+        "id": 2,
+        "nickname": "321",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/b57075a366d9c6b7.jpg",
+        "level": 1,
+        "is_offical": 0
+        },
+        "is_follow": false,
+        "respon_number": 0,
+        "top_comment_id": 1,
+        "t_u_info": {
+        "id": 2,
+        "mobile": "15227249561",
+        "nickname": "321",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/b57075a366d9c6b7.jpg",
+        "level": 1,
+        "is_offical": 0
+        }
+        },
+        {
+        "id": 5,
+        "post_id": 102,
+        "post_title": "加加看",
+        "parent_id": 1,
+        "parent_content": "所得到的所",
+        "content": "单声道",
+        "created_at": "2020-09-07 19:44:05",
+        "fabolus_number": 1,
+        "is_fabolus": false,
+        "user_info": {
+        "id": 4,
+        "nickname": "Hdhdh",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "level": 3,
+        "is_offical": 0
+        },
+        "is_follow": false,
+        "respon_number": 0,
+        "top_comment_id": 1,
+        "t_u_info": {
+        "id": 4,
+        "mobile": "17343214247",
+        "nickname": "Hdhdh",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "level": 3,
+        "is_offical": 0
+        }
+        },
+        {
+        "id": 2,
+        "post_id": 1,
+        "post_title": "999999",
+        "parent_id": 1,
+        "parent_content": "所得到的所",
+        "content": "6IOc5aSa6LSf5bCR5aSn",
+        "created_at": "2020-09-07 19:37:37",
+        "fabolus_number": 1,
+        "is_fabolus": false,
+        "user_info": {
+        "id": 2,
+        "nickname": "321",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/b57075a366d9c6b7.jpg",
+        "level": 1,
+        "is_offical": 0
+        },
+        "is_follow": false,
+        "respon_number": 0,
+        "top_comment_id": 1,
+        "t_u_info": {
+        "id": 2,
+        "mobile": "15227249561",
+        "nickname": "321",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/b57075a366d9c6b7.jpg",
+        "level": 1,
+        "is_offical": 0
+        }
+        }
+        ],
+        "count": 3
+        }
+        })
      */
 
     public function getAllChildComments()
     {
-        if (!$this->params['comment_id']) {
+        if (empty($this->params['comment_id'])) {
             $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         } else {
-            $page = $this->params['page'] ?: 1;
-            $size = $this->params['size'] ?: 10;
-            $cId = $this->params['comment_id'];
+            $page = !empty($this->params['page']) ? (int)$this->params['page']: 1;
+            $size = !empty($this->params['size']) ? (int)$this->params['size'] : 10;
+            $cId = (int)$this->params['comment_id'];
             $comment = AdminPostComment::getInstance()->find($cId);
             if (!$comment) {
                 return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
@@ -140,13 +271,21 @@ class Community extends FrontUserController
 
     /**
      * 帖子详情
+     * @Api(name="detail",path="/api/community/detail",version="3.0")
+     * @ApiDescription(value="serverClient for detail)
+     * @Method(allow="{GET}")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @Param(name="post_id",type="int",required="",description="帖子id")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"basic":{"id":10,"hit":10,"user_id":7,"title":"帖子标题7","cat_id":2,"status":5,"created_at":"2020-07-22 15:12:53","is_refine":1,"respon_number":8,"updated_at":"2020-10-31 04:31:58","fabolus_number":101,"collect_number":7,"content":"帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了","is_me":false,"cat_name":"","cat_color":"","imgs":[],"user_info":{"id":"7","photo":"https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1595328071987&di=4485e169139960c60842d6556c7e0eb1&imgtype=0&src=http%3A%2F%2Ft7.baidu.com%2Fit%2Fu%3D3616242789%2C1098670747%26fm%3D79%26app%3D86%26f%3DJPEG%3Fw%3D900%26h%3D1350","nickname":"用户昵称3","level":"1","is_offical":"0"},"is_follow":false,"is_collect":false,"lasted_resp":"2020-07-22 15:12:53","is_fabolus":false},"comment":[],"count":0}})
      */
     public function detail()
     {
 
-        $id = $this->request()->getRequestParam('post_id');
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 10;
+        $page = !empty($this->params['page']) ? (int)$this->params['page']: 1;
+        $size = !empty($this->params['size']) ? (int)$this->params['size'] : 10;
+        $id = !empty($this->params['post_id']) ? (int)$this->params['post_id'] : 0;
+
         $info = AdminUserPost::getInstance()->get(['id'=>$id]);
 
         if (!$info) {
@@ -228,7 +367,79 @@ class Community extends FrontUserController
 
     /**
      * 社区首页
-     * @return bool
+     * @Api(name="getContent",path="/api/community/getContent",version="3.0")
+     * @ApiDescription(value="serverClient for getContent)
+     * @Method(allow="{GET}")
+     * @Param(name="category_id",type="int",required="",description="分类id")
+     * @Param(name="order_type",type="int",required="",description="排序类型")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+            "code": 0,
+            "msg": "ok",
+            "data": {
+            "count": 241,
+            "title": [
+            {
+            "id": "1",
+            "name": "全部",
+            "icon": "http://backgroundtest.ymtyadmin.com/upload/post_category/2c95295e-d81d-4d8f-a897-7e98c31e4322.png"
+            }
+            ],
+            "banner": [
+            {
+            "title": "文章22",
+            "img": "http://backgroundtest.ymtyadmin.com/upload/post_category/8a61e1fd-1e5f-4937-977e-6e4ec85b1e31.jpeg",
+            "sort": 0,
+            "show_time": "2020-11-30 00:00:00 - 2021-01-30 23:59:00",
+            "type": 2,
+            "url": "",
+            "id": 2,
+            "item_id": "22",
+            "start_time": "2020-11-30 00:00:00",
+            "end_time": "2021-01-30 23:59:00"
+            }
+            ],
+            "top_posts": [
+            {
+            "id": "308",
+            "title": "郭德纲的订单"
+            }
+            ],
+            "normal_posts": [
+            {
+            "id": 30,
+            "hit": "13",
+            "user_id": 13,
+            "title": "帖子标题13",
+            "cat_id": 2,
+            "status": "1",
+            "created_at": "2020-07-22 18:10:21",
+            "is_refine": 0,
+            "respon_number": "13",
+            "updated_at": "2020-07-22 18:10:21",
+            "fabolus_number": "100",
+            "collect_number": "5",
+            "content": "帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了帖子内容沙发上看纽芬兰省康纳利咖啡能少了",
+            "is_me": false,
+            "cat_name": "",
+            "cat_color": "",
+            "imgs": [],
+            "user_info": {
+            "id": "13",
+            "photo": "https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1595328071987&di=4485e169139960c60842d6556c7e0eb1&imgtype=0&src=http%3A%2F%2Ft7.baidu.com%2Fit%2Fu%3D3616242789%2C1098670747%26fm%3D79%26app%3D86%26f%3DJPEG%3Fw%3D900%26h%3D1350",
+            "nickname": "用户昵称1",
+            "level": "1",
+            "is_offical": "0"
+            },
+            "is_follow": false,
+            "is_collect": false,
+            "lasted_resp": "2020-07-22 18:10:21",
+            "is_fabolus": false
+            }
+            ]
+            }
+    })
      */
     public function getContent(): bool
     {
@@ -290,8 +501,12 @@ class Community extends FrontUserController
     }
 
     /**
-     * 前端模糊搜索  后期要改ES
-     * @return bool
+     * 关键字搜索
+     * @Api(name="getContentByKeyWord",path="/api/community/getContentByKeyWord",version="3.0")
+     * @ApiDescription(value="serverClient for getContentByKeyWord)
+     * @Method(allow="{GET}")
+     * @Param(name="key_word",type="string",required="",description="关键词")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"format_posts":{"data":[],"count":0},"format_matches":{"data":[],"count":0},"information":{"data":[{"id":122,"title":"澳媒：中国足协推出限薪令参考了澳超的工资帽制度","img":"http://backgroundtest.ymtyadmin.com/upload/article/c2ae16c139872554dfb0d004d23db363.png","status":1,"is_fabolus":false,"fabolus_number":0,"respon_number":0,"competition_id":590,"created_at":"2020-12-01 15:00:00","is_title":false,"competition_short_name_zh":"澳超","user_info":{"id":1,"nickname":"夜猫官方","photo":"http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/c9f0f56cdcae3695.jpg","level":1,"is_offical":1}}],"count":1},"users":{"data":[],"count":0}}})
      */
     public function getContentByKeyWord()
     {
@@ -374,10 +589,10 @@ class Community extends FrontUserController
 
     /**
      * 热搜
-     * @return bool
-     * @throws \EasySwoole\ORM\Exception\Exception
-     * @throws \EasySwoole\Pool\Exception\PoolEmpty
-     * @throws \Throwable
+     * @Api(name="hotSearch",path="/api/community/hotSearch",version="3.0")
+     * @ApiDescription(value="serverClient for getContentByKeyWord)
+     * @Method(allow="{GET}")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"hot_search":[{"id":1,"type":1,"content":"变形金刚大战美猴王"},{"id":1,"type":1,"content":"哥斯拉智斗猪八戒"},{"id":1,"type":1,"content":"国足赢得大力神杯"},{"id":1,"type":1,"content":"张飞怒斩潘金莲"},{"id":1,"type":1,"content":"霸道总裁之魔教教主哦"}],"default_search_content":"欧冠"}})
      */
     public function hotSearch()
     {
@@ -403,7 +618,12 @@ class Community extends FrontUserController
 
     /**
      * 我关注的人的帖子列表
-     * @return bool
+     * @Api(name="myFollowUserPosts",path="/api/community/myFollowUserPostss",version="3.0")
+     * @ApiDescription(value="serverClient for myFollowUserPosts)
+     * @Method(allow="{GET}")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"data":[],"count":0}})
      */
     public function myFollowUserPosts()
     {
@@ -430,6 +650,18 @@ class Community extends FrontUserController
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
     }
+
+    /**
+     * 发帖
+     * @Api(name="postAdd",path="/api/community/postAdd",version="3.0")
+     * @ApiDescription(value="serverClient for postAdd)
+     * @Method(allow="{POST}")
+     * @Param(name="cat_id",type="int",required="",description="分类id")
+     * @Param(name="title",type="string",required="",description="标题")
+     * @Param(name="content",type="string",required="",description="内容")
+     * @Param(name="imgs",type="string",required="",description="配图")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"id":410,"hit":0,"user_id":4,"title":"上课的分内事","cat_id":1,"status":1,"created_at":"2021-01-09 20:45:46","is_refine":0,"respon_number":0,"updated_at":"2021-01-09 20:45:46","fabolus_number":0,"collect_number":0,"content":"dsmlfkmsalknfaksnf;lksndfksa","is_me":true,"cat_name":"","cat_color":"","imgs":[],"user_info":{"id":"4","photo":"http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg","nickname":"Hdhdh","level":"3","is_offical":"0"},"is_follow":false,"is_collect":false,"lasted_resp":"2021-01-09 20:45:46","is_fabolus":false}})
+     */
     public function postAdd()
     {
         if (Cache::get('user_publish_post_' . $this->auth['id'])) {
@@ -513,8 +745,32 @@ class Community extends FrontUserController
 
 
     /**
-     * 用户基本资料
-     * @return bool
+     * 用户基本信息
+     * @Api(name="forgetPass",path="/api/user/forgetPass",version="3.0")
+     * @ApiDescription(value="serverClient for forgetPass)
+     * @Method(allow="{GET}")
+     * @Param(name="user_id",type="int",required="",description="用户id")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+            "id": 4,
+            "nickname": "Hdhdh",
+            "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+            "level": 3,
+            "point": 1010,
+            "is_offical": 0,
+            "fans_count": 5,
+            "follow_count": 10,
+            "is_me": true,
+            "is_follow": false,
+            "item_total": {
+            "post_total": 39,
+            "comment_total": 107,
+            "information_comment_total": 13
+            }
+        }
+        })
      */
     public function userInfo()
     {
@@ -545,8 +801,57 @@ class Community extends FrontUserController
 
     }
     /**
-     * 1发帖 2回帖 3资讯评论 列表
-     * @return bool
+     * 个人中心首页
+     * @Api(name="userFirstPage",path="/api/community/userFirstPage",version="3.0")
+     * @ApiDescription(value="serverClient for userFirstPage)
+     * @Method(allow="{GET}")
+     * @Param(name="type",type="int",required="",description="类型 1发帖 2回帖 3资讯评论")
+     * @Param(name="user_id",type="int",required="",description="用户id")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "is_me": true,
+        "is_follow": false,
+        "list": {
+        "data": [
+        {
+        "id": 410,
+        "hit": 0,
+        "user_id": 4,
+        "title": "上课的分内事",
+        "cat_id": 1,
+        "status": 1,
+        "created_at": "2021-01-09 20:45:46",
+        "is_refine": 0,
+        "respon_number": 0,
+        "updated_at": "2021-01-09 20:45:46",
+        "fabolus_number": 0,
+        "collect_number": 0,
+        "content": "dsmlfkmsalknfaksnf;lksndfksa",
+        "is_me": true,
+        "cat_name": "",
+        "cat_color": "",
+        "imgs": [],
+        "user_info": {
+        "id": "4",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "nickname": "Hdhdh",
+        "level": "3",
+        "is_offical": "0"
+        },
+        "is_follow": false,
+        "is_collect": false,
+        "lasted_resp": "2021-01-09 20:45:46",
+        "is_fabolus": false
+        }
+        ],
+        "count": 56
+        }
+        }
+        }})
      */
     public function userFirstPage()
     {
@@ -592,8 +897,29 @@ class Community extends FrontUserController
 
 
     /**
-     * 关注及粉丝列表
-     * @return bool
+     * 我的关注列表
+     * @Api(name="forgetPass",path="/api/user/myFollowings",version="3.0")
+     * @ApiDescription(value="serverClient for myFollowings)
+     * @Method(allow="{GET}")
+     * @Param(name="type",type="int",required="",description="类型 1关注列表 2粉丝列表")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+            "data": [
+            {
+            "is_follow": true,
+            "is_me": false,
+            "id": 1,
+            "nickname": "夜猫官方",
+            "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/c9f0f56cdcae3695.jpg",
+            "level": 1,
+            "is_offical": 1
+            }
+            ],
+            "count": 10
+            }
+        })
      */
     public function myFollowings()
     {

@@ -53,15 +53,18 @@ class AdminPostComment extends BaseModel
     //回复用户信息
     public function uInfo()
     {
-        return $this->hasOne(AdminUser::class, null, 'user_id', 'id')->field(['id', 'mobile', 'photo', 'nickname', 'level', 'is_offical']);
+
+        if ($user = $this->hasOne(AdminUser::class, null, 't_u_id', 'id')) {
+            return $user->field(['id', 'mobile', 'photo', 'nickname', 'level', 'is_offical']);
+        }
+        return [];
     }
 
     //被回复用户信息
     public function tuInfo()
     {
-        if ($this->hasOne(AdminUser::class, null, 't_u_id', 'id')) {
-            return $this->hasOne(AdminUser::class, null, 't_u_id', 'id')->field(['id', 'mobile', 'photo', 'nickname', 'level', 'is_offical']);
-
+        if ($user = $this->hasOne(AdminUser::class, null, 't_u_id', 'id')) {
+            return $user->field(['id', 'mobile', 'photo', 'nickname', 'level', 'is_offical']);
         } else {
             return [];
         }

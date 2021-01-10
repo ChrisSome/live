@@ -39,7 +39,6 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/user/checkPhoneCode', '/User/Login/checkPhoneCode'); //检查验证码
             $r->addRoute(['POST'], '/user/logon', '/User/Login/logon'); //注册
             $r->addRoute(['GET'], '/user/logout', '/User/Login/doLogout'); //退出接口
-            $r->addRoute(['GET'], '/user/personal', '/User/Personal/index');
 
 
             $r->addRoute(['GET'], '/user/websocket', 'User/WebSocket');
@@ -62,7 +61,6 @@ class Router extends AbstractRouter
 
 
             //社区部分
-            $r->addRoute(['GET'], '/community/mess', '/User/Community/messAndRefinePosts');
             $r->addRoute(['GET'], '/community/getContent', '/User/Community/getContent');
             $r->addRoute(['GET'], '/community/getContentByKeyWord', '/User/Community/getContentByKeyWord');//搜索
             $r->addRoute(['GET'], '/community/myFollowUserPosts', '/User/Community/myFollowUserPosts');   //我关注的人的帖子列表
@@ -111,9 +109,7 @@ class Router extends AbstractRouter
 
 
             //数据中心
-            $r->addRoute(['GET'], '/footBall/formatValue', '/Match/DataApi/formatValue');   //推送
             $r->addRoute(['GET'], '/footBall/CategoryCountry', '/Match/DataApi/CategoryCountry');   //国家分类
-            $r->addRoute(['GET'], '/footBall/competitionByCid', '/Match/DataApi/competitionByCid');   //获取赛事
             $r->addRoute(['GET'], '/footBall/FIFAMaleRank', '/Match/DataApi/FIFAMaleRank');   //FIFA男子排名
             $r->addRoute(['GET'], '/footBall/competitionInfo', '/Match/DataApi/competitionInfo');   //赛事信息
             $r->addRoute(['GET'], '/footBall/getHotCompetition', '/Match/DataApi/getHotCompetition');   //热门赛事

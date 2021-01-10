@@ -68,6 +68,15 @@ class System extends FrontUserController
         return $this->writeJson(Status::CODE_OK, 'ok', $info);
     }
 
+    /**
+     * 系统公告
+     * @Api(name="hotreload",path="/api/system/hotreload",version="3.0")
+     * @ApiDescription(value="serverClient for systemHotReload)
+     * @Method(allow="{GET}")
+     * @Param(name="version",type="string",required="",description="用户版本号")
+     * @Param(name="phone_type",type="string",required="",description="手机型号")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"is_new":1,"accoucement":{"title":"dfsdfsdfsdfrtereree","content":"dfsdfsdfsdfdsfg","created_at":"2020-12-23 23:22:00"},"shield_live":0,"wgt_url":"http://download.yemaoty.cn/WGT/__UNI__0AC1311.wgt"}})
+     */
     function hotreload()
     {
 
@@ -102,6 +111,13 @@ class System extends FrontUserController
         }
     }
 
+    /**
+     * 开屏广告
+     * @Api(name="hotreload",path="/api/system/hotreload",version="3.0")
+     * @ApiDescription(value="serverClient for adImgs)
+     * @Method(allow="{GET}")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"img":"http://backgroundtest.ymtyadmin.com/upload/config/3cd584757b512f32cac661becc178384.jpeg","url":"https://www.baidu.com","countDown":5,"is_open":true,"is_force":true}})
+     */
     public function adImgs()
     {
         if ($res = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_OPEN_ADVER)->get()) {
@@ -135,7 +151,13 @@ class System extends FrontUserController
 
     }
 
-
+    /**
+     * 敏感词
+     * @Api(name="sensitiveWord",path="/api/system/sensitiveWord",version="3.0")
+     * @ApiDescription(value="serverClient for sensitiveWord)
+     * @Method(allow="{GET}")
+     * @ApiSuccess({"code":0,"msg":"ok","data":[{"word":"兼职"},{"word":"招聘"}]})
+     */
     public function sensitiveWord()
     {
         $words = AdminSensitive::getInstance()->where('id', 0, '>')->field(['word'])->all();

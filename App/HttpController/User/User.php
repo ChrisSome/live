@@ -108,7 +108,15 @@ class User extends FrontUserController
 
 
 
-    //关注用户 / 取消关注
+    /**
+     * 用户关注
+     * @Api(name="userFollowings",path="/api/user/userFollow",version="3.0")
+     * @ApiDescription(value="serverClient for userFollowings)
+     * @Method(allow="{POST}")
+     * @Param(name="follow_id",type="int",required="",description="关注的用户id")
+     * @Param(name="action_type",type="string",required="",description="类型 add｜del")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
+     */
     public function userFollowings()
     {
 
@@ -173,8 +181,16 @@ class User extends FrontUserController
     }
 
     /**
-     * 用户点赞 收藏 举报    帖子 评论 资讯评论 用户
-     * @return bool
+     * 用户操作
+     * @Api(name="informationOperate",path="/api/user/informationOperate",version="3.0")
+     * @ApiDescription(value="serverClient for itemOperate)
+     * @Method(allow="{POST}")
+     * @Param(name="type",type="int",required="",description="操作类型 1｜2｜3")
+     * @Param(name="item_type",type="int",required="",description="类型 1帖子 2帖子评论 3资讯 4资讯评论 5直播间发言")
+     * @Param(name="item_id",type="int",required="",description="")
+     * @Param(name="author_id",type="int",required="",description="作者id")
+     * @Param(name="is_cancel",type="int",required="",description="是否取消")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function informationOperate()
     {
@@ -260,13 +276,16 @@ class User extends FrontUserController
 
         if ($list) {
             foreach ($list as $item) {
+                $post = $item->postInfo();
+                $author = $item->uInfo();
                 if (!$item['parent_id']) {
+
                     //我的帖子的回复
-                    $p_info['title']        = $item->postInfo()->title;
-                    $p_info['p_created_at'] = $item->postInfo()->created_at;
+                    $p_info['title']        = $post ? $post->title : [];
+                    $p_info['p_created_at'] = $post ? $post->created_at : '';
                     $p_info['content']      = mb_substr($item->content, 0, 30, 'utf-8');
-                    $p_info['nickname']     = $item->uInfo()->nickname;
-                    $p_info['photo']        = $item->uInfo()->photo;
+                    $p_info['nickname']     = $author ? $author->nickname : '';
+                    $p_info['photo']        = $author ? $author->photo : '';
                     $p_info['created_at']   = $item->created_at;
                     $r_data['posts'][]      = $p_info;
                     unset($p_info);
@@ -276,8 +295,8 @@ class User extends FrontUserController
                     $c_info['title']        = '';
                     $c_info['p_created_at'] = '';
                     $c_info['content']      = mb_substr($item->content, 0, 30, 'utf-8');
-                    $c_info['nickname']     = $item->uInfo()->nickname;
-                    $c_info['photo']        = $item->uInfo()->photo;
+                    $c_info['nickname']     = $author ? $author->nickname : '';
+                    $c_info['photo']        = $author ? $author->photo : '';
                     $c_info['created_at']   = $item->created_at;
                     $r_data['comments']     = $c_info;
                     unset($c_info);
@@ -382,7 +401,12 @@ class User extends FrontUserController
 
     /**
      * 用户关注比赛
-     * @return bool
+     * @Api(name="userInterestMatch",path="/api/user/userInterestMatch",version="3.0")
+     * @ApiDescription(value="serverClient for userInterestMatch)
+     * @Method(allow="{POST}")
+     * @Param(name="match_id",type="int",required="",description="比赛id")
+     * @Param(name="type",type="string",required="",description="类型 add | del")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function userInterestMatch()
     {
@@ -461,11 +485,15 @@ class User extends FrontUserController
 
 
     /**
-     * 发表帖子评论
-     * @return bool
-     * @throws \EasySwoole\Mysqli\Exception\Exception
-     * @throws \EasySwoole\ORM\Exception\Exception
-     * @throws \Throwable
+     * 评论
+     * @Api(name="doComment",path="/api/community/doComment",version="3.0")
+     * @ApiDescription(value="serverClient for doComment)
+     * @Method(allow="{POST}")
+     * @Param(name="post_id",type="int",required="",description="帖子id")
+     * @Param(name="content",type="string",required="",description="评论内容")
+     * @Param(name="parent_id",type="int",required="",description="父id")
+     * @Param(name="top_comment_id",type="int",required="",description=一级评论id")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function doComment()
     {

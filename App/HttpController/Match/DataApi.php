@@ -61,7 +61,39 @@ class DataApi extends FrontUserController
     }
 
     /**
-     * 数据中心推荐热门赛事
+     * 热推赛事
+     * @Api(name="getHotCompetition",path="/api/footBall/getHotCompetition",version="3.0")
+     * @ApiDescription(value="serverClient for getHotCompetition)
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": [
+        {
+        "competition_id": 46,
+        "logo": "https://cdn.sportnanoapi.com/football/competition/b8412e60d779eb9cf46470f647f577d3.png",
+        "short_name_zh": "欧冠杯",
+        "seasons": [
+        {
+        "id": 162,
+        "updated_at": 1582166554,
+        "updated_time": "2020-09-30 16:57:16",
+        "competition_id": 46,
+        "year": "2003-2004",
+        "has_player_stats": 0,
+        "has_team_stats": 1,
+        "season_id": 172,
+        "has_table": 1,
+        "is_current": 0,
+        "competition_rule_id": 0,
+        "start_time": 1061924400,
+        "end_time": 1085597100
+        }
+
+        ]
+        }
+        ]
+        })
      */
     public function getHotCompetition()
     {
@@ -212,51 +244,87 @@ class DataApi extends FrontUserController
 
 
     /**
-     * 获取赛事
-     * @return bool
-     */
-    public function competitionByCid()
-    {
-        $country_id = $this->params['country_id'];
-        $competitions = AdminCompetition::getInstance()
-            ->field(['competition_id', 'short_name_zh', 'logo'])
-            ->where('country_id', $country_id)
-            ->where('type', [1, 2], 'in')
-            ->all();
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $competitions);
-
-    }
-
-    public function formatValue()
-    {
-//        $match = AdminMatch::getInstance()->where('competition_id', 82)->all();
-//        $format = FrontService::handMatch($match, 0, true);
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $format);
-
-        $matchSeason = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/match/competition?user=%s&secret=%s&id=%s', $this->user, $this->secret, 1));
-        $teams = json_decode($matchSeason, true);
-        $decodeDatas = $teams['results'];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
-
-        foreach ($decodeDatas as $item) {
-            $data = [
-                'match_time' => date('Y-m-d H:i:s', $item['match_time']),
-                'home_team' => (AdminTeam::getInstance()->where('team_id', $item['home_team_id'])->get())['name_zh'],
-                'away_team' => (AdminTeam::getInstance()->where('team_id', $item['away_team_id'])->get())['name_zh'],
-            ];
-
-            $times[] = $data;
+     * 忘记密码
+     * @Api(name="getPlayerInfo",path="/api/footBall/getPlayerInfo",version="3.0")
+     * @ApiDescription(value="serverClient for getPlayerInfo)
+     * @Method(allow="{GET}")
+     * @Param(name="player_id",type="int",required="",description="球员id")
+     * @Param(name="type",type="string",required="",description="类型 1基本信息 2技术统计")
+     * @Param(name="select_season_id",type="int",required="",description="查询赛季")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "team_info": {
+        "name_zh": "巴塞罗那",
+        "logo": "https://cdn.sportnanoapi.com/football/team/c5e46f93e46ef56794083528a6d7a9bc.png"
+        },
+        "contract_until": "2021-06-30",
+        "country_info": {
+        "name_zh": "阿根廷",
+        "logo": "https://cdn.sportnanoapi.com/football/country/9d57532591487b78cc400b6e82373d29.png"
+        },
+        "user_info": {
+        "name_zh": "里奥·梅西",
+        "logo": "https://cdn.sportnanoapi.com/football/player/197097b625425aadee373a428fbbbf75.png",
+        "market_value": "11,200万",
+        "age": 33,
+        "weight": 72,
+        "height": 170,
+        "preferred_foot": 1,
+        "position": "F",
+        "birthday": "1987-06-24"
+        },
+        "change_club_history": [
+        {
+        "transfer_time": "2005-07-01",
+        "transfer_type": 3,
+        "from_team_info": {
+        "name_zh": "巴塞罗那B队",
+        "logo": "https://cdn.sportnanoapi.com/football/team/45181f51a6e79ead8e9f2a18fc616deb.png",
+        "team_id": 14539
+        },
+        "to_team_info": {
+        "name_zh": "巴塞罗那",
+        "logo": "https://cdn.sportnanoapi.com/football/team/c5e46f93e46ef56794083528a6d7a9bc.png",
+        "team_id": 10015
         }
+        }        ],
+        "player_honor": [
+        {
+        "honor": {
+        "id": 215,
+        "title_zh": "西班牙超级杯冠军"
+        },
+        "season": "2018-2019",
+        "team_id": 10015
+        }
+        ],
+        "season_list": [
+        {
+        "competition_info": {
+        "competition_id": 120,
+        "short_name_zh": "西甲"
+        },
+        "season_list": [
+        {
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $times);
-
-
-    }
-
-    /**
-     * 球员详情
-     * @return bool
+        "season_id": 685,
+        "year": "2005-2006"
+        },
+        {
+        "season_id": 695,
+        "year": "2015-2016"
+        },
+        {
+        "season_id": 9723,
+        "year": "2020-2021"
+        }
+        ]
+        }
+        ]
+        }
+        })
      */
     public function getPlayerInfo()
     {
@@ -268,7 +336,7 @@ class DataApi extends FrontUserController
         //基本信息
         $basic = AdminPlayer::getInstance()->where('player_id', $player_id)->get();
 
-	if (!$basic) {
+        if (!$basic) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
         }
         $type = !empty($this->params['type']) ? $this->params['type'] : 1;
@@ -430,9 +498,92 @@ class DataApi extends FrontUserController
     }
 
     /**
-     * 球队数据
-     * @return bool
-     * @throws Throwable
+     * 球队信息
+     * @Api(name="teamInfo",path="/api/footBall/teamInfo",version="3.0")
+     * @ApiDescription(value="serverClient for teamInfo)
+     * @Method(allow="{GET}")
+     * @Param(name="type",type="int",required="",description="类型 1球队基本信息 2排行榜 3比赛 4球队数据 5阵容")
+     * @Param(name="team_id",type="int",required="",description="球队id")
+     * @Param(name="select_season_id",type="int",required="",description="查询赛季id")
+     * @Param(name="competition_id",type="int",required="",description="查询赛事id")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "basic": {
+        "logo": "https://cdn.sportnanoapi.com/football/team/d8ddbbdf082b5c469b4e1f9e998690dd.png",
+        "name_zh": "萨尔茨堡红牛",
+        "website": "http://www.austria-salzburg.at/",
+        "current_season_id": "9701",
+        "foundation_time": "1933",
+        "foreign_players": "21",
+        "national_players": "9",
+        "country": "奥地利",
+        "manager_name_zh": "杰西·马什"
+        },
+        "format_change_in_players": [
+        {
+        "player_id": "1125567",
+        "player_position": "M",
+        "transfer_time": "2021-01-01",
+        "transfer_type": "3",
+        "transfer_fee": "510万",
+        "name_zh": "布伦登·奥尔森",
+        "logo": "https://cdn.sportnanoapi.com/football/player/aecb938074e143fb80c6086b731cbce0.jpg",
+        "from_team_name_zh": "费城联合",
+        "from_team_logo": "https://cdn.sportnanoapi.com/football/team/b49eaf03291b4e3dd24168ed3869115e.png",
+        "from_team_id": 11071,
+        "to_team_name_zh": "萨尔茨堡红牛",
+        "to_team_logo": "https://cdn.sportnanoapi.com/football/team/d8ddbbdf082b5c469b4e1f9e998690dd.png",
+        "to_team_id": 10000
+        }
+        ],
+        "format_change_out_players": [
+        {
+        "player_id": "90396",
+        "player_position": "M",
+        "transfer_time": "2021-01-02",
+        "transfer_type": "3",
+        "transfer_fee": "2,000万",
+        "name_zh": "多米尼克·索博斯洛伊",
+        "logo": "https://cdn.sportnanoapi.com/football/player/2233ddc788e97c2ad01a725c9109fa35.png",
+        "from_team_name_zh": "萨尔茨堡红牛",
+        "from_team_logo": "https://cdn.sportnanoapi.com/football/team/d8ddbbdf082b5c469b4e1f9e998690dd.png",
+        "from_team_id": 10000,
+        "to_team_name_zh": "莱比锡红牛",
+        "to_team_logo": "https://cdn.sportnanoapi.com/football/team/798ccacd5ae2a04dc2a7ade7f2e6cfe4.png",
+        "to_team_id": 10364
+        }
+        ],
+        "format_honors": {
+        "119": {
+        "honor": {
+        "id": 119,
+        "title_zh": "奥地利杯冠军",
+        "logo": "https://cdn.sportnanoapi.com/football/honor/119.png"
+        },
+        "count": 7,
+        "season": [
+        "2019-2020",
+        "2018-2019",
+        "2016-2017",
+        "2015-2016",
+        "2014-2015",
+        "2013-2014",
+        "2011-2012"
+        ]
+        }
+        },
+        "season": [
+        {
+        "id": "1543",
+        "season_id": "1579",
+        "year": "2003-2004"
+        }
+
+        ]
+        }
+        })
      */
     public function teamInfo(): bool
     {
@@ -806,9 +957,38 @@ class DataApi extends FrontUserController
     }
 
     /**
-     * 球队转入转出记录
-     * @return bool
-     * @throws Throwable
+     * 球队转会记录
+     * @Api(name="teamChangeClubHistory",path="/api/footBall/teamChangeClubHistory",version="3.0")
+     * @ApiDescription(value="serverClient for teamChangeClubHistory)
+     * @Method(allow="{GET}")
+     * @Param(name="team_id",type="int",required="",description="球队id")
+     * @Param(name="type",type="int",required="",description="1 转入 2转出")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "list": [
+        {
+        "player_id": "1125567",
+        "player_position": "M",
+        "transfer_time": "2021-01-01",
+        "transfer_type": "3",
+        "transfer_fee": "510万",
+        "name_zh": "布伦登·奥尔森",
+        "logo": "https://cdn.sportnanoapi.com/football/player/aecb938074e143fb80c6086b731cbce0.jpg",
+        "from_team_name_zh": "费城联合",
+        "from_team_logo": "https://cdn.sportnanoapi.com/football/team/b49eaf03291b4e3dd24168ed3869115e.png",
+        "from_team_id": 11071,
+        "to_team_name_zh": "萨尔茨堡红牛",
+        "to_team_logo": "https://cdn.sportnanoapi.com/football/team/d8ddbbdf082b5c469b4e1f9e998690dd.png",
+        "to_team_id": 10000
+        }
+        ],
+        "total": 291
+        }
+        })
      */
     public function teamChangeClubHistory(): bool
     {
@@ -840,8 +1020,35 @@ class DataApi extends FrontUserController
 
     /**
      * 热搜赛事
-     * @return bool
-     * @throws Throwable
+     * @Api(name="hotSearchCompetition",path="/api/footBall/hotSearchCompetition",version="3.0")
+     * @ApiDescription(value="serverClient for hotSearchCompetition)
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": [
+        {
+        "competition_id": "20",
+        "short_name_zh": "世五足",
+        "logo": "https://cdn.sportnanoapi.com/football/competition/57a522621426744a2f4bafa2a5e3b03b.png"
+        },
+        {
+        "competition_id": "28",
+        "short_name_zh": "大运男足",
+        "logo": "https://cdn.sportnanoapi.com/football/competition/4b9779223af9a181abda4b6b0188032f.png"
+        },
+        {
+        "competition_id": "33",
+        "short_name_zh": "女室世锦",
+        "logo": "https://cdn.sportnanoapi.com/football/competition/3cb9d451c753b612105782fc3f3ec370.png"
+        },
+        {
+        "competition_id": "38",
+        "short_name_zh": "沙亚洲杯",
+        "logo": "https://cdn.sportnanoapi.com/football/competition/cup.jpg"
+        }
+        ]
+        })
      */
     public function hotSearchCompetition(): bool
     {
@@ -858,9 +1065,46 @@ class DataApi extends FrontUserController
     }
 
     /**
-     * 赛事信息
-     * @return bool
-     * @throws Throwable
+     * 获取赛事基本信息
+     * @Api(name="competitionInfo",path="/api/footBall/competitionInfo",version="3.0")
+     * @ApiDescription(value="serverClient for competitionInfo)
+     * @Method(allow="{GET}")
+     * @Param(name="competition_id",type="int",required="",description="赛事id")
+     * @Param(name="type",type="int",required="",description="类型 0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队")
+     * @Param(name="select_season_id",type="int",required="",description="要查询的赛季")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+            "data": {
+            "stage": [
+            {
+            "name_zh": "1/8决赛",
+            "stage_id": "47730",
+            "round_count": "0",
+            "group_count": "0"
+            }
+            ],
+            "match_list": [
+            {
+            "match_id": 1261788,
+            "match_time": "2021-02-17 04:00:00",
+            "home_team_name_zh": "莱比锡红牛",
+            "away_team_name_zh": "利物浦",
+            "status_id": "1",
+            "home_scores": 0,
+            "away_scores": 0,
+            "half_home_scores": 0,
+            "half_away_scores": 0,
+            "home_corner": -1,
+            "away_corner": -1
+            }
+            ],
+            "cur_round": "0",
+            "cur_stage_id": "47730"
+            }
+            }
+        })
      */
     public function competitionInfo(): bool
     {
@@ -903,7 +1147,6 @@ class DataApi extends FrontUserController
             $result['competition_describe'] = $competitionDescribe;
             //积分榜
             $tmp = Utils::queryHandler(SeasonAllTableDetail::getInstance(), 'season_id=?', $selectSeasonId);
-//            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $tmp);
 
             if (!empty($tmp)) {
                 $promotions = json_decode($tmp['promotions'], true);
@@ -1086,9 +1329,28 @@ class DataApi extends FrontUserController
     }
 
     /**
-     * 关键词搜索
-     * @return bool
-     * @throws Throwable
+     * 搜索
+     * @Api(name="contentByKeyWord",path="/api/footBall/contentByKeyWord",version="3.0")
+     * @ApiDescription(value="serverClient for contentByKeyWord)
+     * @Method(allow="{GET}")
+     * @Param(name="key_word",type="string",required="",description="关键字")
+     * @Param(name="type",type="int",required="",description="类型 1赛事 2球队 3球员")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "list": [
+        {
+        "player_id": "12395",
+        "name_zh": "里奥·梅西",
+        "logo": "https://cdn.sportnanoapi.com/football/player/197097b625425aadee373a428fbbbf75.png"
+        }
+        ],
+        "total": 114
+        }
+        })
      */
     public function contentByKeyWord(): bool
     {

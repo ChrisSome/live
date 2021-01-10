@@ -70,28 +70,16 @@ class FrontUserController extends BaseController
 	public function checkToken()
 	{
 		$r = $this->request();
-		$id = $r->getCookieParams('front_id');
-		$time = $r->getCookieParams('front_time');
-		$token = md5($id . Config::getInstance()->getConf('app.token') . $time);
-        if (!$id) {
-            return false;
-        }
-        $this->auth['id'] = 0;
-        if($r->getCookieParams('front_token') == $token) {
+        $authoriazation = $r->getHeader('token');
+        $loginToken = isset($authoriazation[0]) ? json_decode(stripslashes($authoriazation[0]), true) : [];
+        if (!$loginToken) return false;
+        $id = $loginToken['front_id'];
+        $time = $loginToken['front_time'];
+        $token = md5($id . Config::getInstance()->getConf('app.token') . $time);
+        if($loginToken['front_token'] == $token) {
             $this->auth = AdminUser::getInstance()->find($id);
 			return true;
-		} else if ($token = $r->getHeaderLine('authorization')) {
-		    //头部传递access_token
-		    $tokenKey = sprintf(AdminUser::USER_TOKEN_KEY, $token);
-
-		    if (!$json = AppFunc::redisGetKey($tokenKey)) {
-                return false;
-            } else {
-		        AppFunc::redisSetStr($tokenKey, $json);
-		        $this->auth = json_decode($json, true);
-		        return true;
-            }
-        } else {
+		} else {
 			return false;
 		}
 	}
@@ -151,8 +139,9 @@ class FrontUserController extends BaseController
 
             }
         } else {
-            $id = $this->request()->getCookieParams('front_id');
-	        if ($id) {
+            $authoriazation = $this->request()->getHeader('token');
+            $loginToken = isset($authoriazation[0]) ? json_decode($authoriazation[0], true) : [];
+	        if (!empty($loginToken['front_id'])) {
                 $this->checkToken();
             }
         }

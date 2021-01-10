@@ -813,4 +813,14 @@ class FootballApi extends FrontUserController
 
     }
 
+    public function test()
+
+    {
+        $r = $this->request();
+        $cookie = $r->getCookieParams();
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $cookie);
+
+
+    }
+
 }

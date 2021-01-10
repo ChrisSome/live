@@ -136,6 +136,7 @@ class  FrontService {
         } else {
             $datas = [];
             foreach ($comments as $item) {
+                $user = $item->uInfo();
                 $parentComment = $item->getParentContent();
                 $data['id'] = $item->id;  //当前评论id
                 $data['post_id'] = $item->post_id; //帖子id
@@ -146,7 +147,7 @@ class  FrontService {
                 $data['created_at'] = $item->created_at;
                 $data['fabolus_number'] = $item->fabolus_number;
                 $data['is_fabolus'] = $uid ? ($item->isFabolus($uid, $item->id) ? true : false) : false;
-                $data['user_info'] = $item->uInfo();
+                $data['user_info'] = $user ? ['id' => $user->id, 'nickname' => $user->nickname, 'photo' => $user->photo, 'level' => $user->level, 'is_offical' => $user->is_offical] : [];
                 $data['is_follow'] = AppFunc::isFollow($uid, $item->user_id); //是否关注该评论人
                 $data['respon_number'] = $item->respon_number;
                 $data['top_comment_id'] = $item->top_comment_id;
