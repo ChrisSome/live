@@ -812,6 +812,7 @@ class DataApi extends FrontUserController
      */
     public function teamChangeClubHistory(): bool
     {
+        var_dump($this->params);
         // 参数处理
         $teamId = empty($this->params['team_id']) || intval($this->params['team_id']) < 1 ? 0 : intval($this->params['team_id']);
         $type = empty($this->params['type']) || intval($this->params['type']) < 1 ? 0 : intval($this->params['type']);

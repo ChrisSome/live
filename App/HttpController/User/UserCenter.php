@@ -46,24 +46,22 @@ class UserCenter   extends FrontUserController{
 
         $uid = $this->auth['id'];
 
-        $user_info = AdminUser::getInstance()->where('id', $uid)->field(['id', 'nickname', 'photo', 'level', 'is_offical'])->get();
+        $user_info = AdminUser::getInstance()->where('id', $uid)->field(['id', 'nickname', 'photo', 'level', 'is_offical', 'point'])->get();
         //我的粉丝数
         $fansCount = count(AppFunc::getUserFans($uid));
-
 
         //我的关注数
         $followCount = count(AppFunc::getUserFollowing($uid));
 
         //我的获赞数
-
-//        $fabolus_number = AdminUserOperate::getInstance()->where('author_id', $this->auth['id'])->where('type', 1)->where('is_cancel', 0)->count();
-
         $fabolus_number = AdminMessage::create()->where('user_id', $uid)->where('type', 2)->where('item_type', [1,2,4], 'in')->where('status', AdminMessage::STATUS_DEL, '<>')->count();
         $data = [
             'user_info' => $user_info,
             'fans_count' => AppFunc::changeToWan($fansCount, ''),
             'follow_count' => AppFunc::changeToWan($followCount, ''),
             'fabolus_count' => AppFunc::changeToWan($fabolus_number, ''),
+            'd_value' => AppFunc::getPointsToNextLevel($user_info),
+            't_value' => AppFunc::getPointOfLevel($user_info->level),
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 

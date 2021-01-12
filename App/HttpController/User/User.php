@@ -470,7 +470,6 @@ class User extends FrontUserController
     public function doComment()
     {
 
-
         if ($this->auth['status'] == AdminUser::STATUS_FORBIDDEN) {
             return $this->writeJson(Status::CODE_STATUS_FORBIDDEN, Status::$msg[Status::CODE_STATUS_FORBIDDEN]);
 

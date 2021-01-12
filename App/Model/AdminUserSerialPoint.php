@@ -19,8 +19,6 @@ class AdminUserSerialPoint extends BaseModel
 
     public function getLimit($page, $limit)
     {
-        AppFunc::getTestDomain();
-
         return $this->order('created_at', 'DESC')
             ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();

@@ -196,10 +196,8 @@ class Community extends FrontUserController
         $list = $comments->all(null);
         $count = $comments->lastQueryResult()->getTotalCount();
         $format_comments = [];
-
         if ($list) {
             foreach ($list as $item) {
-
                 $child_comments = AdminPostComment::getInstance()->where('top_comment_id', $item['id'])->where('status', [AdminPostComment::STATUS_NORMAL, AdminPostComment::STATUS_REPORTED], 'in')->order('created_at', 'DESC')->limit(3)->all();
                 $child_comments_count = AdminPostComment::getInstance()->where('top_comment_id', $item['id'])->where('status', [AdminPostComment::STATUS_NORMAL, AdminPostComment::STATUS_REPORTED], 'in')->order('created_at', 'DESC')->count('id');
                 $data['id'] = $item->id;
@@ -502,7 +500,15 @@ class Community extends FrontUserController
             //帖子信息
             $formatPost = FrontService::handPosts([$postInfo], $this->auth['id']);
             $returnPost = isset($formatPost[0]) ? $formatPost[0] : [];
-            if ($boolInsert) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnPost);
+            if ($boolInsert) {
+                //加积分
+                //积分任务
+                $data['task_id'] = 2;
+                $data['user_id'] = $this->auth['id'];
+
+                \EasySwoole\EasySwoole\Task\TaskManager::getInstance()->async(new SerialPointTask($data));
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnPost);
+            }
             return $this->writeJson(Status::CODE_ADD_POST, Status::$msg[Status::CODE_ADD_POST]);
         }
 
