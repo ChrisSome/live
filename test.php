@@ -1,6 +1,4 @@
 <?php
-$a = '{\"front_token\":\"748eadf3c9d24127eabfe63dd5a5cef1\",\"front_id\":4,\"front_time\":1610182754}';
-$e = '{\"front_token\":\"748eadf3c9d24127eabfe63dd5a5cef1\",\"front_id\":4,\"front_time\":1610182754}';
-//$b = ['front_token' => '748eadf3c9d24127eabfe63dd5a5cef1', 'front_id' => 4, 'front_time' => 1610182754];
-//var_dump(json_encode($b));
-var_dump(json_decode(stripslashes($e), true));
+
+$a = ['front_id' => 4, 'front_token' => 'adbf203d5cd747ac47e65a917cc9c795', 'front_time' => 1610178192];
+var_dump(json_encode($a));

@@ -64,13 +64,11 @@ class Upload extends FrontUserController
 
     public function ossUpload()
     {
-        var_dump(1111);
         $request = $this->request();
         $file = $request->getUploadedFile('file');
         $tempFile = $file->getTempName();
 
         $sUploadType = $request->getRequestParam('type');
-
         if (!$sUploadType || !in_array($sUploadType, ['avatar', 'system', 'option', 'other'])) {
             return $this->writeJson(Status::CODE_ERR, '未知的上传类型');
 
@@ -88,7 +86,6 @@ class Upload extends FrontUserController
 
         $ossClient = new OssService($sUploadType);
         $res = $ossClient->uploadFile($baseName, $tempFile);
-        var_dump($res);
         if ($res['status'] == Status::CODE_OK) {
             $returnData['imgUrl'] = $res['imgUrl'];
 

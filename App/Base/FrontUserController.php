@@ -8,7 +8,6 @@ use EasySwoole\EasySwoole\Config;
 
 use App\Model\AdminLog as LogModel;
 
-use App\Common\AppFunc;
 use App\Utility\Message\Status;
 use EasySwoole\Template\Render;
 

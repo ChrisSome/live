@@ -68,42 +68,42 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/community/hotSearch', '/User/Community/hotSearch');   //热搜榜
             $r->addRoute(['GET'], '/community/detail', '/User/Community/detail'); //帖子详情
             $r->addRoute(['GET'], '/community/getAllChildComments', '/User/Community/getAllChildComments');   //二级评论列表
-            $r->addRoute(['GET'], '/community/userFirstPage', '/User/Community/userFirstPage');   //用户详情页
+            $r->addRoute(['GET'], '/community/userFirstPage', '/User/UserCenter/userFirstPage');   //用户详情页
             $r->addRoute(['GET'], '/user/myFollowings', '/User/Community/myFollowings');   //用户关注列表
             $r->addRoute(['GET'], '/community/userInfo', '/User/Community/userInfo');   //用户基本信息
             $r->addRoute(['GET'], '/community/normalProblemList', '/User/Community/normalProblemList');   //常见问题
 
             //数据脚本
-            $r->addRoute(['GET'], '/footBall/getTeamList', '/Match/FootballMatch/getTeamList');   //球队列表
-            $r->addRoute(['GET'], '/footBall/getTodayMatches', '/Match/FootballMatch/getTodayMatches');   //今日比赛
-            $r->addRoute(['GET'], '/footBall/getWeekMatches', '/Match/FootballMatch/getWeekMatches');   //未来一周比赛
-            $r->addRoute(['GET'], '/footBall/getCompetitiones', '/Match/FootballMatch/getCompetitiones');   //赛事列表
-            $r->addRoute(['GET'], '/footBall/getSteam', '/Match/FootballMatch/getSteam');   //直播源
-            $r->addRoute(['GET'], '/footBall/players', '/Match/FootballMatch/players');   //球员列表
-            $r->addRoute(['GET'], '/footBall/clashHistory', '/Match/FootballMatch/clashHistory');   //获取比赛历史同赔统计数据列表
-            $r->addRoute(['GET'], '/footBall/noticeUserMatch', '/Match/FootballMatch/noticeUserMatch');   //推送用户比赛即将开始 1次/分钟
-            $r->addRoute(['GET'], '/footBall/deleteMatch', '/Match/FootballMatch/deleteMatch');   //取消或者删除的比赛
-            $r->addRoute(['GET'], '/footBall/updateYesMatch', '/Match/FootballMatch/updateYesMatch');   //更新昨天比赛
-            $r->addRoute(['GET'], '/footBall/matchTlive', '/Match/FootballMatch/matchTlive');   //推送
+            $r->addRoute(['GET'], '/footBall/getTeamList', '/Match/Crontab/getTeamList');   //球队列表
+            $r->addRoute(['GET'], '/footBall/getTodayMatches', '/Match/Crontab/getTodayMatches');   //今日比赛
+            $r->addRoute(['GET'], '/footBall/getWeekMatches', '/Match/Crontab/getWeekMatches');   //未来一周比赛
+            $r->addRoute(['GET'], '/footBall/getCompetitiones', '/Match/Crontab/getCompetitiones');   //赛事列表
+            $r->addRoute(['GET'], '/footBall/getSteam', '/Match/Crontab/getSteam');   //直播源
+            $r->addRoute(['GET'], '/footBall/players', '/Match/Crontab/players');   //球员列表
+            $r->addRoute(['GET'], '/footBall/clashHistory', '/Match/Crontab/clashHistory');   //获取比赛历史同赔统计数据列表
+            $r->addRoute(['GET'], '/footBall/noticeUserMatch', '/Match/Crontab/noticeUserMatch');   //推送用户比赛即将开始 1次/分钟
+            $r->addRoute(['GET'], '/footBall/deleteMatch', '/Match/Crontab/deleteMatch');   //取消或者删除的比赛
+            $r->addRoute(['GET'], '/footBall/updateYesMatch', '/Match/Crontab/updateYesMatch');   //更新昨天比赛
+            $r->addRoute(['GET'], '/footBall/matchTlive', '/Match/Crontab/matchTlive');   //推送
 
-            $r->addRoute(['GET'], '/footBall/updateSeason', '/Match/FootballMatch/updateSeason');   //更新赛季
-            $r->addRoute(['GET'], '/footBall/updatePlayerStat', '/Match/FootballMatch/updatePlayerStat');   //更新赛季排行
-            $r->addRoute(['GET'], '/footBall/playerChangeClubHistory', '/Match/FootballMatch/playerChangeClubHistory');   //转会记录
-            $r->addRoute(['GET'], '/footBall/teamHonor', '/Match/FootballMatch/teamHonor');   //球队荣誉
-            $r->addRoute(['GET'], '/footBall/honorList', '/Match/FootballMatch/honorList');   //更新赛季
-            $r->addRoute(['GET'], '/footBall/allStat', '/Match/FootballMatch/allStat');   //更新赛季
-            $r->addRoute(['GET'], '/footBall/stageList', '/Match/FootballMatch/stageList');   //更新阶段列表
-            $r->addRoute(['GET'], '/footBall/managerList', '/Match/FootballMatch/managerList');   //更新教练列表
-            $r->addRoute(['GET'], '/footBall/getLineUp', '/Match/FootballMatch/getLineUp');   //阵容列表
-            $r->addRoute(['GET'], '/footBall/playerHonorList', '/Match/FootballMatch/playerHonorList');   //阵容列表
-            $r->addRoute(['GET'], '/footBall/matchBroadcast', '/Match/FootballMatch/matchBroadcast');   //比赛直播
-            $r->addRoute(['GET'], '/footBall/competitionRule', '/Match/FootballMatch/competitionRule');   //赛事赛制
-            $r->addRoute(['GET'], '/footBall/updateAlphaMatch', '/Match/FootballMatch/updateAlphaMatch');
-            $r->addRoute(['GET'], '/footBall/seasonAllStatDetail', '/Match/FootballMatch/seasonAllStatDetail');
-            $r->addRoute(['GET'], '/footBall/updateMatchSeason', '/Match/FootballMatch/updateMatchSeason');   //赛季比赛
-            $r->addRoute(['GET'], '/footBall/updateSeasonTeamPlayer', '/Match/FootballMatch/updateSeasonTeamPlayer');   //赛季比赛
-            $r->addRoute(['GET'], '/footBall/updateYesterdayMatch', '/Match/FootballMatch/updateYesterdayMatch');   //赛季比赛
-            $r->addRoute(['GET'], '/footBall/updateMatchTrend', '/Match/FootballMatch/updateMatchTrend');   //赛季比赛
+            $r->addRoute(['GET'], '/footBall/updateSeason', '/Match/Crontab/updateSeason');   //更新赛季
+            $r->addRoute(['GET'], '/footBall/updatePlayerStat', '/Match/Crontab/updatePlayerStat');   //更新赛季排行
+            $r->addRoute(['GET'], '/footBall/playerChangeClubHistory', '/Match/Crontab/playerChangeClubHistory');   //转会记录
+            $r->addRoute(['GET'], '/footBall/teamHonor', '/Match/Crontab/teamHonor');   //球队荣誉
+            $r->addRoute(['GET'], '/footBall/honorList', '/Match/Crontab/honorList');   //更新赛季
+            $r->addRoute(['GET'], '/footBall/allStat', '/Match/Crontab/allStat');   //更新赛季
+            $r->addRoute(['GET'], '/footBall/stageList', '/Match/Crontab/stageList');   //更新阶段列表
+            $r->addRoute(['GET'], '/footBall/managerList', '/Match/Crontab/managerList');   //更新教练列表
+            $r->addRoute(['GET'], '/footBall/getLineUp', '/Match/Crontab/getLineUp');   //阵容列表
+            $r->addRoute(['GET'], '/footBall/playerHonorList', '/Match/Crontab/playerHonorList');   //阵容列表
+            $r->addRoute(['GET'], '/footBall/matchBroadcast', '/Match/Crontab/matchBroadcast');   //比赛直播
+            $r->addRoute(['GET'], '/footBall/competitionRule', '/Match/Crontab/competitionRule');   //赛事赛制
+            $r->addRoute(['GET'], '/footBall/updateAlphaMatch', '/Match/Crontab/updateAlphaMatch');
+            $r->addRoute(['GET'], '/footBall/seasonAllStatDetail', '/Match/Crontab/seasonAllStatDetail');
+            $r->addRoute(['GET'], '/footBall/updateMatchSeason', '/Match/Crontab/updateMatchSeason');   //赛季比赛
+            $r->addRoute(['GET'], '/footBall/updateSeasonTeamPlayer', '/Match/Crontab/updateSeasonTeamPlayer');   //赛季比赛
+            $r->addRoute(['GET'], '/footBall/updateYesterdayMatch', '/Match/Crontab/updateYesterdayMatch');   //赛季比赛
+            $r->addRoute(['GET'], '/footBall/updateMatchTrend', '/Match/Crontab/updateMatchTrend');   //赛季比赛
 
 
 
@@ -150,7 +150,6 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/user/foulCenter', '/User/UserCenter/foulCenter'); //违规中心
             $r->addRoute(['GET'], '/user/foulCenterOne', '/User/UserCenter/foulCenterOne'); //违规中心
             $r->addRoute(['GET'], '/user/foulItemInfo', '/User/UserCenter/foulItemInfo'); //违规中心
-            $r->addRoute(['GET'], '/user/myMessageCenter', '/User/UserCenter/myMessageCenter'); //消息中心
             $r->addRoute(['GET'], '/user/myBlackList', '/User/UserCenter/myBlackList'); //黑名单
             $r->addRoute(['GET'], '/user/addInBlackList', '/User/UserCenter/addInBlackList'); //黑名单
             $r->addRoute(['GET'], '/user/drafts', '/User/UserCenter/drafts'); //草稿箱
@@ -164,7 +163,6 @@ class Router extends AbstractRouter
 
             //赛事
             $r->addRoute(['GET'], '/footBall/competitionList', '/Match/FootballApi/getCompetition');   //赛事列表
-            $r->addRoute(['GET'], '/footBall/matchList', '/Match/FootballApi/frontMatchList');   //比赛列表
             $r->addRoute(['GET'], '/footBall/matchListPlaying', '/Match/FootballApi/matchListPlaying');   //正在进行中比赛列表
             $r->addRoute(['GET'], '/footBall/userInterestMatchList', '/Match/FootballApi/userInterestMatchList');   //用户关注的比赛列表
             $r->addRoute(['GET'], '/footBall/matchSchedule', '/Match/FootballApi/matchSchedule');   //赛程列表

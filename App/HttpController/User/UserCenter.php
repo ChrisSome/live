@@ -13,21 +13,23 @@ use App\Model\AdminPostComment;
 use App\Model\AdminUser;
 use App\Model\AdminUserFeedBack;
 use App\Model\AdminUserFoulCenter;
-use App\Model\AdminUserInterestCompetition;
-use App\Model\AdminUserMessageRecord;
 use App\Model\AdminUserOperate;
 use App\Model\AdminUserPhonecode;
 use App\Model\AdminUserPost;
 use App\Model\AdminUserSerialPoint;
 use App\Model\AdminUserSetting;
 use App\Model\ChatHistory;
-use App\Task\SerialPointTask;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
-use EasySwoole\EasySwoole\Task\TaskManager;
-use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\ORM\DbManager;
 use EasySwoole\Validate\Validate;
+
+use EasySwoole\HttpAnnotation\AnnotationController;
+use EasySwoole\HttpAnnotation\AnnotationTag\Api;
+use EasySwoole\HttpAnnotation\AnnotationTag\Param;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiDescription;
+use EasySwoole\HttpAnnotation\AnnotationTag\Method;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiSuccess;
 
 /**
  * 用户个人中心
@@ -38,8 +40,32 @@ class UserCenter   extends FrontUserController{
 
     public $needCheckToken = true;
     public $isCheckSign = false;
+
+
     /**
      * 个人中心首页
+     * @Api(name="个人中心",path="/api/user/UserCenter",version="3.0")
+     * @ApiDescription(value="serverClient for UserCenter")
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "user_info": {
+        "id": 4,
+        "nickname": "Hdhdh",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "level": 3,
+        "is_offical": 0,
+        "point": 1010
+        },
+        "fans_count": 5,
+        "follow_count": 10,
+        "fabolus_count": 20,
+        "d_value": 490,
+        "t_value": 500
+        }
+        })
      */
     public function UserCenter()
     {
@@ -68,7 +94,58 @@ class UserCenter   extends FrontUserController{
     }
 
 
-
+    /**
+     * 收藏夹
+     * @Api(name="收藏夹",path="/api/user/userBookMark",version="3.0")
+     * @ApiDescription(value="serverClient for userBookMark")
+     * @Method(allow="{GET}")
+     * @Param(name="mobile",type="key_word",required="",description="关键字")
+     * @Param(name="type",type="int",required="",description="类型 1帖子 2资讯")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "list": [
+        {
+        "id": 397,
+        "hit": 0,
+        "user_id": 4,
+        "title": "还好哈哈哈",
+        "cat_id": 3,
+        "status": 1,
+        "created_at": "2021-01-06 13:13:15",
+        "is_refine": 0,
+        "respon_number": 0,
+        "updated_at": "2021-01-06 13:13:05",
+        "fabolus_number": 1,
+        "collect_number": 1,
+        "content": "空军建军节",
+        "is_me": true,
+        "cat_name": "足球天地",
+        "cat_color": {
+        "background": "#ECEFF9",
+        "font": "#4B6EE4"
+        },
+        "imgs": [],
+        "user_info": {
+        "id": "4",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "nickname": "Hdhdh",
+        "level": "3",
+        "is_offical": "0"
+        },
+        "is_follow": false,
+        "is_collect": true,
+        "lasted_resp": "2021-01-06 13:13:15",
+        "is_fabolus": true
+        }
+        ],
+        "count": 37
+        }
+        })
+     */
     public function userBookMark()
     {
         $user_id = (int)$this->auth['id'];
@@ -112,14 +189,60 @@ class UserCenter   extends FrontUserController{
 
 
     /**
-     * @return bool
-     * @throws \Throwable
+     * 草稿箱
+     * @Api(name="草稿箱",path="/api/user/drafts",version="3.0")
+     * @ApiDescription(value="serverClient for drafts")
+     * @Method(allow="{GET}")
+     * @Param(name="page",type="int",required="",description="页面")
+     * @Param(name="size",type="int",required="",description="密码")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "data": [
+        {
+        "id": 396,
+        "hit": 0,
+        "user_id": 4,
+        "title": "是很好",
+        "cat_id": 3,
+        "status": 4,
+        "created_at": "2020-12-31 14:39:38",
+        "is_refine": 0,
+        "respon_number": 0,
+        "updated_at": "2020-12-31 14:39:38",
+        "fabolus_number": 0,
+        "collect_number": 0,
+        "content": "hill撸他进",
+        "is_me": true,
+        "cat_name": "足球天地",
+        "cat_color": {
+        "background": "#ECEFF9",
+        "font": "#4B6EE4"
+        },
+        "imgs": [],
+        "user_info": {
+        "id": "4",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "nickname": "Hdhdh",
+        "level": "3",
+        "is_offical": "0"
+        },
+        "is_follow": false,
+        "is_collect": false,
+        "lasted_resp": "2020-12-31 14:39:38",
+        "is_fabolus": false
+        }
+        ],
+        "count": 1
+        }
+        })
      */
     public function drafts()
     {
 
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 20;
+        $page = !empty($this->params['page']) ? (int)$this->params['page'] : 1;
+        $size = !empty($this->params['size']) ? (int)$this->params['size'] : 20;
 
         $model = AdminUserPost::getInstance()->where('status', AdminUserPost::NEW_STATUS_SAVE)->where('user_id', $this->auth['id'])->getLimit($page, $size);
 
@@ -133,17 +256,24 @@ class UserCenter   extends FrontUserController{
 
 
     /**
-     * 用户资料编辑
-     * @return bool
-     * @throws \EasySwoole\ORM\Exception\Exception
-     * @throws \Throwable
+     * 用户编辑资料
+     * @Api(name="用户编辑资料",path="/api/user/editUser",version="3.0")
+     * @ApiDescription(value="serverClient for editUser")
+     * @Method(allow="{POST}")
+     * @Param(name="type",type="int",required="",description="类型 1昵称 2头像 3密码 4手机号")
+     * @Param(name="nickname",type="string",description="昵称")
+     * @Param(name="photo",type="string",description="头像")
+     * @Param(name="old_password",type="string",description="旧密码")
+     * @Param(name="new_password",type="string",description="新密码")
+     * @Param(name="mobile",type="string",description="手机号")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function editUser()
     {
 
         $params = $this->params;
         $uid = $this->auth['id'];
-        $type = $this->params['type'];
+        $type = (int)$this->params['type'];
         $validate = new Validate();
         $update_data = [];
 
@@ -221,8 +351,28 @@ class UserCenter   extends FrontUserController{
 
 
     /**
-     * 正确  消息中心
-     * @return bool
+     * 消息中心
+     * @Api(name="消息中心",path="/api/user/messageCenter",version="3.0")
+     * @ApiDescription(value="serverClient for messageCenter")
+     * @Method(allow="{GET}")
+     * @Param(name="type",type="int",required="",description="类型 0统计消息 1系统消息 2赞的消息 3评论与回复 4关注消息")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "sys_un_read_count": 1,
+        "fabolus_un_read_count": 6,
+        "comment_un_read_count": 5,
+        "interest_un_read_count": 2,
+        "last_sys_message": {
+        "id": 591,
+        "content": "您发布的帖子【上课的分内事】包含敏感词【sm】，未发送成功，已移交至草稿箱，请检查修改后再提交",
+        "created_at": "2021-01-09 20:45:46"
+        }
+        }
+        })
      */
     public function messageCenter()
     {
@@ -421,12 +571,17 @@ class UserCenter   extends FrontUserController{
 
     /**
      * 读消息
-     * @return bool
+     * @Api(name="读消息",path="/api/user/readMessage",version="3.0")
+     * @ApiDescription(value="serverClient for readMessage")
+     * @Method(allow="{POST}")
+     * @Param(name="type",type="int",required="",description="1读消息 2一键已读")
+     * @Param(name="message_id",type="int",description="消息id")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function readMessage()
     {
 
-        $type = $this->params['type'];
+        $type = !empty($this->params['type']) ? (int)$this->params['type'] : 1;
         if ($type == 1) {
             $message_id = $this->params['message_id'];
 
@@ -499,12 +654,28 @@ class UserCenter   extends FrontUserController{
 
 
     /**
-     * 用户设置
-     * @return bool
+     * 足球相关配置
+     * @Api(name="足球相关配置",path="/api/user/userSetting",version="3.0")
+     * @ApiDescription(value="serverClient for userSetting")
+     * @Method(allow="{GET｜POST}")
+     * @Param(name="type",type="int",required="",description="类型 //1notice 2push 3private")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "only_notice_my_interest": 0,
+        "start": 1,
+        "goal": 1,
+        "over": 1,
+        "show_time_axis": 1,
+        "yellow_card": 1,
+        "red_card": 1
+        }
+        })
      */
     public function userSetting()
     {
-        if (!$type = $this->params['type']) { //1notice 2push 3private
+        if (!$type = (int)$this->params['type']) { //1notice 2push 3private
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
@@ -549,7 +720,7 @@ class UserCenter   extends FrontUserController{
                 }
                 $column = 'private';
                 $data = $this->params['private'];//see_my_post(1所有 2我关注的 3我的粉丝 4仅自己)  see_my_post_comment(1所有 2我关注的 3我的粉丝 4仅自己) see_my_information_comment(1所有 2我关注的 3我的粉丝 4仅自己)
-            }  else {
+            } else {
                 return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
             }
@@ -562,6 +733,14 @@ class UserCenter   extends FrontUserController{
         }
     }
 
+    /**
+     * 篮球相关配置
+     * @Api(name="篮球相关配置",path="/api/user/basketballSetting",version="3.0")
+     * @ApiDescription(value="serverClient for basketballSetting")
+     * @Method(allow="{GET｜POST}")
+     * @Param(name="type",type="int",required="",description="类型 //1notice 2push 3private")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"only_notice_my_interest":0,"start":1,"over":1}})
+     */
     public function basketballSetting()
     {
         if (!$type = $this->params['type']) { //1notice 2push
@@ -704,11 +883,32 @@ class UserCenter   extends FrontUserController{
 
     }
 
-
     /**
-     * 用户被点赞列表 包括帖子与评论
+     * 点赞详情
+     * @Api(name="点赞详情",path="/api/user/myFabolusInfo",version="3.0")
+     * @ApiDescription(value="serverClient for myFabolusInfo")
+     * @Method(allow="{GET}")
+     * @Param(name="mobile",type="string",required="",description="手机号")
+     * @Param(name="password",type="string",required="",description="密码")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": [
+        {
+        "created_at": "2021-01-10 14:50:49",
+        "item_type": "1",
+        "user_id": "72",
+        "id": "410",
+        "title": "上课的分内事",
+        "user_info": {
+        "id": 72,
+        "nickname": "number",
+        "photo": "https://www.gravatar.com/avatar/b1bc248a7ff2b2e95569f56de68615df?s=120&d=identicon"
+        }
+        }
+        ]
+        })
      */
-
     public function myFabolusInfo()
     {
 
@@ -895,8 +1095,71 @@ class UserCenter   extends FrontUserController{
 
     /**
      * 任务列表
+     * @Api(name="任务列表",path="/api/user/getAvailableTask",version="3.0")
+     * @ApiDescription(value="serverClient for getAvailableTask")
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "user_info": {
+        "id": 4,
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg",
+        "level": 3,
+        "is_offical": 0,
+        "point": 1010
+        },
+        "task_list": {
+        "1": {
+        "id": 1,
+        "name": "每日签到",
+        "status": 1,
+        "times_per_day": 1,
+        "icon": "http://test.ymtyadmin.com/image/system/2020/10/a9372031e438e7d4.jpg",
+        "points_per_time": 100,
+        "done_times": 0
+        },
+        "2": {
+        "id": 2,
+        "name": "社区发帖",
+        "status": 1,
+        "times_per_day": 5,
+        "icon": "http://test.ymtyadmin.com/image/system/2020/10/2a78faed402807f5.jpg",
+        "points_per_time": 5,
+        "done_times": 0
+        },
+        "3": {
+        "id": 3,
+        "name": "评论回帖",
+        "status": 1,
+        "times_per_day": 5,
+        "icon": "http://test.ymtyadmin.com/image/system/2020/10/31d1ca095ae6613a.jpg",
+        "points_per_time": 5,
+        "done_times": 0
+        },
+        "4": {
+        "id": 4,
+        "name": "分享好友",
+        "status": 1,
+        "times_per_day": 5,
+        "icon": "http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg",
+        "points_per_time": 10,
+        "done_times": 0
+        }
+        },
+        "d_value": 490,
+        "t_value": 500,
+        "special": {
+        "id": 4,
+        "name": "完善资料",
+        "status": 1,
+        "times_per_day": 1,
+        "icon": "http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg",
+        "points_per_time": 200
+        }
+        }
+        })
      */
-
     public function getAvailableTask()
     {
         $user_tasks = AdminUserSerialPoint::USER_TASK;
@@ -927,12 +1190,25 @@ class UserCenter   extends FrontUserController{
     }
 
     /**
-     * 做任务加积分，这里只能是每日签到与分享
-     * @return bool
+     * 做任务加积分
+     * @Api(name="做任务加积分",path="/api/user/userDoTask",version="3.0")
+     * @ApiDescription(value="serverClient for userDoTask")
+     * @Method(allow="{POST}")
+     * @Param(name="task_id",type="int",required="",description="任务id")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "level": 3,
+        "point": 1110,
+        "d_value": 390,
+        "t_value": 500
+        }
+        })
      */
     public function userDoTask()
     {
-        $task_id = $this->params['task_id'];
+        $task_id = !empty($this->params['task_id']) ? (int)$this->params['task_id'] : 0;
         $user_id = $this->auth['id'];
         if (!in_array($task_id, [1, 4])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -977,13 +1253,33 @@ class UserCenter   extends FrontUserController{
     }
 
     /**
-     * 积分明细
-     * @return bool
+     * 积分列表
+     * @Api(name="积分列表",path="/api/user/getPointList",version="3.0")
+     * @ApiDescription(value="serverClient for getPointList")
+     * @Method(allow="{GET}")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "list": [
+        {
+        "id": 164,
+        "task_name": "每日签到",
+        "type": 1,
+        "point": 100,
+        "created_at": "2021-01-10"
+        }
+        ],
+        "total": 16
+        }
+        })
      */
     public function getPointList()
     {
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 10;
+        $page = !empty($this->params['page']) ? (int)$this->params['page'] : 1;
+        $size = !empty($this->params['size']) ? (int)$this->params['size'] : 10;
         $model = AdminUserSerialPoint::getInstance()->where('user_id', $this->auth['id'])
             ->field(['id', 'task_name', 'type', 'point', 'created_at'])
             ->getLimit($page, $size);
@@ -1072,6 +1368,58 @@ class UserCenter   extends FrontUserController{
             return $this->writeJson(Status::CODE_ERR, '提交失败，请联系客服');
 
         }
+
+    }
+
+
+    /**
+     * 个人中心首页
+     * @Api(name="个人中心首页",path="/api/community/userFirstPage",version="3.0")
+     * @ApiDescription(value="serverClient for userFirstPage")
+     * @Method(allow="{GET}")
+     * @Param(name="code",type="string",required="",description="验证码")
+     * @Param(name="mobile",type="string",required="",description="手机号")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
+     */
+    public function userFirstPage()
+    {
+
+        $type = isset($this->params['type']) ? $this->params['type'] : 1; //1发帖 2回帖 3资讯评论
+        $mid = $this->auth['id'];
+        $page = $this->params['page'] ?: 1;
+        $size = $this->params['size'] ?: 10;
+        $uid = !empty($this->params['user_id']) ? $this->params['user_id'] : $this->auth['id'];
+
+        if ($type == 1) { //发帖
+            $model = AdminUserPost::getInstance()->where('user_id', $uid)->where('status', AdminUserPost::SHOW_IN_FRONT, 'in')->getLimit($page, $size);
+            $list = $model->all(null);
+            $total = $model->lastQueryResult()->getTotalCount();
+            $format_post = FrontService::handPosts($list, $this->auth['id']);
+            $return_data = ['data' => $format_post, 'count' => $total];
+        } else if ($type == 2) {//回帖
+            $comment_model = AdminPostComment::getInstance()->where('user_id', $uid)->where('status', AdminPostComment::SHOW_IN_FRONT, 'in')->getAll($page, $size);
+            $list= $comment_model->all(null);
+            $total = $comment_model->lastQueryResult()->getTotalCount();
+            $format_comment = FrontService::handComments($list, $this->auth['id']);
+            $return_data = ['data' => $format_comment, 'count' => $total];
+
+        } else if ($type == 3) {
+            $information_comment_model = AdminInformationComment::getInstance()->where('user_id', $uid)->where('status', AdminInformationComment::SHOW_IN_FRONT, 'in')->getLimit($page, $size);
+            $list = $information_comment_model->all(null);
+            $total = $information_comment_model->lastQueryResult()->getTotalCount();
+            $format_comment = FrontService::handInformationComment($list, $this->auth['id']);
+            $return_data = ['data' => $format_comment, 'count' => $total];
+
+        } else {
+            $return_data = ['data' => [], 'count' => 0];
+
+        }
+
+
+        $is_me = ($uid == $mid) ? true : false;
+        $is_follow = AppFunc::isFollow($this->auth['id'], $uid);
+        $return_info = ['is_me' => $is_me, 'is_follow' => $is_follow, 'list' => $return_data];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_info);
 
     }
 

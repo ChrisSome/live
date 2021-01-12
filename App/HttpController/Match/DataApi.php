@@ -33,12 +33,12 @@ use App\Model\SeasonTeamPlayer;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use easySwoole\Cache\Cache;
-use EasySwoole\ORM\AbstractModel;
-use EasySwoole\ORM\DbManager;
-use EasySwoole\ORM\Exception\Exception;
-use EasySwoole\Redis\Redis as Redis;
-use EasySwoole\RedisPool\Redis as RedisPool;
-use Illuminate\Support\Facades\App;
+use EasySwoole\HttpAnnotation\AnnotationController;
+use EasySwoole\HttpAnnotation\AnnotationTag\Api;
+use EasySwoole\HttpAnnotation\AnnotationTag\Param;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiDescription;
+use EasySwoole\HttpAnnotation\AnnotationTag\Method;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiSuccess;
 use Throwable;
 
 class DataApi extends FrontUserController
@@ -62,8 +62,8 @@ class DataApi extends FrontUserController
 
     /**
      * 热推赛事
-     * @Api(name="getHotCompetition",path="/api/footBall/getHotCompetition",version="3.0")
-     * @ApiDescription(value="serverClient for getHotCompetition)
+     * @Api(name="热推赛事",path="/api/footBall/getHotCompetition",version="3.0")
+     * @ApiDescription(value="serverClient for getHotCompetition")
      * @Method(allow="{GET}")
      * @ApiSuccess({
         "code": 0,
@@ -245,8 +245,8 @@ class DataApi extends FrontUserController
 
     /**
      * 忘记密码
-     * @Api(name="getPlayerInfo",path="/api/footBall/getPlayerInfo",version="3.0")
-     * @ApiDescription(value="serverClient for getPlayerInfo)
+     * @Api(name="忘记密码",path="/api/footBall/getPlayerInfo",version="3.0")
+     * @ApiDescription(value="serverClient for getPlayerInfo")
      * @Method(allow="{GET}")
      * @Param(name="player_id",type="int",required="",description="球员id")
      * @Param(name="type",type="string",required="",description="类型 1基本信息 2技术统计")
@@ -499,8 +499,8 @@ class DataApi extends FrontUserController
 
     /**
      * 球队信息
-     * @Api(name="teamInfo",path="/api/footBall/teamInfo",version="3.0")
-     * @ApiDescription(value="serverClient for teamInfo)
+     * @Api(name="球队信息",path="/api/footBall/teamInfo",version="3.0")
+     * @ApiDescription(value="serverClient for teamInfo")
      * @Method(allow="{GET}")
      * @Param(name="type",type="int",required="",description="类型 1球队基本信息 2排行榜 3比赛 4球队数据 5阵容")
      * @Param(name="team_id",type="int",required="",description="球队id")
@@ -958,8 +958,8 @@ class DataApi extends FrontUserController
 
     /**
      * 球队转会记录
-     * @Api(name="teamChangeClubHistory",path="/api/footBall/teamChangeClubHistory",version="3.0")
-     * @ApiDescription(value="serverClient for teamChangeClubHistory)
+     * @Api(name="球队转会记录",path="/api/footBall/teamChangeClubHistory",version="3.0")
+     * @ApiDescription(value="serverClient for teamChangeClubHistory")
      * @Method(allow="{GET}")
      * @Param(name="team_id",type="int",required="",description="球队id")
      * @Param(name="type",type="int",required="",description="1 转入 2转出")
@@ -1020,8 +1020,8 @@ class DataApi extends FrontUserController
 
     /**
      * 热搜赛事
-     * @Api(name="hotSearchCompetition",path="/api/footBall/hotSearchCompetition",version="3.0")
-     * @ApiDescription(value="serverClient for hotSearchCompetition)
+     * @Api(name="热搜赛事",path="/api/footBall/hotSearchCompetition",version="3.0")
+     * @ApiDescription(value="serverClient for hotSearchCompetition")
      * @Method(allow="{GET}")
      * @ApiSuccess({
         "code": 0,
@@ -1066,8 +1066,8 @@ class DataApi extends FrontUserController
 
     /**
      * 获取赛事基本信息
-     * @Api(name="competitionInfo",path="/api/footBall/competitionInfo",version="3.0")
-     * @ApiDescription(value="serverClient for competitionInfo)
+     * @Api(name="获取赛事基本信息",path="/api/footBall/competitionInfo",version="3.0")
+     * @ApiDescription(value="serverClient for competitionInfo")
      * @Method(allow="{GET}")
      * @Param(name="competition_id",type="int",required="",description="赛事id")
      * @Param(name="type",type="int",required="",description="类型 0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队")
@@ -1329,9 +1329,9 @@ class DataApi extends FrontUserController
     }
 
     /**
-     * 搜索
-     * @Api(name="contentByKeyWord",path="/api/footBall/contentByKeyWord",version="3.0")
-     * @ApiDescription(value="serverClient for contentByKeyWord)
+     * 关键字搜做
+     * @Api(name="关键字搜做",path="/api/footBall/contentByKeyWord",version="3.0")
+     * @ApiDescription(value="serverClient for contentByKeyWord")
      * @Method(allow="{GET}")
      * @Param(name="key_word",type="string",required="",description="关键字")
      * @Param(name="type",type="int",required="",description="类型 1赛事 2球队 3球员")

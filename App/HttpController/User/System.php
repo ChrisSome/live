@@ -14,7 +14,13 @@ use App\Task\MessageTask;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use EasySwoole\EasySwoole\Task\TaskManager;
-use EasySwoole\ORM\DbManager;
+
+use EasySwoole\HttpAnnotation\AnnotationController;
+use EasySwoole\HttpAnnotation\AnnotationTag\Api;
+use EasySwoole\HttpAnnotation\AnnotationTag\Param;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiDescription;
+use EasySwoole\HttpAnnotation\AnnotationTag\Method;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiSuccess;
 
 class System extends FrontUserController
 {
@@ -69,13 +75,13 @@ class System extends FrontUserController
     }
 
     /**
-     * 系统公告
-     * @Api(name="hotreload",path="/api/system/hotreload",version="3.0")
-     * @ApiDescription(value="serverClient for systemHotReload)
+     * 热更新
+     * @Api(name="热更新",path="/api/system/hotreload",version="3.0")
+     * @ApiDescription(value="serverClient for systemHotReload")
      * @Method(allow="{GET}")
      * @Param(name="version",type="string",required="",description="用户版本号")
      * @Param(name="phone_type",type="string",required="",description="手机型号")
-     * @ApiSuccess({"code":0,"msg":"ok","data":{"is_new":1,"accoucement":{"title":"dfsdfsdfsdfrtereree","content":"dfsdfsdfsdfdsfg","created_at":"2020-12-23 23:22:00"},"shield_live":0,"wgt_url":"http://download.yemaoty.cn/WGT/__UNI__0AC1311.wgt"}})
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"is_new":-1,"accoucement":{"title":"dfsdfsdfsdfrtereree","content":"dfsdfsdfsdfdsfg","created_at":"2020-12-23 23:22:00"},"shield_live":0,"wgt_url":"http://download.yemaoty.cn/WGT/__UNI__0AC1311.wgt"}})
      */
     function hotreload()
     {
@@ -113,8 +119,8 @@ class System extends FrontUserController
 
     /**
      * 开屏广告
-     * @Api(name="hotreload",path="/api/system/hotreload",version="3.0")
-     * @ApiDescription(value="serverClient for adImgs)
+     * @Api(name="开屏广告",path="/api/system/adImgs",version="3.0")
+     * @ApiDescription(value="serverClient for adImgs")
      * @Method(allow="{GET}")
      * @ApiSuccess({"code":0,"msg":"ok","data":{"img":"http://backgroundtest.ymtyadmin.com/upload/config/3cd584757b512f32cac661becc178384.jpeg","url":"https://www.baidu.com","countDown":5,"is_open":true,"is_force":true}})
      */
@@ -153,8 +159,8 @@ class System extends FrontUserController
 
     /**
      * 敏感词
-     * @Api(name="sensitiveWord",path="/api/system/sensitiveWord",version="3.0")
-     * @ApiDescription(value="serverClient for sensitiveWord)
+     * @Api(name="敏感词",path="/api/system/sensitiveWord",version="3.0")
+     * @ApiDescription(value="serverClient for sensitiveWord")
      * @Method(allow="{GET}")
      * @ApiSuccess({"code":0,"msg":"ok","data":[{"word":"兼职"},{"word":"招聘"}]})
      */

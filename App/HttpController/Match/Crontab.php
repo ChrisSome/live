@@ -14,7 +14,6 @@ use App\Model\AdminInterestMatches;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
 use App\Storage\OnlineUser;
-use App\Task\TestTask;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
@@ -32,7 +31,6 @@ use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
 use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
-use App\Model\SeasonTeamPlayerBak;
 use App\Task\MatchNotice;
 use App\Utility\Log\Log;
 use App\lib\Tool;
@@ -65,7 +63,7 @@ use EasySwoole\EasySwoole\Task\TaskManager;
  *          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
  *                     佛祖保佑        永无BUG
  */
-class FootBallMatch extends FrontUserController
+class Crontab extends FrontUserController
 {
     const STATUS_SUCCESS = 0; //请求成功
     protected $isCheckSign = false;

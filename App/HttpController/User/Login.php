@@ -20,7 +20,6 @@ use App\Task\PhoneTask;
 use App\Task\SerialPointTask;
 use App\Task\TestTask;
 use App\Utility\Log\Log;
-use Carbon\Traits\Test;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Task\TaskManager;
@@ -35,7 +34,6 @@ use EasySwoole\HttpAnnotation\AnnotationTag\Param;
 use EasySwoole\HttpAnnotation\AnnotationTag\ApiDescription;
 use EasySwoole\HttpAnnotation\AnnotationTag\Method;
 use EasySwoole\HttpAnnotation\AnnotationTag\ApiSuccess;
-
 
 /**
  * Class Login
@@ -56,14 +54,15 @@ class Login extends FrontUserController
 
 
     /**
-     * @Api(name="user-login",path="/api/user/doLogin",version="3.0")
+     * 用户登录
+     * @Api(name="用户登录",path="/api/user/doLogin",version="3.0")
      * @ApiDescription(value="serverClient for UserLogin")
      * @Method(allow="{POST}")
      * @Param(name="mobile",type="string",required="",lengthMin="11",description="手机号")
-     * @Param(name="type",type="int,,description="登录类型")
-     * @Param(name="code",type="string,,description="验证码")
-     * @Param(name="password",type="string,,description="密码")
-     * @ApiSuccess({"code":0,"msg":"ok","data":{"id":4,"nickname":"Hdhdh","photo":"http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg","point":1010,"level":3,"is_offical":0,"mobile":"17343214247","user_setting":{"notice":{"only_notice_my_interest":0,"start":1,"goal":1,"over":1,"show_time_axis":1,"yellow_card":1,"red_card":1},"basketball_notice":{"only_notice_my_interest":0,"start":1,"over":1}},"wx_name":"秋秋","status":1,"front_token":"748eadf3c9d24127eabfe63dd5a5cef1","front_time":1610182754}})
+     * @Param(name="type",type="int",description="登录类型")
+     * @Param(name="code",type="string",description="验证码")
+     * @Param(name="password",type="string",description="密码")
+     * @ApiSuccess({"code":0,"msg":"ok","data":{"id":4,"nickname":"Hdhdh","photo":"http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/77e37f8fe3181d5f.jpg","point":1110,"level":3,"is_offical":0,"mobile":"17343214247","user_setting":{"notice":{"only_notice_my_interest":0,"start":1,"goal":1,"over":1,"show_time_axis":1,"yellow_card":1,"red_card":1},"basketball_notice":{"only_notice_my_interest":0,"start":1,"over":1}},"wx_name":"秋秋","status":1,"front_token":"c622c364d316ba7bfe696a8504498d85","front_time":1610360707}})
      */
     public function userLogin()
     {
@@ -149,8 +148,8 @@ class Login extends FrontUserController
 
     /**
      * 退出登录
-     * @Api(name="user-logout",path="/api/user/logout",version="3.0")
-     * @ApiDescription(value="serverClient for UserLoginOut)
+     * @Api(name="退出登录",path="/api/user/logout",version="3.0")
+     * @ApiDescription(value="serverClient for UserLoginOut")
      * @Method(allow="{POST}")
      * @ApiSuccess({"code":0,"msg":"ok","data":null})
      */
@@ -174,8 +173,8 @@ class Login extends FrontUserController
 
     /**
      * 发送验证码
-     * @Api(name="userSendMessage",path="/api/user/userSendSmg",version="3.0")
-     * @ApiDescription(value="serverClient for sendMsg)
+     * @Api(name="发送验证码",path="/api/user/userSendSmg",version="3.0")
+     * @ApiDescription(value="serverClient for sendMsg")
      * @Method(allow="{GET}")
      * @Param(name="mobile",type="string",required="",lengthMin="11",description="手机号")
      * @ApiSuccess({"code":0,"msg":"验证码以发送至尾号0962手机","data":72})
@@ -216,8 +215,8 @@ class Login extends FrontUserController
 
     /**
      * 绑定微信
-     * @Api(name="userBindWx",path="/api/user/thirdLogin",version="3.0")
-     * @ApiDescription(value="serverClient for userBindWx)
+     * @Api(name="绑定微信",path="/api/user/thirdLogin",version="3.0")
+     * @ApiDescription(value="serverClient for userBindWx")
      * @Method(allow="{POST}")
      * @Param(name="access_token",type="string",required="",description="")
      * @Param(name="open_id",type="string",required="",description="")
@@ -280,12 +279,12 @@ class Login extends FrontUserController
 
     /**
      * 微信登录
-     * @Api(name="userLoginByWx",path="/api/user/wxLogin",version="3.0")
-     * @ApiDescription(value="serverClient for userLoginByWx)
+     * @Api(name="微信登录",path="/api/user/wxLogin",version="3.0")
+     * @ApiDescription(value="serverClient for wxLogin")
      * @Method(allow="{POST}")
      * @Param(name="access_token",type="string",required="",description="")
      * @Param(name="open_id",type="string",required="",description="")
-     * @ApiSuccess({"code":0,"msg":"验证码以发送至尾号0962手机","data":72})
+     * @ApiSuccess({"code":0,"msg":"ok","data":null})
      */
     public function wxLogin()
     {
@@ -366,8 +365,8 @@ class Login extends FrontUserController
 
     /**
      * 用户注册
-     * @Api(name="userLogin",path="/api/user/logon",version="3.0")
-     * @ApiDescription(value="serverClient for userLogin)
+     * @Api(name="用户注册",path="/api/user/logon",version="3.0")
+     * @ApiDescription(value="serverClient for logon")
      * @Method(allow="{POST}")
      * @Param(name="nickname",type="string",required="",description="昵称")
      * @Param(name="mobile",type="string",required="",description="手机号")
@@ -527,8 +526,8 @@ class Login extends FrontUserController
 
     /**
      * 检查验证码
-     * @Api(name="checkPhoneCode",path="/api/user/checkPhoneCode",version="3.0")
-     * @ApiDescription(value="serverClient for checkPhoneCode)
+     * @Api(name="检查验证码",path="/api/user/checkPhoneCode",version="3.0")
+     * @ApiDescription(value="serverClient for checkPhoneCode")
      * @Method(allow="{GET}")
      * @Param(name="code",type="string",required="",description="验证码")
      * @Param(name="mobile",type="string",required="",description="手机号")
@@ -546,12 +545,7 @@ class Login extends FrontUserController
                 return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
             }
         }
-        if (empty($this->params['mobile'])) {
-            return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
 
-        } else if (AdminUser::getInstance()->where('mobile', $this->params['mobile'])->get()) {
-            return $this->writeJson(Statuses::CODE_PHONE_EXIST, Statuses::$msg[Statuses::CODE_PHONE_EXIST]);
-        }
         return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
 
 
@@ -560,8 +554,8 @@ class Login extends FrontUserController
 
     /**
      * 忘记密码
-     * @Api(name="forgetPass",path="/api/user/forgetPass",version="3.0")
-     * @ApiDescription(value="serverClient for forgetPass)
+     * @Api(name="忘记密码",path="/api/user/forgetPass",version="3.0")
+     * @ApiDescription(value="serverClient for forgetPass")
      * @Method(allow="{POST}")
      * @Param(name="mobile",type="string",required="",description="手机号")
      * @Param(name="password",type="string",required="",description="密码")

@@ -41,7 +41,12 @@ use App\Storage\OnlineUser;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
-use easySwoole\Cache\Cache;
+use EasySwoole\HttpAnnotation\AnnotationController;
+use EasySwoole\HttpAnnotation\AnnotationTag\Api;
+use EasySwoole\HttpAnnotation\AnnotationTag\Param;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiDescription;
+use EasySwoole\HttpAnnotation\AnnotationTag\Method;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiSuccess;
 
 class FootballApi extends FrontUserController
 {
@@ -161,6 +166,26 @@ class FootballApi extends FrontUserController
         ],
     ];
 
+
+    /**
+     * 赛事列表
+     * @Api(name="赛事列表",path="/api/footBall/competitionList",version="3.0")
+     * @ApiDescription(value="serverClient for getCompetition")
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "hot": [
+        {
+        "competition_id": 82,
+        "short_name_zh": "英超",
+        "is_notice": false
+        }
+        ]
+        }
+        })
+     */
     public function getCompetition()
     {
         $recommend = [];
@@ -188,9 +213,50 @@ class FootballApi extends FrontUserController
     }
 
     /**
-     * @return bool
-     * @throws \EasySwoole\ORM\Exception\Exception
-     * @throws \Throwable
+     * 进行中比赛列表
+     * @Api(name="进行中比赛列表",path="/api/footBall/matchListPlaying",version="3.0")
+     * @ApiDescription(value="serverClient for matchListPlaying")
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "list": [
+        {
+        "home_team_name": "帕德博恩",
+        "home_team_logo": "https://cdn.sportnanoapi.com/football/team/90ef22ec8a0a605bba948378f870633a.png",
+        "away_team_name": "奥厄",
+        "away_team_logo": "https://cdn.sportnanoapi.com/football/team/e12165981407f62a9616b5467292ef2f.png",
+        "round": "",
+        "competition_id": 130,
+        "competition_name": "德乙",
+        "competition_color": "#919292",
+        "match_time": "20:30",
+        "format_match_time": "2021-01-10 20:30",
+        "user_num": 0,
+        "match_id": 3418640,
+        "is_start": true,
+        "status_id": 2,
+        "is_interest": false,
+        "neutral": 0,
+        "matching_time": "6",
+        "matching_info": null,
+        "has_living": 0,
+        "living_url": {
+        "liveUrl": "",
+        "liveUrl2": "",
+        "liveUrl3": ""
+        },
+        "note": "",
+        "home_scores": "[1,1,0,0,0,0,0]",
+        "away_scores": "[0,0,0,0,0,0,0]",
+        "coverage": "",
+        "steamLink": ""
+        }
+        ],
+        "count": 10
+        }
+        })
      */
     public function matchListPlaying()
     {
@@ -287,7 +353,51 @@ class FootballApi extends FrontUserController
 
 
 
-
+    /**
+     * 关注的比赛列表
+     * @Api(name="关注的比赛列表",path="/api/footBall/userInterestMatchList",version="3.0")
+     * @ApiDescription(value="serverClient for userInterestMatchList")
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "list": [
+        {
+        "home_team_name": "姆贝亚市",
+        "home_team_logo": "https://cdn.sportnanoapi.com/football/team/8dce5b6fcb73b07c8cbf0d7e8562a61d.png",
+        "away_team_name": "基农多尼",
+        "away_team_logo": "https://cdn.sportnanoapi.com/football/team/6412312cc0a3796583d8e3ae993a67a3.png",
+        "round": "",
+        "competition_id": 1796,
+        "competition_name": "坦桑超",
+        "competition_color": "#dd2431",
+        "match_time": "21:00",
+        "format_match_time": "2021-01-02 21:00",
+        "user_num": 0,
+        "match_id": 3490466,
+        "is_start": false,
+        "status_id": 13,
+        "is_interest": true,
+        "neutral": 0,
+        "matching_time": 0,
+        "matching_info": null,
+        "has_living": 0,
+        "living_url": {
+        "liveUrl": "",
+        "liveUrl2": "",
+        "liveUrl3": ""
+        },
+        "note": "",
+        "home_scores": "[0,0,0,0,0,0,0]",
+        "away_scores": "[0,0,0,0,0,0,0]",
+        "steamLink": ""
+        }
+        ],
+        "count": 50
+        }
+        })
+     */
     public function userInterestMatchList()
     {
         if (!$this->auth['id']) {
@@ -308,9 +418,339 @@ class FootballApi extends FrontUserController
     }
 
     /**
-     * 单场比赛阵容详情
-     * @return bool
-     * @throws
+     * 单场比赛阵容
+     * @Api(name="单场比赛阵容",path="/api/footBall/lineUpDetail",version="3.0")
+     * @ApiDescription(value="serverClient for lineUpDetail")
+     * @Method(allow="{GET}")
+     * @Param(name="match_id",type="int",required="",description="比赛id")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "home": {
+        "firstPlayers": [
+        {
+        "player_id": 1294609,
+        "name": "卢卡·杰梅洛",
+        "logo": "",
+        "position": "G",
+        "shirt_number": 1
+        },
+        {
+        "player_id": 32816,
+        "name": "马可·安吉莱瑞",
+        "logo": "",
+        "position": "",
+        "shirt_number": 7
+        },
+        {
+        "player_id": 25917,
+        "name": "洛丽丝·达蒙特",
+        "logo": "",
+        "position": "",
+        "shirt_number": 21
+        },
+        {
+        "player_id": 34348,
+        "name": "马塞洛·波森蒂",
+        "logo": "",
+        "position": "",
+        "shirt_number": 24
+        },
+        {
+        "player_id": 51273,
+        "name": "大卫·古列尔莫蒂",
+        "logo": "",
+        "position": "",
+        "shirt_number": 27
+        },
+        {
+        "player_id": 1008763,
+        "name": "罗伯托·拉涅利",
+        "logo": "",
+        "position": "",
+        "shirt_number": 4
+        },
+        {
+        "player_id": 1110219,
+        "name": "阿尔芒·拉达",
+        "logo": "",
+        "position": "",
+        "shirt_number": 20
+        },
+        {
+        "player_id": 1294611,
+        "name": "安东尼奥·埃斯波西托",
+        "logo": "",
+        "position": "",
+        "shirt_number": 3
+        },
+        {
+        "player_id": 32905,
+        "name": "朱塞佩·乔文科",
+        "logo": "",
+        "position": "",
+        "shirt_number": 10
+        },
+        {
+        "player_id": 42444,
+        "name": "弗朗西斯科·加鲁皮尼",
+        "logo": "",
+        "position": "",
+        "shirt_number": 14
+        },
+        {
+        "player_id": 1299436,
+        "name": "汤米·麦斯特罗",
+        "logo": "",
+        "position": "",
+        "shirt_number": 5
+        }
+        ],
+        "alternatePlayers": [
+        {
+        "player_id": 1294603,
+        "name": "法布里兹·巴赫里亚",
+        "logo": "",
+        "position": "",
+        "shirt_number": 12
+        },
+        {
+        "player_id": 1294523,
+        "name": "里卡多·布尔吉奥",
+        "logo": "",
+        "position": "",
+        "shirt_number": 23
+        },
+        {
+        "player_id": 1294607,
+        "name": "卡米拉·瑟纳",
+        "logo": "",
+        "position": "",
+        "shirt_number": 25
+        },
+        {
+        "player_id": 1294604,
+        "name": "埃拉尔德·拉克蒂",
+        "logo": "",
+        "position": "",
+        "shirt_number": 19
+        },
+        {
+        "player_id": 31867,
+        "name": "安东尼奥·马格利",
+        "logo": "",
+        "position": "",
+        "shirt_number": 16
+        },
+        {
+        "player_id": 1138298,
+        "name": " 安德里亚·马拉菲尼",
+        "logo": "",
+        "position": "",
+        "shirt_number": 6
+        },
+        {
+        "player_id": 1295666,
+        "name": "弗朗西斯·马拉诺",
+        "logo": "",
+        "position": "",
+        "shirt_number": 30
+        },
+        {
+        "player_id": 1294610,
+        "name": "托马索·梅雷蒂",
+        "logo": "",
+        "position": "",
+        "shirt_number": 2
+        },
+        {
+        "player_id": 1299435,
+        "name": "里卡多·桑托维托",
+        "logo": "",
+        "position": "",
+        "shirt_number": 13
+        },
+        {
+        "player_id": 1301391,
+        "name": "雅各布·席尔瓦",
+        "logo": "",
+        "position": "",
+        "shirt_number": 28
+        },
+        {
+        "player_id": 1025865,
+        "name": "洛伦佐·索伦蒂诺",
+        "logo": "",
+        "position": "",
+        "shirt_number": 11
+        }
+        ],
+        "homeFormation": "3-4-1-2"
+        },
+        "away": {
+        "firstPlayers": [
+        {
+        "player_id": 1295276,
+        "name": "亚历山德罗·利维里",
+        "logo": "",
+        "position": "G",
+        "shirt_number": 22
+        },
+        {
+        "player_id": 1282559,
+        "name": "洛伦佐·朱比拉托",
+        "logo": "",
+        "position": "",
+        "shirt_number": 23
+        },
+        {
+        "player_id": 28528,
+        "name": "西蒙尼.佩拉里尼",
+        "logo": "http://cdn.sportnanoapi.com/football/player/1f00a5eed58e3c2500229ee7f66e2956.png",
+        "position": "",
+        "shirt_number": 5
+        },
+        {
+        "player_id": 1295278,
+        "name": "安德烈·博斯科",
+        "logo": "",
+        "position": "",
+        "shirt_number": 25
+        },
+        {
+        "player_id": 1359043,
+        "name": "大卫·马格纳拉",
+        "logo": "",
+        "position": "",
+        "shirt_number": 34
+        },
+        {
+        "player_id": 1282560,
+        "name": "卢西亚诺·瓜迪",
+        "logo": "",
+        "position": "",
+        "shirt_number": 8
+        },
+        {
+        "player_id": 1282558,
+        "name": "托马索·加托尼",
+        "logo": "",
+        "position": "",
+        "shirt_number": 4
+        },
+        {
+        "player_id": 1282556,
+        "name": "亚历山德罗·蒙诺",
+        "logo": "",
+        "position": "",
+        "shirt_number": 6
+        },
+        {
+        "player_id": 1282561,
+        "name": "卢卡·帕莱西",
+        "logo": "",
+        "position": "",
+        "shirt_number": 7
+        },
+        {
+        "player_id": 66422,
+        "name": "克里斯蒂安·穆托",
+        "logo": "http://cdn.sportnanoapi.com/football/player/0e00315c4f499445ab5c7254ffcc96c9.png",
+        "position": "",
+        "shirt_number": 18
+        },
+        {
+        "player_id": 1299443,
+        "name": "卢卡·卡波奇",
+        "logo": "",
+        "position": "",
+        "shirt_number": 10
+        }
+        ],
+        "alternatePlayers": [
+        {
+        "player_id": 1354649,
+        "name": "费德里科·贝尔托利",
+        "logo": "",
+        "position": "",
+        "shirt_number": 15
+        },
+        {
+        "player_id": 1295280,
+        "name": "克里斯蒂安·马尔蒂尼",
+        "logo": "",
+        "position": "",
+        "shirt_number": 3
+        },
+        {
+        "player_id": 1282557,
+        "name": "米切尔·弗朗科",
+        "logo": "",
+        "position": "",
+        "shirt_number": 32
+        },
+        {
+        "player_id": 1299440,
+        "name": "克劳迪奥·马菲",
+        "logo": "",
+        "position": "",
+        "shirt_number": 28
+        },
+        {
+        "player_id": 1299444,
+        "name": "迈克尔·恩图贝",
+        "logo": "",
+        "position": "",
+        "shirt_number": 14
+        },
+        {
+        "player_id": 1299439,
+        "name": "费德里科·马尔凯西",
+        "logo": "",
+        "position": "",
+        "shirt_number": 29
+        },
+        {
+        "player_id": 1305167,
+        "name": "爱德华多迷迭香",
+        "logo": "",
+        "position": "",
+        "shirt_number": 16
+        },
+        {
+        "player_id": 1299438,
+        "name": "加布里埃尔·莫塔",
+        "logo": "",
+        "position": "",
+        "shirt_number": 17
+        },
+        {
+        "player_id": 1282555,
+        "name": "亚历山德罗·斯皮尼斯",
+        "logo": "",
+        "position": "",
+        "shirt_number": 9
+        },
+        {
+        "player_id": 1282553,
+        "name": "费德里科·费拉特德尔",
+        "logo": "",
+        "position": "",
+        "shirt_number": 1
+        },
+        {
+        "player_id": 1295277,
+        "name": "马蒂诺·科米内蒂",
+        "logo": "",
+        "position": "",
+        "shirt_number": 11
+        }
+        ],
+        "awayFormation": "4-3-3"
+        }
+        }
+        })
      */
     public function lineUpDetail()
     {
@@ -402,8 +842,232 @@ class FootballApi extends FrontUserController
 
 
     /**
-     * 历史交锋
-     * @return bool
+     * 直播间数据
+     * @Api(name="直播间数据",path="/api/footBall/getClashHistory",version="3.0")
+     * @ApiDescription(value="serverClient for getClashHistory")
+     * @Method(allow="{GET}")
+     * @Param(name="match_id",type="string",required="",description="")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "intvalRank": {
+        "homeIntvalRank": {
+        "team_id": 29045,
+        "promotion_id": 0,
+        "points": 38,
+        "position": 1,
+        "deduct_points": 0,
+        "note_zh": "",
+        "total": 17,
+        "won": 12,
+        "draw": 2,
+        "loss": 3,
+        "goals": 30,
+        "goals_against": 16,
+        "goal_diff": 14,
+        "home_points": 18,
+        "home_position": 2,
+        "home_total": 8,
+        "home_won": 6,
+        "home_draw": 0,
+        "home_loss": 2,
+        "home_goals": 15,
+        "home_goals_against": 8,
+        "home_goal_diff": 7,
+        "away_points": 20,
+        "away_position": 1,
+        "away_total": 9,
+        "away_won": 6,
+        "away_draw": 2,
+        "away_loss": 1,
+        "away_goals": 15,
+        "away_goals_against": 8,
+        "away_goal_diff": 7
+        },
+        "awayIntvalRank": {
+        "team_id": 19223,
+        "promotion_id": 0,
+        "points": 24,
+        "position": 11,
+        "deduct_points": 0,
+        "note_zh": "",
+        "total": 17,
+        "won": 7,
+        "draw": 3,
+        "loss": 7,
+        "goals": 17,
+        "goals_against": 20,
+        "goal_diff": -3,
+        "home_points": 11,
+        "home_position": 12,
+        "home_total": 9,
+        "home_won": 3,
+        "home_draw": 2,
+        "home_loss": 4,
+        "home_goals": 8,
+        "home_goals_against": 8,
+        "home_goal_diff": 0,
+        "away_points": 13,
+        "away_position": 9,
+        "away_total": 8,
+        "away_won": 4,
+        "away_draw": 1,
+        "away_loss": 3,
+        "away_goals": 9,
+        "away_goals_against": 12,
+        "away_goal_diff": -3
+        }
+        },
+        "historyResult": [],
+        "recentResult": {
+        "home": {
+        "won_count": 11,
+        "drawn_count": 2,
+        "lost_count": 2,
+        "rate": 0.7333
+        },
+        "away": {
+        "won_count": 7,
+        "drawn_count": 3,
+        "lost_count": 5,
+        "rate": 0.4667
+        }
+        },
+        "history": [],
+        "homeRecent": [
+        {
+        "home_team_name": "尤文图斯U23",
+        "home_team_logo": "https://cdn.sportnanoapi.com/football/team/085230960ba9f851b635b50ffa128fee.png",
+        "away_team_name": "AC雷纳特",
+        "away_team_logo": "https://cdn.sportnanoapi.com/football/team/b29879cf9c844a43dde4ffa08203308d.png",
+        "round": "",
+        "competition_id": 110,
+        "competition_name": "意丙",
+        "competition_color": "",
+        "match_time": "22:00",
+        "format_match_time": "2020-12-23 22:00",
+        "user_num": 0,
+        "match_id": 3457081,
+        "is_start": false,
+        "status_id": 8,
+        "is_interest": false,
+        "neutral": 0,
+        "matching_time": 0,
+        "matching_info": null,
+        "has_living": 0,
+        "living_url": {
+        "liveUrl": "",
+        "liveUrl2": "",
+        "liveUrl3": ""
+        },
+        "note": "",
+        "home_scores": "[1,0,1,2,6,0,0]",
+        "away_scores": "[2,0,0,6,3,0,0]",
+        "coverage": "",
+        "steamLink": ""
+        }        ],
+        "awayRecent": [
+        {
+        "home_team_name": "普罗塞斯托",
+        "home_team_logo": "https://cdn.sportnanoapi.com/football/team/3bd4017318837e92a66298c7855f4427.jpg",
+        "away_team_name": "格罗瑟托",
+        "away_team_logo": "https://cdn.sportnanoapi.com/football/team/970af30e481057c48f87e101b61e6994.jpg",
+        "round": "",
+        "competition_id": 110,
+        "competition_name": "意丙",
+        "competition_color": "",
+        "match_time": "22:00",
+        "format_match_time": "2020-12-23 22:00",
+        "user_num": 0,
+        "match_id": 3457087,
+        "is_start": false,
+        "status_id": 8,
+        "is_interest": false,
+        "neutral": 0,
+        "matching_time": 0,
+        "matching_info": null,
+        "has_living": 0,
+        "living_url": {
+        "liveUrl": "",
+        "liveUrl2": "",
+        "liveUrl3": ""
+        },
+        "note": "",
+        "home_scores": "[1,0,0,2,6,0,0]",
+        "away_scores": "[2,1,0,2,2,0,0]",
+        "coverage": "",
+        "steamLink": ""
+        }
+        ],
+        "homeRecentSchedule": [
+        {
+        "home_team_name": "利沃诺",
+        "home_team_logo": "https://cdn.sportnanoapi.com/football/team/80a20f75ca09f28f3c6871366dca3867.png",
+        "away_team_name": "普罗塞斯托",
+        "away_team_logo": "https://cdn.sportnanoapi.com/football/team/3bd4017318837e92a66298c7855f4427.jpg",
+        "round": "",
+        "competition_id": 110,
+        "competition_name": "意丙",
+        "competition_color": "",
+        "match_time": "21:00",
+        "format_match_time": "2021-04-25 21:00",
+        "user_num": 0,
+        "match_id": 3457294,
+        "is_start": false,
+        "status_id": 1,
+        "is_interest": false,
+        "neutral": 0,
+        "matching_time": 0,
+        "matching_info": null,
+        "has_living": 0,
+        "living_url": {
+        "liveUrl": "",
+        "liveUrl2": "",
+        "liveUrl3": ""
+        },
+        "note": "",
+        "home_scores": "[0,0,0,0,-1,0,0]",
+        "away_scores": "[0,0,0,0,-1,0,0]",
+        "coverage": "",
+        "steamLink": ""
+        }
+        ],
+        "awayRecentSchedule": [
+        {
+        "home_team_name": "AC雷纳特",
+        "home_team_logo": "https://cdn.sportnanoapi.com/football/team/b29879cf9c844a43dde4ffa08203308d.png",
+        "away_team_name": "卢捷斯",
+        "away_team_logo": "https://cdn.sportnanoapi.com/football/team/a424ed4bd3a7d6aea720b86d4a360f75.gif",
+        "round": "",
+        "competition_id": 110,
+        "competition_name": "意丙",
+        "competition_color": "",
+        "match_time": "21:00",
+        "format_match_time": "2021-04-25 21:00",
+        "user_num": 0,
+        "match_id": 3457298,
+        "is_start": false,
+        "status_id": 1,
+        "is_interest": false,
+        "neutral": 0,
+        "matching_time": 0,
+        "matching_info": null,
+        "has_living": 0,
+        "living_url": {
+        "liveUrl": "",
+        "liveUrl2": "",
+        "liveUrl3": ""
+        },
+        "note": "",
+        "home_scores": "[0,0,0,0,-1,0,0]",
+        "away_scores": "[0,0,0,0,-1,0,0]",
+        "coverage": "",
+        "steamLink": ""
+        }
+        ]
+        }
+        })
      */
     public function getClashHistory()
     {
@@ -645,6 +1309,53 @@ class FootballApi extends FrontUserController
 
     }
 
+    /**
+     * 进行今日比赛列表
+     * @Api(name="今日比赛列表",path="/api/footBall/getTodayAllMatch",version="3.0")
+     * @ApiDescription(value="serverClient for getTodayAllMatch")
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "list": [
+        {
+        "home_team_name": "圣胡安莫扎里法",
+        "home_team_logo": "https://cdn.sportnanoapi.com/football/team/579dcb8e758b9e5fd6386eac6f74c76e.png",
+        "away_team_name": "特鲁埃尔",
+        "away_team_logo": "https://cdn.sportnanoapi.com/football/team/579bb1d9cafd92b8d307a8c6943dc0aa.jpg",
+        "round": "",
+        "competition_id": 1679,
+        "competition_name": "西丁",
+        "competition_color": "",
+        "match_time": "00:00",
+        "format_match_time": "2021-01-11 00:00",
+        "user_num": 0,
+        "match_id": 3491859,
+        "is_start": false,
+        "status_id": 8,
+        "is_interest": false,
+        "neutral": 0,
+        "matching_time": 0,
+        "matching_info": null,
+        "has_living": 0,
+        "living_url": {
+        "liveUrl": "",
+        "liveUrl2": "",
+        "liveUrl3": ""
+        },
+        "note": "",
+        "home_scores": "[0,0,0,0,0,0,0]",
+        "away_scores": "[3,0,0,0,0,0,0]",
+        "coverage": "",
+        "steamLink": ""
+        }
+        ],
+        "count": 92,
+        "user_interest_count": 50
+        }
+        })
+     */
     public function getTodayAllMatch()
     {
         $start = strtotime(date('Y-m-d'));
@@ -684,6 +1395,49 @@ class FootballApi extends FrontUserController
     }
 
 
+    /**
+     * 比赛详情
+     * @Api(name="比赛详情",path="/api/footBall/matchInfo",version="3.0")
+     * @ApiDescription(value="serverClient for getMatchInfo")
+     * @Method(allow="{GET}")
+     * @Param(name="match_id",type="int",required="",description="")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "home_team_name": "AC雷纳特",
+        "home_team_logo": "https://cdn.sportnanoapi.com/football/team/b29879cf9c844a43dde4ffa08203308d.png",
+        "away_team_name": "普罗塞斯托",
+        "away_team_logo": "https://cdn.sportnanoapi.com/football/team/3bd4017318837e92a66298c7855f4427.jpg",
+        "round": "",
+        "competition_id": 110,
+        "competition_name": "意丙",
+        "competition_color": "",
+        "match_time": "19:30",
+        "format_match_time": "2021-01-10 19:30",
+        "user_num": 0,
+        "match_id": 3457098,
+        "is_start": true,
+        "status_id": 4,
+        "is_interest": false,
+        "neutral": 0,
+        "matching_time": "58",
+        "match_info": null,
+        "has_living": 0,
+        "living_url": {
+        "liveUrl": "",
+        "liveUrl2": "",
+        "liveUrl3": ""
+        },
+        "note": "",
+        "home_scores": "[2,2,0,0,3,0,0]",
+        "away_scores": "[0,0,0,2,0,0,0]",
+        "coverage": "",
+        "steamLink": "",
+        "competition_type": 1
+        }
+        })
+     */
     public function getMatchInfo()
     {
         if (!isset($this->params['match_id'])) {

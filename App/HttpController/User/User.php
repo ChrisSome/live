@@ -26,6 +26,12 @@ use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Validate\Validate;
 use App\Task\UserTask;
 use easySwoole\Cache\Cache;
+use EasySwoole\HttpAnnotation\AnnotationController;
+use EasySwoole\HttpAnnotation\AnnotationTag\Api;
+use EasySwoole\HttpAnnotation\AnnotationTag\Param;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiDescription;
+use EasySwoole\HttpAnnotation\AnnotationTag\Method;
+use EasySwoole\HttpAnnotation\AnnotationTag\ApiSuccess;
 
 /**
  * 前台用户控制器
@@ -110,8 +116,8 @@ class User extends FrontUserController
 
     /**
      * 用户关注
-     * @Api(name="userFollowings",path="/api/user/userFollow",version="3.0")
-     * @ApiDescription(value="serverClient for userFollowings)
+     * @Api(name="用户关注",path="/api/user/userFollow",version="3.0")
+     * @ApiDescription(value="serverClient for userFollowings")
      * @Method(allow="{POST}")
      * @Param(name="follow_id",type="int",required="",description="关注的用户id")
      * @Param(name="action_type",type="string",required="",description="类型 add｜del")
@@ -182,8 +188,8 @@ class User extends FrontUserController
 
     /**
      * 用户操作
-     * @Api(name="informationOperate",path="/api/user/informationOperate",version="3.0")
-     * @ApiDescription(value="serverClient for itemOperate)
+     * @Api(name="用户操作",path="/api/user/informationOperate",version="3.0")
+     * @ApiDescription(value="serverClient for itemOperate")
      * @Method(allow="{POST}")
      * @Param(name="type",type="int",required="",description="操作类型 1｜2｜3")
      * @Param(name="item_type",type="int",required="",description="类型 1帖子 2帖子评论 3资讯 4资讯评论 5直播间发言")
@@ -401,8 +407,8 @@ class User extends FrontUserController
 
     /**
      * 用户关注比赛
-     * @Api(name="userInterestMatch",path="/api/user/userInterestMatch",version="3.0")
-     * @ApiDescription(value="serverClient for userInterestMatch)
+     * @Api(name="用户关注比赛",path="/api/user/userInterestMatch",version="3.0")
+     * @ApiDescription(value="serverClient for userInterestMatch")
      * @Method(allow="{POST}")
      * @Param(name="match_id",type="int",required="",description="比赛id")
      * @Param(name="type",type="string",required="",description="类型 add | del")
@@ -486,13 +492,13 @@ class User extends FrontUserController
 
     /**
      * 评论
-     * @Api(name="doComment",path="/api/community/doComment",version="3.0")
-     * @ApiDescription(value="serverClient for doComment)
+     * @Api(name="评论",path="/api/community/doComment",version="3.0")
+     * @ApiDescription(value="serverClient for doComment")
      * @Method(allow="{POST}")
      * @Param(name="post_id",type="int",required="",description="帖子id")
      * @Param(name="content",type="string",required="",description="评论内容")
      * @Param(name="parent_id",type="int",required="",description="父id")
-     * @Param(name="top_comment_id",type="int",required="",description=一级评论id")
+     * @Param(name="top_comment_id",type="int",required="",description="一级评论id")
      * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function doComment()
