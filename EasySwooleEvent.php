@@ -147,10 +147,10 @@ class EasySwooleEvent implements Event
         /**
          * ****************  mysql 热启动  ****************
          */
-        $register->add($register::onWorkerStart,function (){
-            //链接预热
-            DbManager::getInstance()->getConnection()->getClientPool()->keepMin();
-        });
+//        $register->add($register::onWorkerStart,function (){
+//            //链接预热
+//            DbManager::getInstance()->getConnection()->getClientPool()->keepMin();
+//        });
 
 
 

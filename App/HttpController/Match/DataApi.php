@@ -1253,7 +1253,6 @@ class DataApi extends FrontUserController
             if (!empty($this->params['group_id']) && intval($this->params['group_id']) > 0) $groupId = intval($this->params['group_id']);
             // 比赛信息
             $tmp = Utils::queryHandler(SeasonMatchList::getInstance(), 'season_id=?', $selectSeasonId, '*', false);
-
             foreach ($tmp as $v) {
                 $round = json_decode($v['round'], true);
                 $isOk = intval($round['stage_id']) == $stageId && (intval($round['round_num']) == $roundId || intval($round['group_num']) == $groupId);
@@ -1263,7 +1262,7 @@ class DataApi extends FrontUserController
                 $decodeHomeScore = json_decode($v['home_scores'], true);
                 $decodeAwayScore = json_decode($v['away_scores'], true);
                 $data = [];
-                $data['match_id'] = intval($v['id']);
+                $data['match_id'] = intval($v['match_id']);
                 $data['match_time'] = date('Y-m-d H:i:s', $v['match_time']);
                 $data['home_team_name_zh'] = $v['home_team_name'];
                 $data['away_team_name_zh'] = $v['away_team_name'];

@@ -719,7 +719,7 @@ class Crontab extends FrontUserController
                         $pushInfo = [
                             'title' => $title,
                             'content' => $content,
-                            'payload' => ['item_id' => $match->match_id, 'type' => 1],
+                            'payload' => ['item_id' => $match->match_id, 'item_type' => 1],
                             'notice_id' => $rs,
 
                         ];
@@ -1037,38 +1037,35 @@ class Crontab extends FrontUserController
      */
     public function teamHonor()
     {
+        $max = AdminTeamHonor::getInstance()->max('updated_at');
+        $url = sprintf($this->team_honor, $this->user, $this->secret, $max + 1);
+        $res = Tool::getInstance()->postApi($url);
+        $resp = json_decode($res, true);
 
-        while (true){
-            $max = AdminTeamHonor::getInstance()->max('updated_at');
-            $url = sprintf($this->team_honor, $this->user, $this->secret, $max + 1);
-            $res = Tool::getInstance()->postApi($url);
-            $resp = json_decode($res, true);
+        if ($resp['code'] == 0) {
+            if ($resp['query']['total'] == 0) {
+                Log::getInstance()->info('球队荣誉更新完成');
 
-            if ($resp['code'] == 0) {
-                if ($resp['query']['total'] == 0) {
-                    return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
-                }
-                $decode = $resp['results'];
-                foreach ($decode as $item) {
-                    $data = [
-                        'team_id' => $item['id'],
-                        'honors' => json_encode($item['honors']),
-                        'team' => json_encode($item['team']),
-                        'update_at' => $item['updated_at']
-                    ];
-                    if (!AdminTeamHonor::getInstance()->where('team_id', $item['id'])->get()) {
-                        AdminTeamHonor::getInstance()->insert($data);
-                    } else {
-                        $team_id = $data['team_id'];
-                        unset($data['team_id']);
-                        AdminTeamHonor::getInstance()->update($data, ['team_id'=> $team_id]);
-                    }
-                }
-                $this->start_id = $resp['query']['max_id'];
-            } else {
-                break;
             }
+            $decode = $resp['results'];
+            foreach ($decode as $item) {
+                $data = [
+                    'team_id' => $item['id'],
+                    'honors' => json_encode($item['honors']),
+                    'team' => json_encode($item['team']),
+                    'update_at' => $item['updated_at']
+                ];
+                if (!AdminTeamHonor::getInstance()->where('team_id', $item['id'])->get()) {
+                    AdminTeamHonor::getInstance()->insert($data);
+                } else {
+                    $team_id = $data['team_id'];
+                    unset($data['team_id']);
+                    AdminTeamHonor::getInstance()->update($data, ['team_id'=> $team_id]);
+                }
+            }
+        } else {
+            Log::getInstance()->info('更新球队荣誉通信失效');
+
         }
 
     }
@@ -1361,7 +1358,7 @@ class Crontab extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function matchTlive()
+    public function matchTliveBak()
     {
         Log::getInstance()->info('tlive-start');
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
@@ -1512,7 +1509,7 @@ class Crontab extends FrontUserController
 
 
                 }
-                $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow' => $yellow_card_tlive_total, 'red' => $red_card_tlive_total];
+                $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow_card' => $yellow_card_tlive_total, 'red_card' => $red_card_tlive_total];
                 $signal_match_info['match_trend'] = $match_trend_info;
                 $signal_match_info['match_id'] = $item['id'];
                 $signal_match_info['time'] = AppFunc::getPlayingTime($item['id']);
@@ -1558,6 +1555,200 @@ class Crontab extends FrontUserController
     }
 
 
+
+    /**
+     * 定时推送脚本 30秒/次  需要重点维护
+     * @throws \EasySwoole\Mysqli\Exception\Exception
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
+     */
+    public function matchTlive()
+    {
+        Log::getInstance()->info('push match tlive start');
+        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+
+        if ($decode = json_decode($res, true)) {
+            Log::getInstance()->info('accept data success');
+
+            $match_info = [];
+            foreach ($decode as $item) {
+
+                //无效比赛 跳过
+                if (!$match = AdminMatch::getInstance()->where('match_id', $item['id'])->get()) {
+                    Log::getInstance()->info('match do not exist-' . $item['id']);
+                    continue;
+                }
+
+                //比赛结束 跳过
+                if (AdminMatchTlive::getInstance()->where('match_id', $item['id'])->where('is_stop', 1)->get()) {
+                    continue;
+                }
+                $status = $item['score'][1];
+                if (!in_array($status, [2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
+                    continue;
+                }
+
+                //比赛结束通知
+                if ($item['score'][1] == 8) { //结束
+                    TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'],  'item' => $item,'score' => $item['score'],  'type'=>12]));
+                }
+
+                //不在热门赛事中  跳过
+                if (!AppFunc::isInHotCompetition($match->competition_id)) {
+                    continue;
+                }
+
+                Log::getInstance()->info('still have match to push');
+
+                $match_trend_info = [];
+                if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
+                    $match_trend_info = json_decode($matchTrendRes->match_trend, true);
+                }
+                //设置比赛进行时间
+                AppFunc::setPlayingTime($item['id'], $item['score']);
+                //比赛开始的通知
+                if ($item['score'][1] == 2 && !Cache::get('match_notice_start:' . $item['id'])) { //开始
+                    TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'score' => $item['score'],'item' => $item,  'type'=>10]));
+                    Cache::set('match_notice_start:' . $item['id'], 1, 60 * 240);
+                }
+                $matchStats = [];
+                if (isset($item['stats'])) {
+                    foreach ($item['stats'] as $ki => $vi) {
+                        // 21：射正 22：射偏  23:进攻  24危险进攻 25：控球率
+                        if ($vi['type'] == 21 || $vi['type'] == 22 || $vi['type'] == 23 || $vi['type'] == 24 || $vi['type'] == 25) {
+                            $matchStats[] = $vi;
+                        }
+
+                    }
+                    Cache::set('match_stats_' . $item['id'], json_encode($matchStats), 60 * 240);
+
+                }
+                $corner_count_tlive = [];
+                $corner_count_new = 0;
+
+                $goal_count_new = 0;
+                $yellow_card_count_new = 0;
+                $red_card_count_new = 0;
+
+                $goal_tlive_total = [];
+                $yellow_card_tlive_total = [];
+                $red_card_tlive_total = [];
+                Log::getInstance()->info('hand tlive column');
+
+                if (isset($item['tlive'])) {
+
+                    //上一次文字总数量
+                    $match_tlive_count_old = Cache::get('match_tlive_count' . $item['id']) ?: 0;
+                    //上一次的进球数量
+                    $goal_count_old = Cache::get('goal_count_' . $item['id']);
+                    //上一次的黄牌数量
+                    $yellow_card_count_old = Cache::get('yellow_card_count' . $item['id']);
+                    //上一次的红牌数量
+                    $red_card_count_old = Cache::get('red_card_count' . $item['id']);
+                    $match_tlive_count_new = count($item['tlive']);
+                    if ($match_tlive_count_new > $match_tlive_count_old) { //直播文字
+                        Cache::set('match_tlive_count' . $item['id'], $match_tlive_count_new, 60 * 240);
+                        $diff = array_slice($item['tlive'], $match_tlive_count_old);
+                        (new WebSocket())->contentPush($diff, $item['id']);
+                    }
+
+
+                    foreach ($item['tlive'] as $signal_tlive) {
+                        $format_signal_tlive = ['time' => intval($signal_tlive['time']), 'type' => (int)$signal_tlive['type'], 'position' => (int)$signal_tlive['position']];
+                        if ($format_signal_tlive['type'] == 2) { //角球
+                            $corner_count_new += 1;
+                            $format_signal_corner_tlive = $format_signal_tlive;
+                            $corner_count_tlive[] = $format_signal_corner_tlive;
+                        } else if ($format_signal_tlive['type'] == 1 || $format_signal_tlive['type'] == 8) { //进球或点球
+                            $last_goal_tlive = $format_signal_tlive;
+                            $goal_count_new += 1;
+                            $goal_tlive_total[] = $format_signal_tlive;
+                        } else if ($format_signal_tlive['type'] == 3) { //黄牌
+                            $last_yellow_card_tlive = $format_signal_tlive;
+                            $yellow_card_count_new += 1;
+                            $yellow_card_tlive_total[] = $format_signal_tlive;
+                        } else if ($format_signal_tlive['type'] == 4) { //红牌
+                            $last_red_card_tlive = $format_signal_tlive;
+                            $red_card_count_new += 1;
+                            $red_card_tlive_total[] = $format_signal_tlive;
+                        }
+                        else {
+                            continue;
+                        }
+                    }
+                    if ($goal_count_new > $goal_count_old && isset($last_goal_tlive)) {
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_goal_tlive, 'score' => $item['score'], 'type'=>1]));
+                        Cache::set('goal_count_' . $item['id'], $goal_count_new, 60 * 240);
+                    }
+
+                    if ($yellow_card_count_new > $yellow_card_count_old && isset($last_yellow_card_tlive)) {
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_yellow_card_tlive, 'score' => $item['score'], 'type'=>3]));
+                        Cache::set('yellow_card_count' . $item['id'], $yellow_card_count_new, 60 * 240);
+                    }
+
+                    if ($red_card_count_new > $red_card_count_old && isset($last_red_card_tlive)) {
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_red_card_tlive, 'score' => $item['score'], 'type'=>4]));
+                        Cache::set('red_card_count' . $item['id'], $red_card_count_new, 60 * 240);
+                    }
+
+                    Cache::set('match_tlive_' . $item['id'], json_encode($item['tlive']), 60 * 240);
+
+                }
+
+
+                Log::getInstance()->info('hand matching_info-' . $item['id']);
+
+                $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow_card' => $yellow_card_tlive_total, 'red_card' => $red_card_tlive_total];
+                $signal_match_info['match_trend'] = $match_trend_info;
+                $signal_match_info['match_id'] = $item['id'];
+                $signal_match_info['time'] = AppFunc::getPlayingTime($item['id']);
+                $signal_match_info['status'] = $status;
+                $signal_match_info['match_stats'] = $matchStats;
+                $signal_match_info['score'] = [
+                    'home' => $item['score'][2],
+                    'away' => $item['score'][3]
+                ];
+
+                $match_info[] = $signal_match_info;
+                AppFunc::setMatchingInfo($item['id'], json_encode($signal_match_info));
+                unset($signal_match_info);
+            }
+
+            Log::getInstance()->info('start push matching_info_list');
+
+            /**
+             * 异步的话要做进程间通信，本身也有开销，不如做成同步的，push将数据交给底层，本身不等待
+             */
+
+            if (!empty($match_info)) {
+                $tool = Tool::getInstance();
+                $server = ServerManager::getInstance()->getSwooleServer();
+                $returnData = [
+                    'event' => 'match_update',
+                    'match_info_list' => isset($match_info) ? $match_info : []
+                ];
+
+                $onlineUsers = OnlineUser::getInstance()->table();
+                foreach ($onlineUsers as $fd => $onlineUser) {
+                    $connection = $server->connection_info($fd);
+                    if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+                        Log::getInstance()->info('push succ' . $fd);
+                        $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
+                    } else {
+                        Log::getInstance()->info('lost-connection-' . $fd);
+                    }
+                }
+
+            } else {
+                Log::getInstance()->info('do not have match to hand');
+
+            }
+
+        } else {
+            Log::getInstance()->info('accept data failed');
+
+        }
+    }
     /**
      * 更新比赛趋势，一分钟一次
      * @throws \Throwable

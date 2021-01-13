@@ -230,7 +230,7 @@ class MatchNotice  implements TaskInterface
             $rs = AdminNoticeMatch::getInstance()->insert($insertData);
             $pushInfo['title'] = $title;
             $pushInfo['content'] = $content;
-            $pushInfo['payload'] = ['item_id' => $match_id, 'type' => 1];
+            $pushInfo['payload'] = ['item_id' => $match_id, 'item_type' => 1];
             $pushInfo['notice_id'] = $rs;  //开赛通知
 
             $batchPush = new BatchSignalPush();
@@ -267,7 +267,7 @@ class MatchNotice  implements TaskInterface
             $rs = AdminNoticeMatch::getInstance()->insert($insertData);
             $pushInfo['title'] = $title;
             $pushInfo['content'] = $content;
-            $pushInfo['payload'] = ['item_id' => $match_id, 'type' => 1];
+            $pushInfo['payload'] = ['item_id' => $match_id, 'item_type' => 1];
             $pushInfo['notice_id'] = $rs;  //开赛通知
 
             $batchPush = new BatchSignalPush();
