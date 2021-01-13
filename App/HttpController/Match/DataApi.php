@@ -1020,7 +1020,7 @@ class DataApi extends FrontUserController
                 $decodeHomeScore = json_decode($v['home_scores'], true);
                 $decodeAwayScore = json_decode($v['away_scores'], true);
                 $data = [];
-                $data['match_id'] = intval($v['id']);
+                $data['match_id'] = intval($v['match_id']);
                 $data['match_time'] = date('Y-m-d H:i:s', $v['match_time']);
                 $data['home_team_name_zh'] = $v['home_team_name'];
                 $data['away_team_name_zh'] = $v['away_team_name'];
