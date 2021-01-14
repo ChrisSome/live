@@ -7,6 +7,7 @@ use App\Model\AdminUser;
 use App\Utility\Log\Log;
 use EasySwoole\Component\Singleton;
 use EasySwoole\Component\TableManager;
+use EasySwoole\EasySwoole\ServerManager;
 use Swoole\Table;
 
 /**
@@ -71,7 +72,7 @@ class OnlineUser
     function get($fd)
     {
 
-        $info = $this->table->get($fd);
+        $info = $this->table->get((int)$fd);
         return is_array($info) ? $info : null;
     }
 
@@ -82,7 +83,7 @@ class OnlineUser
      */
     function update($fd, $data)
     {
-        if ($info = $this->get($fd)) {
+        if ($info = $this->get((int)$fd)) {
             $info = $data + $info;
             $this->table->set($fd, $info);
         }
@@ -111,15 +112,18 @@ class OnlineUser
      */
     function heartbeatCheck($ttl = 60)
     {
+        $server = ServerManager::getInstance()->getSwooleServer();
         foreach ($this->table as $item) {
+            $connection = $server->connection_info($item['fd']);
             $time = $item['last_heartbeat'];
-            if (($time + $ttl) < time()) {
-                //将链接从房间删掉
+            if (!is_array($connection) || $connection['websocket_status'] != 3 || ($time + $ttl) < time()) {
+                Log::getInstance()->info('heartbeatCheck-' . json_encode($connection));
+                Log::getInstance()->info('heartbeatCheck-time-' . json_encode($item) .'-' . $ttl . '-' . time());
+
                 if ($item['match_id']) {
                     AppFunc::userOutRoom($item['match_id'], $item['fd']);
                 }
                 $this->table->del($item['fd']);
-
             }
         }
     }

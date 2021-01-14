@@ -98,11 +98,11 @@ class EasySwooleEvent implements Event
          */
         $hot_reload = (new HotReload('HotReload', ['disableInotify' => false]))->getProcess();
         ServerManager::getInstance()->getSwooleServer()->addProcess($hot_reload);
-        /**
-         * timer定时
-         */
-        $keet_user = (new KeepUser())->getProcess();
-        ServerManager::getInstance()->getSwooleServer()->addProcess($keet_user);
+//        /**
+//         * timer定时
+//         */
+//        $keet_user = (new KeepUser())->getProcess();
+//        ServerManager::getInstance()->getSwooleServer()->addProcess($keet_user);
         // template
         $viewDir = EASYSWOOLE_ROOT . '/App/Views';
         $cacheDir = EASYSWOOLE_ROOT . '/Temp/Template';

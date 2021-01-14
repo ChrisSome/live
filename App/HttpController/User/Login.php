@@ -329,11 +329,6 @@ class Login extends FrontUserController
                         'level' => $user->level
                     ];
 
-                    if (OnlineUser::getInstance()->get($fd)) {
-                        OnlineUser::getInstance()->update($fd, $data);
-                    } else {
-                        OnlineUser::getInstance()->set($fd, $data);
-                    }
                 }
 
                 $userSetting = $user->userSetting();
@@ -495,11 +490,6 @@ class Login extends FrontUserController
                 'level' => $user->level
             ];
 
-            if (OnlineUser::getInstance()->get($fd)) {
-                OnlineUser::getInstance()->update($fd, $data);
-            } else {
-                OnlineUser::getInstance()->set($fd, $data);
-            }
         }
         $userSetting = $user->userSetting();
         $formatUserSetting = [

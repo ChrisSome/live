@@ -59,12 +59,12 @@ class WebSocketEvents
      */
     static function onOpen(\swoole_websocket_server $server, \swoole_http_request $request)
     {
-        $fd = $request->fd;
+        $fd = (int)$request->fd;
         $user_online = OnlineUser::getInstance()->get($fd);
         //这里也可以做一个唯一标志 考虑以后有用
         $mid = uniqid($fd . '-');
         $user_id = $request->get['user_id'];
-        $match_id = isset($request->get['match_id']) ? $request->get['match_id'] : 0;
+        $match_id = isset($request->get['match_id']) ? (int)$request->get['match_id'] : 0;
         if ($user_id) {
             $user = DbManager::getInstance()->invoke(function ($client) use ($user_id) {
                 $userModel = AdminUser::invoke($client)->find($user_id);
@@ -78,8 +78,8 @@ class WebSocketEvents
         $info = [
             'fd' => $fd,
             'nickname' => isset($user) ? $user->nickname : '',
-            'match_id' => $match_id,
-            'user_id' => isset($user) ? $user->id : 0,
+            'match_id' => (int)$match_id,
+            'user_id' => isset($user) ? (int)$user->id : 0,
             'level' => isset($user) ? $user->level : 0,
         ];
         if (!$user_online) {
@@ -107,7 +107,7 @@ class WebSocketEvents
      */
     static function onClose(\swoole_server $server, int $fd, int $reactorId)
     {
-//        Log::getInstance()->info('fd was closed-' . $fd);
+        Log::getInstance()->info('fd was closed-' . $fd);
         OnlineUser::getInstance()->delete($fd);
         ServerManager::getInstance()->getSwooleServer()->close($fd);
 

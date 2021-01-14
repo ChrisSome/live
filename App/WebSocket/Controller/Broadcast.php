@@ -38,9 +38,9 @@ class Broadcast extends Base
         } else {
             $type = 1;
         }
-        $fd = $client->getFd();
+        $fd = (int)$client->getFd();
         $server = ServerManager::getInstance()->getSwooleServer();
-        if (!$sender_user = OnlineUser::getInstance()->get($client->getFd())) {
+        if (!$sender_user = OnlineUser::getInstance()->get($fd)) {
             return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_CONNECTION_FAIL, WebSocketStatus::$msg[WebSocketStatus::STATUS_CONNECTION_FAIL]));
 
         }

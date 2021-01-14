@@ -1183,7 +1183,7 @@ class UserCenter   extends FrontUserController{
             $special_status = 0; //不可用
 
         }
-        $return['special'] = ['id' => 4, 'name' => '完善资料', 'status' => $special_status, 'times_per_day' => 1, 'icon' =>'http://test.ymtyadmin.com/image/system/2020/10/7775b4a856bcef57.jpg', 'points_per_time' => 200];
+        $return['special'] = ['id' => 5, 'name' => '完善资料', 'status' => $special_status, 'times_per_day' => 1, 'icon' =>'http://live-broadcast-system.oss-cn-hongkong.aliyuncs.com/a83ffbe56572911e.png', 'points_per_time' => 200];
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 

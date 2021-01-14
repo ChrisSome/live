@@ -23,17 +23,7 @@ class OnWorkStart
             //1分钟轮询
             $timer->loop(60 * 1000, function (){
                 $online = OnlineUser::getInstance();
-                $server = ServerManager::getInstance()->getSwooleServer();
-
-                foreach ($online->table() as $fd => $info) {
-                    if (!isset($info['fd'])) continue;
-                    $connection = $server->connection_info($info['fd']);
-                    $time = $info['last_heartbeat'];
-                    if (!is_array($connection) || $connection['websocket_status'] != 3 || $time + 60 < time()) {
-                        //删除
-                        $online->delete($fd);
-                    }
-                }
+                $online->heartbeatCheck();
             });
 
         }
