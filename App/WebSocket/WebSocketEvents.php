@@ -55,23 +55,18 @@ class WebSocketEvents
     /**
      * @param swoole_websocket_server $server
      * @param swoole_http_request $request
-     * @return bool
+     * @throws \Throwable
      */
     static function onOpen(\swoole_websocket_server $server, \swoole_http_request $request)
     {
         $fd = (int)$request->fd;
-        $user_online = OnlineUser::getInstance()->get($fd);
         //这里也可以做一个唯一标志 考虑以后有用
         $mid = uniqid($fd . '-');
-        $user_id = $request->get['user_id'];
-        $match_id = isset($request->get['match_id']) ? (int)$request->get['match_id'] : 0;
+        $params = $request->get;
+        $user_id = isset($params['user_id']) ? (int)$params['user_id'] : 0;
+        $match_id = isset($params['match_id']) ? (int)$params['match_id'] : 0;
         if ($user_id) {
-            $user = DbManager::getInstance()->invoke(function ($client) use ($user_id) {
-                $userModel = AdminUser::invoke($client)->find($user_id);
-                return $userModel;
-            });
-
-
+            $user = AdminUser::getInstance()->where('id', $user_id)->get();
         }
         //如果已经有设备登陆,则强制退出, 根据后台配置是否允许多终端登陆
 
@@ -82,6 +77,7 @@ class WebSocketEvents
             'user_id' => isset($user) ? (int)$user->id : 0,
             'level' => isset($user) ? $user->level : 0,
         ];
+        $user_online = OnlineUser::getInstance()->get($fd);
         if (!$user_online) {
             OnlineUser::getInstance()->set($fd, $info);
         } else {

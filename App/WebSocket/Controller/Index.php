@@ -9,6 +9,7 @@
 namespace App\WebSocket\Controller;
 
 use App\Storage\OnlineUser;
+use App\Utility\Log\Log;
 use App\WebSocket\Actions\User\UserInfo;
 use App\WebSocket\Actions\User\UserOnline;
 use Exception;
@@ -60,6 +61,7 @@ class Index extends Base
         $client = $this->caller()->getClient();
         $fd = $client->getFd();
         //更新
+        Log::getInstance()->info('fd-heartbeat-'.$fd);
         OnlineUser::getInstance()->updateHeartbeat($fd);
         $this->response()->setMessage('PONG');
     }

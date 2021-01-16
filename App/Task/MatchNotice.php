@@ -275,34 +275,6 @@ class MatchNotice  implements TaskInterface
             $batchPush->pushMessageToList($prepare_cid_arr, $pushInfo);
         } else if ($type == 10) {  //正式开始不推送 即将开始推送在脚本中跑
             return;
-            foreach ($users as $user) {
-                $user_setting = $user->userSetting();
-
-                if (isset(json_decode($user_setting->push, true)['start']) && json_decode($user_setting->push, true)['start'] == 1) {
-                    $prepare_cid_arr[] = $user->cid;
-                    $uids[] = $user->id;
-                }
-
-                if (!$prepare_cid_arr || !$uids) {
-                    return;
-                }
-
-                $info['title'] = '开赛通知';
-                $info['type'] = $type;
-                $info['content'] = sprintf('您关注的【%s联赛】%s-%s将于15分钟后开始比赛，不要忘了哦', $info['competition_name'], $info['home_name_zh'], $info['away_name_zh']);
-                $insertData = [
-                    'uids' => json_encode($uids),
-                    'match_id' => $match->match_id,
-                    'type' => $type,
-                    'title' => $info['title'],
-                    'content' => $info['content']
-                ];
-                $rs = AdminNoticeMatch::getInstance()->insert($insertData);
-                $info['rs'] = $rs;  //进球通知
-                $batchPush = new BatchSignalPush();
-
-                $batchPush->pushMessageToSingleBatch($prepare_cid_arr, $info);
-            }
         } else {
             return;
         }

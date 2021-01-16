@@ -5,6 +5,7 @@ namespace App\HttpController\Match;
 use App\Base\FrontUserController;
 use App\Common\AppFunc;
 use App\Common\Time;
+use App\GeTui\BatchSignalPush;
 use App\lib\FrontService;
 use App\lib\Tool;
 use App\lib\Utils;
@@ -13,10 +14,12 @@ use App\Model\AdminInformation;
 use App\Model\AdminInformationComment;
 use App\Model\AdminMatch;
 use App\Model\AdminMessage;
+use App\Model\AdminNoticeMatch;
 use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
 use App\Model\AdminUserOperate;
+use App\Model\AdminUserSetting;
 use App\Model\BasketBallCompetition;
 use App\Storage\OnlineUser;
 use App\Task\SerialPointTask;
@@ -192,7 +195,7 @@ class InformationApi extends FrontUserController
                     }
                 }
             }
-            if ($decode['match']) {
+            if (!empty($decode['match'])) {
                 $matches = AdminMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
                 $formatMatches = FrontService::formatMatchThree($matches, 0, []);
             } else {
@@ -522,9 +525,10 @@ class InformationApi extends FrontUserController
         }
         // 比赛信息
         $match = [];
-        $tmp = Utils::queryHandler(AdminMatch::getInstance(), 'match_id=?', $information['match_id']);
+        $tmp = AdminMatch::create()->where('match_id', $information['match_id'])->get();
+
         if (!empty($tmp)) {
-            $tmp = FrontService::handMatch([$tmp], 0, true);
+            $tmp = FrontService::formatMatchThree([$tmp], 0, []);
             if (isset($tmp[0])) {
                 $match = [
                     'match_id' => $tmp[0]['match_id'],
@@ -793,6 +797,45 @@ class InformationApi extends FrontUserController
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatInformation);
 
+    }
+
+
+    public function informationPusher()
+    {
+        $information_id = (int)$this->params['information_id'];
+        if (!$information_id || !$information = AdminInformation::getInstance()->where('id', $information_id)->get()) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+        }
+        $user = AdminUserSetting::create()->field(['id'])->where('push REGEXP \'\"open_push\":1,\"information\":1\'')->all();
+        $uids = array_column($user, 'id');
+        $cids = AdminUser::create()->field(['cid'])->where('id', $uids, 'in')->where('cid', '', '<>')->all();
+        $cidArr = array_column($cids, 'cid');
+        $formatCid = array_keys(array_flip($cidArr));
+        if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $information_id)->where('item_type', 3)->get()) {
+            $insertData = [
+                'uids' => json_encode($uids),
+                'match_id' => $information_id,
+                'title' => $information->title,
+                'content' => '',
+                'item_type' => 3,
+                'type' => 0
+            ];
+            $rs = AdminNoticeMatch::getInstance()->insert($insertData);
+            $info['rs'] = $rs;  //开赛通知
+            $pushInfo = [
+                'title' => $information->title,
+                'content' => mb_substr(preg_replace("/(\s|\&nbsp\;|　|\xc2\xa0)/", " ", strip_tags($information->content)), 0, 20),
+                'payload' => ['item_id' => $information_id, 'item_type' => 3],
+                'notice_id' => $rs,
+
+            ];
+            $batchPush = new BatchSignalPush();
+
+            $res = $batchPush->pushMessageToList($formatCid, $pushInfo);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
+
+
+        }
     }
 
 

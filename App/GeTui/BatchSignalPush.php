@@ -19,85 +19,6 @@ class BatchSignalPush{
 
     }
 
-    /**
-     * 批量推
-     * @param array $cids
-     * @param $info
-     * @return mixed
-     * @throws \Exception
-     */
-    function pushMessageToSingleBatch(array $cids, $info)
-    {
-        $cids = array_unique($cids);
-        foreach ($cids as $cid) {
-            $notice['cid'] = $cid;
-            $notice['title'] = $info['title'];
-            $notice['content'] = $info['content'];
-            $notice['type'] = $info['type'];
-            $notice['transmissionParams'] = ['match_id' => $info['match_id'],'type' => $info['type']];
-            $notices[] = $notice;
-            unset($notice);
-        }
-        $igt = new \IGeTui(self::HOST, self::APPKEY, self::MASTERSECRET);
-        $batch = new \IGtBatch(self::APPKEY, $igt);
-        $batch->setApiUrl(self::HOST);
-        if (!isset($notices)) return;
-        //$template = IGtNotyPopLoadTemplateDemo();
-        foreach ($notices as $item) {
-            $templateNoti = $this->IGtNotificationTemplateDemo($item);
-            $templateNoti->set_transmissionType(1);//透传消息类型
-            //个推信息体
-            $messageNoti = new \IGtSingleMessage();
-            $messageNoti->set_isOffline(true);//是否离线
-            $messageNoti->set_offlineExpireTime(12 * 1000 * 3600);//离线时间
-            $messageNoti->set_data($templateNoti);//设置推送消息类型
-            $targetNoti = new \IGtTarget();
-            $targetNoti->set_appId(self::APPID);
-            $targetNoti->set_clientId($item['cid']);
-            $batch->add($messageNoti, $targetNoti);
-
-        }
-
-
-        try {
-            $rep = $batch->submit();
-            if ($rep['result'] == 'ok') {
-                AdminNoticeMatch::getInstance()->update([
-                    'is_notice' => 1
-                ], ['id' => $info['rs']]);
-            }
-
-            Log::getInstance()->info('submit res succ' . json_encode($rep));
-            return $rep;
-
-
-        }catch(Exception $e){
-            $rep = $batch->submit();
-            Log::getInstance()->info('submit res fail' . json_encode($rep));
-
-            return $rep;
-
-        }
-    }
-
-    function IGtNotificationTemplateDemo($val){
-        $template =  new \IGtNotificationTemplate();
-        $template->set_appId(self::APPID);//应用appid
-        $template->set_appkey(self::APPKEY);//应用appkey
-        $template->set_transmissionType(2);//透传消息类型
-        $transmissionParams = $val['transmissionParams'];
-
-        $template->set_transmissionContent(json_encode($transmissionParams));//透传内容
-        $template->set_title($val['title']);//通知栏标题
-        $template->set_text($val['content']);//通知栏内容
-        $template->set_logo("http://live-broadcast-system.oss-cn-hongkong.aliyuncs.com/37e1e9e01586030a.jpg");//通知栏logo
-        $template->set_isRing(true);//是否响铃
-        $template->set_isVibrate(true);//是否震动
-        $template->set_isClearable(true);//通知栏是否可清除
-        //$template->set_duration(BEGINTIME,ENDTIME); //设置ANDROID客户端在此时间区间内展示消息
-        return $template;
-    }
-
 
     //多推接口案例
     function pushMessageToList($cids, $info){
@@ -126,6 +47,7 @@ class BatchSignalPush{
         }
         try {
             $rep = $igt->pushMessageToList($contentId, $targetList);
+            var_dump($rep);
             if ($rep['result'] == 'ok') {
                 AdminNoticeMatch::getInstance()->update([
                     'is_notice' => 1
@@ -159,7 +81,7 @@ class BatchSignalPush{
     }
 
     function IGtTransmissionTemplateDemo($info){
-//        $transmisstionContent = json_encode(['title' => '开赛了', 'content' => '比赛马上开始', 'payload' => ['item_id' => 3295894, 'type' => 1]]);
+//        $transmisstionContent = json_encode(['title' => '开赛了', 'content' => '比赛马上开始', 'payload' => ['item_id' => 3295894, 'item_type' => 1]]);
         $template =  new \IGtTransmissionTemplate();
         //应用appid
         $template->set_appId(self::APPID);

@@ -1557,8 +1557,8 @@ class FootballApi extends FrontUserController
         }
         $formatUsers = [];
         foreach ($onlineUsers as $onlineUser) {
-            $item['user_id'] = $onlineUser['user_id'];
-            $item['match_id'] = $onlineUser['match_id'];
+            $item['user_id'] = (int)$onlineUser['user_id'];
+            $item['match_id'] = (int)$onlineUser['match_id'];
             $item['fd'] = $onlineUser['fd'];
             $formatUsers[] = $item;
             unset($item);
@@ -1568,11 +1568,12 @@ class FootballApi extends FrontUserController
     }
 
     public function test()
-
     {
-        $r = $this->request();
-        $cookie = $r->getCookieParams();
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $cookie);
+        $online = OnlineUser::getInstance()->table();
+        foreach ($online as $item) {
+            $users[] = $item;
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $users);
 
 
     }

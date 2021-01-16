@@ -711,7 +711,8 @@ class Crontab extends FrontUserController
                         'match_id' => $match->match_id,
                         'type' => 10,
                         'title' => $title,
-                        'content' => $content
+                        'content' => $content,
+                        'item_type' => 1
                     ];
                     if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->where('type', 10)->get()) {
                         $rs = AdminNoticeMatch::getInstance()->insert($insertData);
@@ -724,7 +725,6 @@ class Crontab extends FrontUserController
 
                         ];
                         $batchPush->pushMessageToList($cids, $pushInfo);
-
 
                     }
                 }
@@ -1575,7 +1575,7 @@ class Crontab extends FrontUserController
 
     function test() {
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
 
 
     }

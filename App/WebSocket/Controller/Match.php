@@ -50,12 +50,10 @@ class Match extends Base
 
         $user['match_id'] = $matchId;
         $user['fd'] = $fd;
-        var_dump([$args['match_id'], $fd]);
         //设置房间对象
         AppFunc::userEnterRoom($args['match_id'], $fd);
         //最近二十条聊天记录
         $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->order('created_at', 'DESC')->limit(20)->all();
-//        Log::getInstance()->info('log start' . json_encode($lastMessages));
         //比赛状态
         $match = DbManager::getInstance()->invoke(function ($client) use ($matchId) {
             $matchModel = AdminMatch::invoke($client);

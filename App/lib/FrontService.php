@@ -291,7 +291,6 @@ class  FrontService {
             if ($competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
                 $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
             }
-//            $userInterestCompetitiones = $competitiones ? json_decode($competitiones['competition_ids'], true) : [];
             //用户关注比赛
             $userInterestMatchIds = [];
 
@@ -302,10 +301,8 @@ class  FrontService {
             if ($recommand_competition_id_arr = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get()) {
                 $in_competition_arr = json_decode($recommand_competition_id_arr->sys_value, true);
             }
-
             foreach ($matches as $match) {
 
-//                $match_data_info = Cache::get('match_data_info' . $match->match_id);
                 $match_data_info = AppFunc::getMatchingInfo($match->match_id);
                 $home_team = isset($match->home_team_id) ? $match->homeTeamName() : '';
                 $away_team = isset($match->away_team_id) ? $match->awayTeamName() : '';
@@ -437,6 +434,10 @@ class  FrontService {
                 $is_start = false;
             }
             $has_living = 0;
+            $home_win = 0;
+            if ($match->status == 8) {
+
+            }
             $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
             $steamLike = $match->steamLink();
             $item['home_team_name'] = $match->home_team_name;
@@ -449,7 +450,6 @@ class  FrontService {
             $item['competition_color'] = $match->competition_color;
             $item['match_time'] = date('H:i', $match['match_time']);
             $item['format_match_time'] = date('Y-m-d H:i', $match['match_time']); //开赛时间
-//            $item['user_num'] = mt_rand(20, 150);
             $item['user_num'] = count(AppFunc::getUsersInRoom($match->match_id));
             $item['match_id'] = $match->match_id;
             $item['is_start'] = $is_start;
