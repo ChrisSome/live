@@ -71,9 +71,9 @@ class FrontUserController extends BaseController
 		$r = $this->request();
         $authoriazation = $r->getHeader('token');
         $loginToken = isset($authoriazation[0]) ? json_decode(stripslashes($authoriazation[0]), true) : [];
-        if (!$loginToken) return false;
-        $id = $loginToken['front_id'];
-        $time = $loginToken['front_time'];
+        if (!$loginToken || empty($loginToken['front_id']) || empty($loginToken['front_time']) || empty($loginToken['front_token'])) return false;
+        $id = (int)$loginToken['front_id'];
+        $time = trim($loginToken['front_time']);
         $token = md5($id . Config::getInstance()->getConf('app.token') . $time);
         if($loginToken['front_token'] == $token) {
             $this->auth = AdminUser::getInstance()->find($id);
@@ -131,6 +131,7 @@ class FrontUserController extends BaseController
 	public function onRequest(?string $action): ?bool
 	{
 	    $this->params = $this->request()->getRequestParam();
+        $authoriazation = $this->request()->getHeader('token');
 	    if ($this->needCheckToken) {
 	        if(!$this->checkToken()) {
 	            $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');

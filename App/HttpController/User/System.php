@@ -29,6 +29,26 @@ class System extends FrontUserController
 
     const SYS_KEY_HOT_RELOAD = 'hot_reload';
     const SYS_KEY_SHIELD_LIVE = 'shield_live';
+
+    const NOTICE = [
+        'only_notice_my_interest' => 0,  //仅提示我关注的
+        'start' => 1, //比赛开始   1声音震动 2声音 3震动 0关闭
+        'goal' => 1, //进球
+        'over' => 1, //结束
+        'red_card' => 1, //红牌
+        'yellow_card' => 1, //黄牌
+        'show_time_axis' => 1 //显示时间轴  1开启 0关闭
+    ];
+
+    const BASKETBALL_NOTICE = [
+        'only_notice_my_interest' => 0,  //仅提示我关注的
+        'start' => 1, //比赛开始 1声音震动 2声音 3震动 0关闭
+        'over' => 1, //结束
+    ];
+
+    const PUSH = ['start' => 1, 'goal' => 1, 'over' => 1,  'open_push' => 1, 'information' => 1];
+    const BASKETBALL_PUSH = ['start' => 1, 'over' => 1,  'open_push' => 1];
+    const PRIVATE = ['see_my_post' => 1, 'see_my_post_comment' => 1, 'see_my_information_comment' => 1];
     /**
      * 获取系统公告
      */

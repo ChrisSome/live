@@ -316,14 +316,17 @@ class UserCenter   extends FrontUserController{
         }
 
         if (isset($params['mobile']) && $type == 4) {
-            if (AdminUser::getInstance()->where('mobile', $params['mobile'])->get()) {
+            $code = trim($this->params['code']);
+            $phoneCode = AdminUserPhonecode::getInstance()->getLastCodeByMobile(trim($this->params['mobile']));
+            if (!$phoneCode || $phoneCode->status != 0 || $phoneCode->code != $code) {
+                return $this->writeJson(Status::CODE_W_PHONE_CODE, Status::$msg[Status::CODE_W_PHONE_CODE]);
+            } else if (AdminUser::getInstance()->where('mobile', $params['mobile'])->get()) {
                 return $this->writeJson(Status::CODE_PHONE_EXIST, Status::$msg[Status::CODE_PHONE_EXIST]);
-
-            }
-            if(!preg_match("/^1[3456789]\d{9}$/", $params['mobile'])) {
+            }else if(!preg_match("/^1[3456789]\d{9}$/", $params['mobile'])) {
                 return $this->writeJson(Status::CODE_W_PHONE, Status::$msg[Status::CODE_W_PHONE]);
-
             }
+            $phoneCode->status = AdminUserPhonecode::STATUS_USED;
+            $phoneCode->update();
             $update_data = ['mobile' => $params['mobile']];
 
         }
@@ -334,10 +337,6 @@ class UserCenter   extends FrontUserController{
         }
 
         if (AdminUser::getInstance()->update($update_data, ['id' => $uid])) {
-//            if ($code = AdminUserPhonecode::getInstance()->where('mobile', $this->params['mobile'])->where('code', $this->params['code'])->get()) {
-//                $code->status = AdminUserPhonecode::STATUS_USED;
-//                $code->update();
-//            }
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 
         } else {
@@ -1224,25 +1223,24 @@ class UserCenter   extends FrontUserController{
             return $this->writeJson(Status::CODE_TASK_LIMIT, Status::$msg[Status::CODE_TASK_LIMIT]);
 
         }
-        $user = DbManager::getInstance()->invoke(function ($client) use ($task_id, $user_id, $user_task) {
-            $intvalModel = AdminUserSerialPoint::invoke($client);
-            $intvalModel->task_id = $task_id;
-            $intvalModel->user_id = $user_id;
-            $intvalModel->point = $user_task['points_per_time'];
-            $intvalModel->task_name = $user_task['name'];
-            $intvalModel->type = 1;
-            $intvalModel->created_at = date('Y-m-d');
-            $intvalModel->save();
+        $intvalModel = AdminUserSerialPoint::create();
+        $intvalModel->task_id = $task_id;
+        $intvalModel->user_id = $user_id;
+        $intvalModel->point = $user_task['points_per_time'];
+        $intvalModel->task_name = $user_task['name'];
+        $intvalModel->type = 1;
+        $intvalModel->created_at = date('Y-m-d');
+        $intvalModel->save();
 
-            $user = AdminUser::invoke($client)->where('id', $user_id)->get();
-            $user->point += $user_task['points_per_time'];
-            $user->level = AppFunc::getUserLvByPoint($user->point);
-            $user->update();
-            return $user;
-        });
+        $user = AdminUser::create()->where('id', $user_id)->get();
+        $point = ($user->point + $user_task['points_per_time']);
+        $level = AppFunc::getUserLvByPoint($point);
+        $user->point = $point;
+        $user->level = $level;
+        $user->update();
         $user_info = [
-            'level' => $user->level,
-            'point' => $user->point,
+            'level' => $level,
+            'point' => $point,
             'd_value' => AppFunc::getPointsToNextLevel($user),
             't_value' => AppFunc::getPointOfLevel($user->level)
         ];

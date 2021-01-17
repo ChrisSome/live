@@ -802,12 +802,12 @@ class InformationApi extends FrontUserController
 
     public function informationPusher()
     {
-        $information_id = (int)$this->params['information_id'];
+        $information_id = !empty($this->params['information_id']) ? (int)$this->params['information_id'] : 0;
         if (!$information_id || !$information = AdminInformation::getInstance()->where('id', $information_id)->get()) {
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
         }
-        $user = AdminUserSetting::create()->field(['id'])->where('push REGEXP \'\"open_push\":1,\"information\":1\'')->all();
-        $uids = array_column($user, 'id');
+        $user = AdminUserSetting::create()->field(['user_id'])->where('push REGEXP \'\"open_push\":1,\"information\":1\'')->all();
+        $uids = array_column($user, 'user_id');
         $cids = AdminUser::create()->field(['cid'])->where('id', $uids, 'in')->where('cid', '', '<>')->all();
         $cidArr = array_column($cids, 'cid');
         $formatCid = array_keys(array_flip($cidArr));

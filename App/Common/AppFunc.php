@@ -331,12 +331,18 @@ class AppFunc
 
     public static function getUserLvByPoint($point)
     {
-
-        if (0 <= $point && $point < 15000) {
-            return floor($point/500) + 1;
-        } else if (15000 <= $point && $point < 45000) {
-            return floor(($point-15000)/1000) + 30;
+        if (0 <= $point && $point < 12500) {
+            $level = ceil($point/500);
+        } else if (12500 <= $point && $point < 37500) {
+            $level = ceil(($point-12500)/1000) + 26;
+        } else if (37500 <= $point && $point < 75000) {
+            $level = ceil(($point-37500)/1500) + 51;
+        } else if (75000 <= $point && $point < 123000) {
+            $level = ceil(($point-75000)/2000) + 76;
+        } else {
+            $level = 100;
         }
+        return (int)$level;
 
     }
 
@@ -346,10 +352,16 @@ class AppFunc
      */
     public static function getPointOfLevel($level)
     {
-        if ($level >= 0 && $level<30) {
+        if ($level >= 1 && $level<=25) {
             return 500;
-        } else if ($level >= 30 && $level < 60) {
+        } else if ($level > 25 && $level <= 50) {
             return 1000;
+        } else if ($level > 50 && $level <= 75) {
+            return 1500;
+        } else if ($level > 75 && $level <= 100) {
+            return 2000;
+        } else {
+            return 0;
         }
     }
 
@@ -361,13 +373,21 @@ class AppFunc
     public static function getPointsToNextLevel($user)
     {
 
-        $level = $user->level; //5
-        $point = $user->point;  //2050
-        if ($level < 30) {
+        $level = $user->level; //26
+        $point = $user->point;  //12500
+        if ($level >=1 && $level < 26) {
             $D_value = $level * 500 - $point;
-        } else if ($level >= 30 && $level < 60) {
-            $D_value = $level * 1000 - $point;
+        } else if ($level >= 26 && $level < 51) {
+            $D_value = 1000 - ($point - 12500 - ($level - 26) * 1000);
+        } else if ($level >= 51 && $level < 76) {
+            $D_value = 1500 - ($point - 37500 - ($level - 51) * 1500);
+        } else if ($level >= 76 && $level < 100) {
+            $D_value = 2000 - ($point - 75000 - ($level - 76) * 2000);
+        } else {
+            $D_value = 0;
         }
+
+
         return $D_value;
     }
 

@@ -47,7 +47,6 @@ class BatchSignalPush{
         }
         try {
             $rep = $igt->pushMessageToList($contentId, $targetList);
-            var_dump($rep);
             if ($rep['result'] == 'ok') {
                 AdminNoticeMatch::getInstance()->update([
                     'is_notice' => 1

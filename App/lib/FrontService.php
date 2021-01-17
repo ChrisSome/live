@@ -435,8 +435,16 @@ class  FrontService {
             }
             $has_living = 0;
             $home_win = 0;
+            list($home_total_score, $away_total_score) = AppFunc::getFinalScore(json_decode($match->home_scores, true), json_decode($match->away_scores, true));
             if ($match->status == 8) {
+                if ($home_total_score > $away_total_score) {
+                    $home_win = 1;
+                } else if ($home_total_score = $away_total_score) {
+                    $home_win = 2;
+                } else if ($home_total_score < $away_total_score) {
+                    $home_win = 3;
 
+                }
             }
             $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
             $steamLike = $match->steamLink();
@@ -463,8 +471,10 @@ class  FrontService {
             $item['note'] = $match->note;  //备注   欧青连八分之一决赛
             $item['home_scores'] = $match->home_scores;  //主队比分
             $item['away_scores'] = $match->away_scores;  //主队比分
+            list($item['home_total_scores'], $item['away_total_score']) = [$home_total_score, $away_total_score];
             $item['coverage'] = $match->coverage;  //阵容 动画
             $item['steamLink'] = !empty($steamLike['mobile_link']) ? $steamLike['mobile_link'] : '' ;  //直播地址
+            $item['home_win'] = $home_win;  //比赛胜负
 
             $data[] = $item;
 

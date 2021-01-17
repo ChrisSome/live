@@ -1387,7 +1387,6 @@ class Crontab extends FrontUserController
                     continue;
                 }
 
-                Log::getInstance()->info('still have match to push');
 
                 $match_trend_info = [];
                 if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
@@ -1422,7 +1421,6 @@ class Crontab extends FrontUserController
                 $goal_tlive_total = [];
                 $yellow_card_tlive_total = [];
                 $red_card_tlive_total = [];
-                Log::getInstance()->info('hand tlive column');
 
                 if (isset($item['tlive'])) {
 
@@ -1485,7 +1483,6 @@ class Crontab extends FrontUserController
                 }
 
 
-                Log::getInstance()->info('hand matching_info-' . $item['id']);
 
                 $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow_card' => $yellow_card_tlive_total, 'red_card' => $red_card_tlive_total];
                 $signal_match_info['match_trend'] = $match_trend_info;

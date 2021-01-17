@@ -60,10 +60,12 @@ class WebSocketEvents
     static function onOpen(\swoole_websocket_server $server, \swoole_http_request $request)
     {
         $fd = (int)$request->fd;
+
         //这里也可以做一个唯一标志 考虑以后有用
         $mid = uniqid($fd . '-');
         $params = $request->get;
         $user_id = isset($params['user_id']) ? (int)$params['user_id'] : 0;
+        Log::getInstance()->info('startFd-' . $fd . '-user_id-' . $user_id);
         $match_id = isset($params['match_id']) ? (int)$params['match_id'] : 0;
         if ($user_id) {
             $user = AdminUser::getInstance()->where('id', $user_id)->get();
@@ -83,7 +85,6 @@ class WebSocketEvents
         } else {
             OnlineUser::getInstance()->update($fd, $info);
         }
-
         $resp_info = [
             'event' => 'connection-succ',
             'info' => ['fd' => $fd, 'mid' => $mid],

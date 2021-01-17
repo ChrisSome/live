@@ -61,7 +61,6 @@ class Index extends Base
         $client = $this->caller()->getClient();
         $fd = $client->getFd();
         //更新
-        Log::getInstance()->info('fd-heartbeat-'.$fd);
         OnlineUser::getInstance()->updateHeartbeat($fd);
         $this->response()->setMessage('PONG');
     }

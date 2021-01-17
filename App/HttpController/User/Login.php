@@ -317,19 +317,6 @@ class Login extends FrontUserController
                 RedisPool::invoke('redis', function(Redis $redis) use ($uid, $token) {
                     $redis->set(sprintf(UserModel::USER_TOKEN_KEY, $token), $uid);
                 });
-                //长链接绑定
-                if (!empty($this->params['fd'])) {
-                    $fd = (int)$this->params['fd'];
-                    $data = [
-                        'fd' => $fd,
-                        'nickname' => $user->nickname,
-                        'user_id' => $user->id,
-                        'last_heartbeat' => time(),
-                        'match_id' => 0,
-                        'level' => $user->level
-                    ];
-
-                }
 
                 $userSetting = $user->userSetting();
                 $formatUserSetting = [
@@ -337,6 +324,8 @@ class Login extends FrontUserController
                     'basketball_notice' => isset($userSetting->basketball_notice) ? json_decode($userSetting->basketball_notice, true) : [],
 
                 ];
+                $time = time();
+                $token = md5($user['id'] . Config::getInstance()->getConf('app.token') . $time);
                 $user_info = [
                     'id' => $user->id,
                     'nickname' => $user->nickname,
@@ -347,7 +336,9 @@ class Login extends FrontUserController
                     'mobile' => $user->mobile,
                     'user_setting' => $formatUserSetting,
                     'wx_name' => $user->wx_name,
-                    'status' => $user->status
+                    'status' => $user->status,
+                    'front_time' => $time,
+                    'front_token' => $token
 
                 ];
                 return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK], $user_info);
@@ -435,24 +426,12 @@ class Login extends FrontUserController
             });
             $logon = true;
             //足球设置
-            $notice = [
-                'only_notice_my_interest' => 0,  //仅提示我关注的
-                'start' => 1, //比赛开始   1声音震动 2声音 3震动 0关闭
-                'goal' => 1, //进球
-                'over' => 1, //结束
-                'red_card' => 1, //红牌
-                'yellow_card' => 1, //黄牌
-                'show_time_axis' => 1 //显示时间轴  1开启 0关闭
-            ];
+            $notice = System::NOTICE;
             //篮球设置
-            $basketball_notice = [
-                'only_notice_my_interest' => 0,  //仅提示我关注的
-                'start' => 1, //比赛开始 1声音震动 2声音 3震动 0关闭
-                'over' => 1, //结束
-            ];
-            $push = ['start' => 1, 'goal' => 1, 'over' => 1,  'open_push' => 1, 'information' => 1];
-            $basketball_push = ['start' => 1, 'over' => 1,  'open_push' => 1];
-            $private = ['see_my_post' => 1, 'see_my_post_comment' => 1, 'see_my_information_comment' => 1];
+            $basketball_notice = System::BASKETBALL_NOTICE;
+            $push = System::PUSH;
+            $basketball_push = System::BASKETBALL_PUSH;
+            $private = System::PRIVATE;
             TaskManager::getInstance()->async(function () use($rs, $notice, $push, $private, $basketball_notice, $basketball_push){
 
                 $settingData = [
@@ -479,24 +458,14 @@ class Login extends FrontUserController
 
         }
         $user = AdminUser::getInstance()->where('id', $rs)->get();
-        if (!empty($this->params['fd'])) {
-            $fd = (int)$this->params['fd'];
-            $data = [
-                'fd' => $fd,
-                'nickname' => $user->nickname,
-                'user_id' => $user->id,
-                'last_heartbeat' => time(),
-                'match_id' => 0,
-                'level' => $user->level
-            ];
-
-        }
         $userSetting = $user->userSetting();
         $formatUserSetting = [
             'notice' => isset($userSetting->notice) ? json_decode($userSetting->notice, true) : [],
             'basketball_notice' => isset($userSetting->basketball_notice) ? json_decode($userSetting->basketball_notice, true) : [],
 
         ];
+        $time = time();
+        $token = md5($user['id'] . Config::getInstance()->getConf('app.token') . $time);
         $user_info = [
             'id' => $user->id,
             'nickname' => $user->nickname,
@@ -506,7 +475,9 @@ class Login extends FrontUserController
             'is_offical' => $user->is_offical,
             'mobile' => $user->mobile,
             'user_setting' => $formatUserSetting,
-            'wx_name' => $user->wx_name
+            'wx_name' => $user->wx_name,
+            'front_time' => $time,
+            'front_token' => $token
         ];
         if ($logon) return $this->writeJson(Statuses::CODE_OK, 'OK', $user_info);
         return $this->writeJson(Statuses::CODE_ERR, '用户不存在或密码错误');
@@ -525,7 +496,6 @@ class Login extends FrontUserController
      */
     public function checkPhoneCode()
     {
-
         if (!$this->params['code'] || !$this->params['mobile']) {
             return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
 
@@ -535,7 +505,8 @@ class Login extends FrontUserController
                 return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
             }
         }
-
+        $phoneCode->status = AdminUserPhonecode::STATUS_USED;
+        $phoneCode->update();
         return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
 
 
