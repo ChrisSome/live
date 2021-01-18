@@ -736,6 +736,58 @@ class Community extends FrontUserController
 
     }
 
+    /**
+     * 个人中心首页
+     * @Api(name="个人中心首页",path="/api/community/userFirstPage",version="3.0")
+     * @ApiDescription(value="serverClient for userFirstPage")
+     * @Method(allow="{GET}")
+     * @Param(name="code",type="string",required="",description="验证码")
+     * @Param(name="mobile",type="string",required="",description="手机号")
+     * @ApiSuccess({"code":0,"msg":"OK","data":null})
+     */
+    public function userFirstPage()
+    {
+
+        $type = !empty($this->params['type']) ? (int)$this->params['type'] : 1; //1发帖 2回帖 3资讯评论
+        $mid = (int)$this->auth['id'];
+        $page = $this->params['page'] ?: 1;
+        $size = $this->params['size'] ?: 10;
+        $uid = !empty($this->params['user_id']) ? (int)$this->params['user_id'] : $mid;
+        if (!$uid && !$mid) return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+        if ($type == 1) { //发帖
+            $model = AdminUserPost::getInstance()->where('user_id', $uid)->where('status', AdminUserPost::SHOW_IN_FRONT, 'in')->getLimit($page, $size);
+            $list = $model->all(null);
+            $total = $model->lastQueryResult()->getTotalCount();
+            $format_post = FrontService::handPosts($list, $this->auth['id']);
+            $return_data = ['data' => $format_post, 'count' => $total];
+        } else if ($type == 2) {//回帖
+            $comment_model = AdminPostComment::getInstance()->where('user_id', $uid)->where('status', AdminPostComment::SHOW_IN_FRONT, 'in')->getAll($page, $size);
+            $list= $comment_model->all(null);
+            $total = $comment_model->lastQueryResult()->getTotalCount();
+            $format_comment = FrontService::handComments($list, $this->auth['id']);
+            $return_data = ['data' => $format_comment, 'count' => $total];
+
+        } else if ($type == 3) {
+            $information_comment_model = AdminInformationComment::getInstance()->where('user_id', $uid)->where('status', AdminInformationComment::SHOW_IN_FRONT, 'in')->getLimit($page, $size);
+            $list = $information_comment_model->all(null);
+            $total = $information_comment_model->lastQueryResult()->getTotalCount();
+            $format_comment = FrontService::handInformationComment($list, $this->auth['id']);
+            $return_data = ['data' => $format_comment, 'count' => $total];
+
+        } else {
+            $return_data = ['data' => [], 'count' => 0];
+
+        }
+
+
+        $is_me = ($uid == $mid) ? true : false;
+        $is_follow = AppFunc::isFollow($this->auth['id'], $uid);
+        $return_info = ['is_me' => $is_me, 'is_follow' => $is_follow, 'list' => $return_data];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_info);
+
+    }
+
 
 
 

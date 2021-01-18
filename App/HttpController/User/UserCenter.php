@@ -86,7 +86,7 @@ class UserCenter   extends FrontUserController{
             'follow_count' => AppFunc::changeToWan($followCount, ''),
             'fabolus_count' => AppFunc::changeToWan($fabolus_number, ''),
             'd_value' => AppFunc::getPointsToNextLevel($user_info),
-            't_value' => AppFunc::getPointOfLevel($user_info->level)
+            't_value' => AppFunc::getPointOfLevel((int)$user_info->level)
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
@@ -1175,7 +1175,7 @@ class UserCenter   extends FrontUserController{
 
         $return = ['user_info' => $user_info, 'task_list' => $user_tasks];
         $return['d_value'] = AppFunc::getPointsToNextLevel($user_info);
-        $return ['t_value'] = AppFunc::getPointOfLevel($user_info->level);
+        $return ['t_value'] = AppFunc::getPointOfLevel((int)$user_info->level);
         if (!$user_info->third_wx_unionid) {
             $special_status = 1; //可用
         } else {
@@ -1233,7 +1233,7 @@ class UserCenter   extends FrontUserController{
         $intvalModel->save();
 
         $user = AdminUser::create()->where('id', $user_id)->get();
-        $point = ($user->point + $user_task['points_per_time']);
+        $point = ((int)$user->point + (int)$user_task['points_per_time']);
         $level = AppFunc::getUserLvByPoint($point);
         $user->point = $point;
         $user->level = $level;
@@ -1242,7 +1242,7 @@ class UserCenter   extends FrontUserController{
             'level' => $level,
             'point' => $point,
             'd_value' => AppFunc::getPointsToNextLevel($user),
-            't_value' => AppFunc::getPointOfLevel($user->level)
+            't_value' => AppFunc::getPointOfLevel((int)$user->level)
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user_info);
 
@@ -1370,56 +1370,7 @@ class UserCenter   extends FrontUserController{
     }
 
 
-    /**
-     * 个人中心首页
-     * @Api(name="个人中心首页",path="/api/community/userFirstPage",version="3.0")
-     * @ApiDescription(value="serverClient for userFirstPage")
-     * @Method(allow="{GET}")
-     * @Param(name="code",type="string",required="",description="验证码")
-     * @Param(name="mobile",type="string",required="",description="手机号")
-     * @ApiSuccess({"code":0,"msg":"OK","data":null})
-     */
-    public function userFirstPage()
-    {
 
-        $type = isset($this->params['type']) ? $this->params['type'] : 1; //1发帖 2回帖 3资讯评论
-        $mid = $this->auth['id'];
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 10;
-        $uid = !empty($this->params['user_id']) ? $this->params['user_id'] : $this->auth['id'];
-
-        if ($type == 1) { //发帖
-            $model = AdminUserPost::getInstance()->where('user_id', $uid)->where('status', AdminUserPost::SHOW_IN_FRONT, 'in')->getLimit($page, $size);
-            $list = $model->all(null);
-            $total = $model->lastQueryResult()->getTotalCount();
-            $format_post = FrontService::handPosts($list, $this->auth['id']);
-            $return_data = ['data' => $format_post, 'count' => $total];
-        } else if ($type == 2) {//回帖
-            $comment_model = AdminPostComment::getInstance()->where('user_id', $uid)->where('status', AdminPostComment::SHOW_IN_FRONT, 'in')->getAll($page, $size);
-            $list= $comment_model->all(null);
-            $total = $comment_model->lastQueryResult()->getTotalCount();
-            $format_comment = FrontService::handComments($list, $this->auth['id']);
-            $return_data = ['data' => $format_comment, 'count' => $total];
-
-        } else if ($type == 3) {
-            $information_comment_model = AdminInformationComment::getInstance()->where('user_id', $uid)->where('status', AdminInformationComment::SHOW_IN_FRONT, 'in')->getLimit($page, $size);
-            $list = $information_comment_model->all(null);
-            $total = $information_comment_model->lastQueryResult()->getTotalCount();
-            $format_comment = FrontService::handInformationComment($list, $this->auth['id']);
-            $return_data = ['data' => $format_comment, 'count' => $total];
-
-        } else {
-            $return_data = ['data' => [], 'count' => 0];
-
-        }
-
-
-        $is_me = ($uid == $mid) ? true : false;
-        $is_follow = AppFunc::isFollow($this->auth['id'], $uid);
-        $return_info = ['is_me' => $is_me, 'is_follow' => $is_follow, 'list' => $return_data];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_info);
-
-    }
 
 
 

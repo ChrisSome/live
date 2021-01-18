@@ -68,7 +68,7 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/community/hotSearch', '/User/Community/hotSearch');   //热搜榜
             $r->addRoute(['GET'], '/community/detail', '/User/Community/detail'); //帖子详情
             $r->addRoute(['GET'], '/community/getAllChildComments', '/User/Community/getAllChildComments');   //二级评论列表
-            $r->addRoute(['GET'], '/community/userFirstPage', '/User/UserCenter/userFirstPage');   //用户详情页
+            $r->addRoute(['GET'], '/community/userFirstPage', '/User/Community/userFirstPage');   //用户详情页
             $r->addRoute(['GET'], '/user/myFollowings', '/User/Community/myFollowings');   //用户关注列表
             $r->addRoute(['GET'], '/community/userInfo', '/User/Community/userInfo');   //用户基本信息
             $r->addRoute(['GET'], '/community/normalProblemList', '/User/Community/normalProblemList');   //常见问题

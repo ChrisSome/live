@@ -25,6 +25,7 @@
  */
 namespace App\HttpController\Match;
 use App\Base\FrontUserController;
+use App\Common\AppFunc;
 use App\lib\FrontService;
 use App\lib\Tool;
 use App\Model\AdminClashHistory;
@@ -1569,6 +1570,9 @@ class FootballApi extends FrontUserController
 
     public function test()
     {
+//        $user = OnlineUser::getInstance()->get(1761);
+//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user);
+
         $online = OnlineUser::getInstance()->table();
         foreach ($online as $item) {
             $users[] = $item;
