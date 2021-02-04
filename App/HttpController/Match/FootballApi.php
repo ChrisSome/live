@@ -42,6 +42,7 @@ use App\Storage\OnlineUser;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
+use easySwoole\Cache\Cache;
 use EasySwoole\HttpAnnotation\AnnotationController;
 use EasySwoole\HttpAnnotation\AnnotationTag\Api;
 use EasySwoole\HttpAnnotation\AnnotationTag\Param;
@@ -65,107 +66,6 @@ class FootballApi extends FrontUserController
     const STATUS_RESULT= [8, 9, 10, 11, 12, 13];
 
     const STATUS_NO_START = 1;
-    const hotCompetition = [
-        'hot' => [['competition_id' => 45, 'short_name_zh' => '欧洲杯'],
-            ['competition_id'=>47, 'short_name_zh' =>'欧联杯'],
-            ['competition_id'=>542, 'short_name_zh' =>'中超']],
-        'A' => [
-            ['competition_id' => 595, 'short_name_zh' => '澳南超'],
-            ['competition_id' => 600, 'short_name_zh' => '澳南甲'],
-            ['competition_id' => 1689, 'short_name_zh' => '阿尔U21'],
-            ['competition_id' => 1858, 'short_name_zh' => '澳昆U20'],
-            ['competition_id' => 1850, 'short_name_zh' => '澳南后备'],
-        ],
-        'B' => [
-            ['competition_id' => 3007, 'short_name_zh' => '巴基挑杯'],
-            ['competition_id' => 282, 'short_name_zh' => '冰岛乙'],
-            ['competition_id' => 284, 'short_name_zh' => '冰岛杯'],
-            ['competition_id' => 436, 'short_name_zh' => '巴西乙'],
-            ['competition_id' => 1821, 'short_name_zh' => '巴丙'],
-        ],
-        'D' => [
-            ['competition_id' => 1675, 'short_name_zh' => '德堡州联'],
-            ['competition_id' => 132, 'short_name_zh' => '德地区北'],
-        ],
-        'E' => [
-            ['competition_id' => 238, 'short_name_zh' => '俄超'],
-            ['competition_id' => 241, 'short_name_zh' => '俄青联'],
-            ['competition_id' => 240, 'short_name_zh' => '俄乙'],
-
-        ],
-        'F' => [
-            ['competition_id' => 195, 'short_name_zh' => '芬超'],
-            ['competition_id' => 1940, 'short_name_zh' => '芬丙'],
-            ['competition_id' => 3053, 'short_name_zh' => '斐济女联'],
-            ['competition_id' => 1932, 'short_name_zh' => '斐济杯'],
-        ],
-        'G' => [
-            ['competition_id' => 486, 'short_name_zh' => '哥斯甲'],
-            ['competition_id' => 385, 'short_name_zh' => '格鲁甲'],
-            ['competition_id' => 386, 'short_name_zh' => '格鲁乙'],
-        ],
-        'H' => [
-            ['competition_id' => 356, 'short_name_zh' => '哈萨超'],
-            ['competition_id' => 357, 'short_name_zh' => '哈萨甲'],
-        ],
-        'J' => [
-            ['competition_id' => 2984, 'short_name_zh' => '加拿职'],
-        ],
-        'K' => [
-            ['competition_id' => 1785, 'short_name_zh' => '卡塔乙'],
-        ],
-        'L' => [
-            ['competition_id' => 271, 'short_name_zh' => '罗乙'],
-        ],
-        'M' => [
-            ['competition_id' => 465, 'short_name_zh' => '墨西超'],
-            ['competition_id' => 466, 'short_name_zh' => '墨西乙'],
-            ['competition_id' => 2115, 'short_name_zh' => '墨女超'],
-        ],
-        'N' => [
-            ['competition_id' => 716, 'short_name_zh' => '南非超'],
-            ['competition_id' => 203, 'short_name_zh' => '挪乙'],
-        ],
-        'O' => [
-            ['competition_id' => 53, 'short_name_zh' => '欧青U19'],
-        ],
-        'Q' => [
-            ['competition_id' => 24, 'short_name_zh' => '球会友谊'],
-        ],
-        'R' => [
-            ['competition_id' => 568, 'short_name_zh' => '日职乙'],
-            ['competition_id' => 569, 'short_name_zh' => '日足联'],
-            ['competition_id' => 572, 'short_name_zh' => '日职丙'],
-            ['competition_id' => 567, 'short_name_zh' => '日职联'],
-        ],
-        'S' => [
-            ['competition_id' => 616, 'short_name_zh' => '沙特乙'],
-            ['competition_id' => 615, 'short_name_zh' => '沙特甲'],
-            ['competition_id' => 3164, 'short_name_zh' => '所罗岛杯'],
-        ],
-        'T' => [
-            ['competition_id' => 1842, 'short_name_zh' => '泰乙'],
-            ['competition_id' => 317, 'short_name_zh' => '土乙红'],
-            ['competition_id' => 318, 'short_name_zh' => '土丙C'],
-        ],
-        'W' => [
-            ['competition_id' => 674, 'short_name_zh' => '乌兹超'],
-            ['competition_id' => 675, 'short_name_zh' => '乌兹甲'],
-            ['competition_id' => 1736, 'short_name_zh' => '乌拉乙'],
-        ],
-        'X' => [
-            ['competition_id' => 547, 'short_name_zh' => '香港甲'],
-            ['competition_id' => 1732, 'short_name_zh' => '香港乙'],
-        ],
-        'Y' => [
-            ['competition_id' => 349, 'short_name_zh' => '以乙北'],
-            ['competition_id' => 491, 'short_name_zh' => '亚冠杯'],
-        ],
-        'Z' => [
-            ['competition_id' => 543, 'short_name_zh' => '中甲'],
-            ['competition_id' => 544, 'short_name_zh' => '中乙'],
-        ],
-    ];
 
 
     /**
@@ -405,7 +305,7 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
 
         }
-        $res = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->get();
+        $res = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->where('type', AdminInterestMatches::FOOTBALL_TYPE)->get();
         $matchIds = json_decode($res->match_ids, true);
         if (!$matchIds) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
 
@@ -1072,16 +972,15 @@ class FootballApi extends FrontUserController
      */
     public function getClashHistory()
     {
+
         if (!isset($this->params['match_id'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
-        $matchId = $this->params['match_id'];
+        $matchId = (int)$this->params['match_id'];
         $sensus = AdminClashHistory::getInstance()->where('match_id', $this->params['match_id'])->get();
 
-
-
-        if (!$matchInfo = SeasonMatchList::getInstance()->where('match_id', $matchId)->where('is_delete', 0)->get()) {
+        if (!$matchInfo = AdminMatch::getInstance()->where('match_id', $matchId)->where('is_delete', 0)->get()) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
@@ -1156,23 +1055,23 @@ class FootballApi extends FrontUserController
                 $awayRecentMatches[] = $itemMatch;
             }
         }
+
         $homeRecentSchedule = $awayRecentSchedule = [];
         //近期赛程
-        $statusArr = array_merge(self::STATUS_SCHEDULE, self::STATUS_PLAYING);
+        $statusArr = array_merge([1], self::STATUS_PLAYING);
         $matchSchedule = SeasonMatchList::create()->where('status_id', $statusArr, 'in')
             ->where('(home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid . ')')
-            ->where('is_delete', 0)->order('match_time', 'DESC')->all();
+            ->where('is_delete', 0)->order('match_time', 'ASC')->all();
 
         foreach ($matchSchedule as $scheduleItem) {
-            if ($scheduleItem['home_team_id'] == $homeTid || $scheduleItem['away_team_id'] == $awayTid) {
+
+            if ($scheduleItem['home_team_id'] == $homeTid || $scheduleItem['away_team_id'] == $homeTid) {
                 $homeRecentSchedule[] = $scheduleItem;
             }
-            if ($scheduleItem['home_team_id'] == $awayTid || $scheduleItem['home_team_id'] == $homeTid) {
+            if ($scheduleItem['home_team_id'] == $awayTid || $scheduleItem['away_team_id'] == $awayTid) {
                 $awayRecentSchedule[] = $scheduleItem;
             }
         }
-
-
         $returnData = [
             'intvalRank' => $intvalRank, //积分排名
             'historyResult' => !empty($sensus['history']) ? json_decode($sensus['history'], true) : [],//历史战绩
@@ -1187,117 +1086,7 @@ class FootballApi extends FrontUserController
 
     }
 
-    public function getClashHistoryBak()
-    {
-        if (!isset($this->params['match_id'])) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
-        }
-        $matchId = $this->params['match_id'];
-        $sensus = AdminClashHistory::getInstance()->where('match_id', $this->params['match_id'])->get();
-
-
-
-        if (!$matchInfo = SeasonMatchList::getInstance()->where('match_id', $matchId)->where('is_delete', 0)->get()) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-        }
-
-
-        //积分排名
-        $currentSeasonId = $matchInfo->competitionName()->cur_season_id;
-
-        if (!$currentSeasonId) {
-            $intvalRank = [];
-        } else {
-            $res = SeasonAllTableDetail::getInstance()->where('season_id', $currentSeasonId)->get();
-
-            $decode = json_decode($res->tables, true);
-            $promotions = json_decode($res->promotions, true);
-
-            $homeIntvalRank = $awayIntvalRank = [];
-            if ($promotions) {
-                $rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
-                foreach ($rows as $item) {
-                    if ($item['team_id'] == $matchInfo->home_team_id) {
-                        $homeIntvalRank = $item;
-                    } else if ($item['team_id'] == $matchInfo->away_team_id) {
-                        $awayIntvalRank = $item;
-                    }
-                    if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) break;
-                }
-
-            } else {
-
-                foreach ($decode as $item_row) {
-                    foreach ($item_row['rows'] as $k_row) {
-                        $team_ids[] = $k_row['team_id'];
-                        if ($k_row['team_id'] == $matchInfo->home_team_id) {
-                            $homeIntvalRank = $k_row;
-                        }
-
-                        if ($k_row['team_id'] == $matchInfo->away_team_id) {
-                            $awayIntvalRank = $k_row;
-                        }
-
-                        if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) {
-
-                            break;
-                        }
-                    }
-                }
-            }
-
-            $intvalRank = ['homeIntvalRank' => $homeIntvalRank, 'awayIntvalRank' => $awayIntvalRank];
-
-        }
-
-
-        $homeTid = $matchInfo->home_team_id;
-        $awayTid = $matchInfo->away_team_id;
-
-        //历史交锋
-        $matches = SeasonMatchList::getInstance()->where('status_id', 8)->where('((home_team_id=' . $homeTid . ' and away_team_id=' . $awayTid . ') or (home_team_id='.$awayTid.' and away_team_id='.$homeTid.'))')
-            ->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
-
-        $formatHistoryMatches = FrontService::formatMatchThree($matches, 0, []);
-
-        //近期战绩
-
-        $homeRecentMatches = SeasonMatchList::getInstance()->where('status_id', 8)->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid)
-            ->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
-        $awayRecentMatches = SeasonMatchList::getInstance()->where('status_id', 8)->where('home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
-            ->where('is_delete', 0)->order('match_time', 'DESC')->limit(10)->all();
-
-        //近期赛程
-        $matchSchedule = SeasonMatchList::create()->where('status_id', self::STATUS_SCHEDULE, 'in')->where('home_team_id='.$homeTid. ' or away_team_id='.$homeTid . ' or home_team_id='.$awayTid. ' or away_team_id='.$awayTid)
-            ->where('is_delete', 0)->order('match_time', 'DESC')->all();
-
-        foreach ($matchSchedule as $scheduleItem) {
-            if ($scheduleItem['home_team_id'] == $homeTid || $scheduleItem['away_team_id'] == $awayTid) {
-                $homeRecentSchedule[] = $scheduleItem;
-            }
-            if ($scheduleItem['home_team_id'] == $awayTid || $scheduleItem['home_team_id'] == $homeTid) {
-                $awayRecentSchedule[] = $scheduleItem;
-            }
-        }
-
-
-
-
-        $returnData = [
-            'intvalRank' => $intvalRank, //积分排名
-            'historyResult' => !empty($sensus['history']) ? json_decode($sensus['history'], true) : [],
-            'recentResult' => !empty($sensus['recent']) ? json_decode($sensus['recent'], true) : [],
-            'history' => array_slice($formatHistoryMatches, 9), //历史交锋
-            'homeRecent' => FrontService::formatMatchThree(array_slice($homeRecentMatches, 9), 0, []),//主队近期战绩
-            'awayRecent' => FrontService::formatMatchThree(array_slice($awayRecentMatches, 9), 0, []),//客队近期战绩
-            'homeRecentSchedule' => FrontService::formatMatchThree($homeRecentSchedule, 0, []),//主队近期赛程
-            'awayRecentSchedule' => FrontService::formatMatchThree($awayRecentSchedule, 0, []),//客队近期赛程
-        ];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
-
-    }
     /**
      * 直播间公告
      * @return bool
@@ -1451,14 +1240,15 @@ class FootballApi extends FrontUserController
         }
         //用户关注的比赛
         $userInterestMatchArr = [];
-        if ($userInterestMatches = AdminInterestMatches::create()->where('uid', $this->auth['id'])->get()) {
+        if ($userInterestMatches = AdminInterestMatches::create()->where('uid', $this->auth['id'])->where('type', AdminInterestMatches::FOOTBALL_TYPE)->get()) {
             $userInterestMatchArr = json_decode($userInterestMatches->match_ids, true);
         }
         $formatMatch = FrontService::formatMatchThree([$match], $this->auth['id'], $userInterestMatchArr);
+
         if (!$return = $formatMatch[0]) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-
         }
+
         $competition_id = $return['competition_id'];
         $return['competition_type'] = 0;
         if ($competition = AdminCompetition::create()->where('competition_id', $competition_id)->get()) {
@@ -1517,7 +1307,7 @@ class FootballApi extends FrontUserController
             } else {
                 $match_info = [];
             }
-            $return['matching_info'] = $match_info;
+            $return['matching_info'] = $match_info ? $match_info : null;
 
         }
 
@@ -1570,8 +1360,12 @@ class FootballApi extends FrontUserController
 
     public function test()
     {
+        $uid = $this->auth['id'];
+        $res = AdminUser::getUserShowCompetitionId($uid);
 //        $user = OnlineUser::getInstance()->get(1761);
 //        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user);
+//        $cache = Cache::get('user-send-msg-17343214246');
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
 
         $online = OnlineUser::getInstance()->table();
         foreach ($online as $item) {

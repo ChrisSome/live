@@ -13,6 +13,7 @@ use App\Model\AdminHonorList;
 use App\Model\AdminInterestMatches;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
+use App\Model\BasketballMatch;
 use App\Storage\OnlineUser;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
@@ -199,6 +200,8 @@ class Crontab extends FrontUserController
 
             if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
                 $signal->home_scores = json_encode($data['home_scores']);
+                $signal->home_team_name = $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh;
+                $signal->away_team_name = $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh;
                 $signal->away_scores = json_encode($data['away_scores']);
                 $signal->home_position = $data['home_position'];
                 $signal->away_position = $data['away_position'];
@@ -237,8 +240,8 @@ class Crontab extends FrontUserController
                     'home_team_logo' => $home_team->logo,
                     'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
                     'away_team_logo' => $away_team->logo,
-                    'competition_name' => $competition ? $competition->short_name_zh : '',
-                    'competition_color' => $competition ? $competition->primary_color : ''
+                    'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
+                    'competition_color' => $competition->primary_color
                 ];
 
                 AdminMatch::getInstance()->insert($insertData);
@@ -290,8 +293,8 @@ class Crontab extends FrontUserController
                     'home_team_logo' => $home_team->logo,
                     'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
                     'away_team_logo' => $away_team->logo,
-                    'competition_name' => $competition ? $competition->short_name_zh : '',
-                    'competition_color' => $competition ? $competition->primary_color : ''
+                    'competition_name' => !empty($competition->short_name_zh) ? $competition->short_name_zh : $competition->name_zh,
+                    'competition_color' => $competition->primary_color
                 ];
                 SeasonMatchList::getInstance()->insert($insertData);
             }
@@ -731,6 +734,8 @@ class Crontab extends FrontUserController
 
 
             }
+        } else {
+            Log::getInstance()->info('no match to notice');
         }
     }
 
@@ -824,7 +829,10 @@ class Crontab extends FrontUserController
         $decode = json_decode($res, true);
         $decodeDatas = $decode['results'];
 
-        if (!$decodeDatas) return false;
+        if (!$decodeDatas) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 2);
+
+        }
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
         $statusId = $decodeDatas['score'][1];
         $match->home_scores = json_encode($decodeDatas['score'][2]);
@@ -1215,41 +1223,38 @@ class Crontab extends FrontUserController
      */
     public function managerList()
     {
-        while (true){
-            $manager_id = AdminManagerList::getInstance()->max('updated_at');
+        $manager_id = AdminManagerList::getInstance()->max('updated_at');
+        $url = sprintf($this->manager_list, $this->user, $this->secret, $manager_id);
+        $res = Tool::getInstance()->postApi($url);
+        $resp = json_decode($res, true);
 
-            $url = sprintf($this->manager_list, $this->user, $this->secret, $manager_id);
-            $res = Tool::getInstance()->postApi($url);
-            $resp = json_decode($res, true);
-
-            if ($resp['code'] == 0) {
-                if ($resp['query']['total'] == 0) {
-                    break;
-                }
-                $decode = $resp['results'];
-                foreach ($decode as $item) {
-
-                    $data = [
-                        'manager_id' => $item['id'],
-                        'team_id' => $item['team_id'],
-                        'name_zh' => $item['name_zh'],
-                        'name_en' => $item['name_en'],
-                        'logo' => $item['logo'],
-                        'age' => $item['age'],
-                        'birthday' => $item['birthday'],
-                        'preferred_formation' => $item['preferred_formation'],
-                        'nationality' => $item['nationality'],
-                        'updated_at' => $item['updated_at'],
-                    ];
-                    if (!AdminManagerList::getInstance()->where('manager_id', $item['id'])->get()) {
-                        AdminManagerList::getInstance()->insert($data);
-                    } else {
-                        AdminManagerList::getInstance()->update($data, ['manager_id' => $item['id']]);
-                    }
-                }
-            } else {
-                break;
+        if ($resp['code'] == 0) {
+            if ($resp['query']['total'] == 0) {
+                return;
             }
+            $decode = $resp['results'];
+            foreach ($decode as $item) {
+
+                $data = [
+                    'manager_id' => $item['id'],
+                    'team_id' => $item['team_id'],
+                    'name_zh' => $item['name_zh'],
+                    'name_en' => $item['name_en'],
+                    'logo' => $item['logo'],
+                    'age' => $item['age'],
+                    'birthday' => $item['birthday'],
+                    'preferred_formation' => $item['preferred_formation'],
+                    'nationality' => $item['nationality'],
+                    'updated_at' => $item['updated_at'],
+                ];
+                if (!AdminManagerList::getInstance()->where('manager_id', $item['id'])->get()) {
+                    AdminManagerList::getInstance()->insert($data);
+                } else {
+                    AdminManagerList::getInstance()->update($data, ['manager_id' => $item['id']]);
+                }
+            }
+        } else {
+            return;
         }
 
     }
@@ -1355,10 +1360,12 @@ class Crontab extends FrontUserController
     {
         Log::getInstance()->info('push match tlive start');
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
-
-        if ($decode = json_decode($res, true)) {
+        $decode = json_decode($res, true);
+        if (json_last_error() != JSON_ERROR_NONE) {
+            return Log::getInstance()->info('json decode error');
+        }
+        if ($decode) {
             Log::getInstance()->info('accept data success');
-
             $match_info = [];
             foreach ($decode as $item) {
 
@@ -1373,7 +1380,20 @@ class Crontab extends FrontUserController
                     continue;
                 }
                 $status = $item['score'][1];
-                if (!in_array($status, [2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
+
+                //异常比赛给提示
+                $cacheExceptionMatchIds = [];
+                if ($cacheExceptionMatch = Cache::get('exception-match')) {
+                    $cacheExceptionMatchIds = json_decode($cacheExceptionMatch, true);
+                }
+
+                if (!in_array($status, [1, 2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
+                    if (!in_array($match->id, $cacheExceptionMatchIds)) {
+                        //提示
+                        (new WebSocket())->noticeException($item['id'], $status, 1);
+                        array_push($cacheExceptionMatchIds, $match->id);
+                        Cache::set('exception-match', json_encode($cacheExceptionMatchIds), 60 * 60);
+                    }
                     continue;
                 }
 
@@ -1442,19 +1462,19 @@ class Crontab extends FrontUserController
 
                     foreach ($item['tlive'] as $signal_tlive) {
                         $format_signal_tlive = ['time' => intval($signal_tlive['time']), 'type' => (int)$signal_tlive['type'], 'position' => (int)$signal_tlive['position']];
-                        if ($format_signal_tlive['type'] == 2) { //角球
+                        if ($format_signal_tlive['type'] == 2 && $signal_tlive['main']) { //角球
                             $corner_count_new += 1;
                             $format_signal_corner_tlive = $format_signal_tlive;
                             $corner_count_tlive[] = $format_signal_corner_tlive;
-                        } else if ($format_signal_tlive['type'] == 1 || $format_signal_tlive['type'] == 8) { //进球或点球
+                        } else if (($format_signal_tlive['type'] == 1 || $format_signal_tlive['type'] == 8) && $signal_tlive['main']) { //进球或点球
                             $last_goal_tlive = $format_signal_tlive;
                             $goal_count_new += 1;
                             $goal_tlive_total[] = $format_signal_tlive;
-                        } else if ($format_signal_tlive['type'] == 3) { //黄牌
+                        } else if ($format_signal_tlive['type'] == 3 && $signal_tlive['main']) { //黄牌
                             $last_yellow_card_tlive = $format_signal_tlive;
                             $yellow_card_count_new += 1;
                             $yellow_card_tlive_total[] = $format_signal_tlive;
-                        } else if ($format_signal_tlive['type'] == 4) { //红牌
+                        } else if ($format_signal_tlive['type'] == 4 && $signal_tlive['main']) { //红牌
                             $last_red_card_tlive = $format_signal_tlive;
                             $red_card_count_new += 1;
                             $red_card_tlive_total[] = $format_signal_tlive;
@@ -1494,7 +1514,7 @@ class Crontab extends FrontUserController
                     'home' => $item['score'][2],
                     'away' => $item['score'][3]
                 ];
-
+                list($signal_match_info['home_total_scores'], $signal_match_info['away_total_scores']) = AppFunc::getFinalScore($item['score'][2], $item['score'][3]);
                 $match_info[] = $signal_match_info;
                 AppFunc::setMatchingInfo($item['id'], json_encode($signal_match_info));
                 unset($signal_match_info);
@@ -1511,7 +1531,7 @@ class Crontab extends FrontUserController
                 $server = ServerManager::getInstance()->getSwooleServer();
                 $returnData = [
                     'event' => 'match_update',
-                    'match_info_list' => isset($match_info) ? $match_info : []
+                    'match_info_list' => $match_info
                 ];
 
                 $onlineUsers = OnlineUser::getInstance()->table();
@@ -1572,8 +1592,27 @@ class Crontab extends FrontUserController
 
     function test() {
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
 
+        if ($decode = json_decode($res, true)) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
+
+        }
+
+
+
+        $online = OnlineUser::getInstance()->table();
+        foreach ($online as $item) {
+            $users[] = $item;
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $users);
+
+        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+
+        if ($decode = json_decode($res, true)) {
+
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
 
     }
 

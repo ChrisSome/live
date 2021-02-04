@@ -16,4 +16,22 @@ class BasketBallCompetition extends BaseModel
             ->all();
     }
 
+    public function getSeasonList()
+    {
+        if ($seasons = $this->hasMany(BasketballSeasonList::class, null, 'competition_id', 'competition_id')) {
+            return $seasons;
+        } else {
+            return [];
+        }
+    }
+
+    public function getTeamList()
+    {
+        if ($team = $this->hasMany(BasketballTeam::class, null, 'competition_id', 'competition_id')) {
+            return $team;
+        } else {
+            return [];
+        }
+    }
+
 }

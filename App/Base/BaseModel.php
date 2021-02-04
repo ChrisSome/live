@@ -15,11 +15,6 @@ abstract class BaseModel extends AbstractModel
 
     static function getInstance(...$args)
     {
-//        $obj_name = static::class;
-//        if(!isset(self::$instance[$obj_name])){
-//            self::$instance[$obj_name] = new static(...$args);
-//        }
-//        return self::$instance[$obj_name];
         return self::create();
     }
 

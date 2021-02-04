@@ -156,7 +156,7 @@ class DataApi extends FrontUserController
      */
     public function getCompetitionByCountry()
     {
-        $type = $this->params['type'];
+        $type = (int)$this->params['type'];
         if (!$type) {
             $category_id = $this->params['category_id'];
 
@@ -167,7 +167,7 @@ class DataApi extends FrontUserController
             $country_id = $this->params['country_id'];
 
             if ($category_id && !$country_id) {
-                $country_list = AdminCountryList::getInstance()->where('category_id', $category_id)->field('country_id', 'name_zh')->all();
+                $country_list = AdminCountryList::getInstance()->where('category_id', $category_id)->field(['country_id', 'name_zh'])->all();
                 return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $country_list);
 
             }
@@ -380,7 +380,7 @@ class DataApi extends FrontUserController
             $player_info = [
                 'team_info' => $team_info,
                 'contract_until' => date('Y-m-d', $basic->contract_until),
-                'country_info' => ['name_zh' => $country->name_zh, 'logo' => $country->logo],
+                'country_info' => ['name_zh' => isset($country->name_zh) ? $country->name_zh : '', 'logo' => isset($country->logo) ? $country->logo : ''],
                 'user_info' => [
                     'name_zh' => $basic->name_zh,
                     'logo' => $basic->logo,
@@ -1251,8 +1251,8 @@ class DataApi extends FrontUserController
             if (!empty($this->params['round_id']) && intval($this->params['round_id']) > 0) $roundId = intval($this->params['round_id']);
             $groupId = 1;
             if (!empty($this->params['group_id']) && intval($this->params['group_id']) > 0) $groupId = intval($this->params['group_id']);
-            // 比赛信息
-            $tmp = Utils::queryHandler(SeasonMatchList::getInstance(), 'season_id=?', $selectSeasonId, '*', false);
+            // 比赛信息 (取前100场比赛)
+            $tmp = Utils::queryHandler(SeasonMatchList::getInstance(), 'season_id=? limit 100', $selectSeasonId, '*', false);
             foreach ($tmp as $v) {
                 $round = json_decode($v['round'], true);
                 $isOk = intval($round['stage_id']) == $stageId && (intval($round['round_num']) == $roundId || intval($round['group_num']) == $groupId);
@@ -1315,7 +1315,7 @@ class DataApi extends FrontUserController
                         'shots_on_target' => isset($v['shots_on_target']) ? $v['shots_on_target'] : '0',
                         'key_passes' => isset($v['key_passes']) ? $v['key_passes'] : '0',
                         'interceptions' => isset($v['interceptions']) ? $v['interceptions'] : '0',
-                        'clearances' => $v['clearances'],
+                        'clearances' => isset($v['clearances']) ? $v['clearances'] : '0',
                         'yellow_cards' => $v['yellow_cards'],
                         'red_cards' => $v['red_cards'],
                     ];

@@ -51,22 +51,24 @@ class MatchNotice  implements TaskInterface
         $match->away_scores = json_encode($score[3]);
         $match->status_id = $score[1];
         $match->update();
-
         if ($type == 1) { //进球(包含点球)
             $last_incident_goal = $this->taskData['last_incident'];
             list($home, $away) = AppFunc::getFinalScore($score[2], $score[3]);
             $time = $last_incident_goal['time'];
             $position = $last_incident_goal['position'];
+            if (!$home && !$away) return;
             $this->userNotice($type, $match_id, $home, $away, $position, $time);
             $this->userPush($type, $match_id, $home, $away, $position, $time);
         } else if ($type == 3) { //黄牌  只下方提示
             $last_incident = $this->taskData['last_incident'];
             list($home, $away) = AppFunc::getYellowCard($score[2], $score[3]);
+            if (!$home && !$away) return;
             $position = $last_incident['position'];
             $time = $last_incident['time'];
             $this->userNotice($type, $match_id, $home, $away, $position, $time);
         } else if ($type == 4) {//红牌
             list($home, $away) = AppFunc::getRedCard($score[2], $score[3]);
+            if (!$home && !$away) return;
             $last_incident = $this->taskData['last_incident'];
             $position = $last_incident['position'];
             $time = $last_incident['time'];
@@ -158,7 +160,7 @@ class MatchNotice  implements TaskInterface
                 if (!$user['user_id']) { //未登录
                     $is_interest = false;
                 } else {
-                    if (!$interest = AdminInterestMatches::getInstance()->where('uid', $user['user_id'])->get()) {
+                    if (!$interest = AdminInterestMatches::getInstance()->where('uid', $user['user_id'])->where('type', AdminInterestMatches::FOOTBALL_TYPE)->get()) {
                         $is_interest = false;
                     } else {
                         if (in_array($match_id, json_decode($interest->match_ids))) {

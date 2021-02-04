@@ -19,7 +19,6 @@ class SerialPointTask implements TaskInterface
 
     public function __construct($taskData)
     {
-
         $this->taskData = $taskData;
 
     }
@@ -30,7 +29,6 @@ class SerialPointTask implements TaskInterface
      */
     function run(int $taskId,int $workerIndex)
     {
-
         if ($this->taskData['task_id'] == 1) {
             if (AdminUserSerialPoint::getInstance()->where('user_id', $this->taskData['user_id'])->where('task_id', 1)->where('created_at', date('Y-m-d'))->get()) {
                 return;

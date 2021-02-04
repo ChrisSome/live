@@ -12,6 +12,7 @@ use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserSetting;
 use App\Model\AdminZoneList;
+use App\Model\BasketballMatch;
 use App\Storage\OnlineUser;
 use easySwoole\Cache\Cache;
 use EasySwoole\Redis\Redis as Redis;
@@ -29,13 +30,17 @@ class AppFunc
 
     const USER_MESS_TYPE_TABLE = 'user_message_number:uid:%s';  //用与存各类消息数量的哈希表
 
-    const USER_INTEREST_MATCH = 'user_insterest_match:match_id:%s';  //关注此场比赛的用户
+    const USER_INTEREST_MATCH = 'user_insterest_match:match_id:%s';  //关注此场足球比赛的用户
+    const USER_INTEREST_BASKETBALL_MATCH = 'user_insterest_basketball_match:match_id:%s';  //关注此场篮球比赛的用户
     const MATCHING_TIME = 'matching_time:match_id:%s';  //比赛进行的时间
     const MATCHING_INFO = 'matching_info:match_id:%s';  //比赛进行的时间
     const USER_BLACK_LIST = 'user_black_list:%s';
     const USERS_IN_ROOM = 'users_in_room:%s'; //该房间下的用户  roomid
-
+    const USER_IN_BASKETBALL_ROOM = 'users_in_basketball_room:%s'; //篮球直播间用户 roomid
     const MATCH_INFO = 'match_info_match_id_%s'; //某场比赛的乱七八糟的信息 进攻/危险进攻/控球率/射正/射偏  从stats中提取
+
+    const TYPE_FOOTBALL = 1; //足球
+    const TYPE_BASKETBALL = 2; //篮球
 
     // 二维数组 转 tree
     public static function arrayToTree($list, $pid = 'pid')
@@ -621,13 +626,13 @@ class AppFunc
      * @param $match_id
      * @return array
      */
-    public static function getUsersInterestMatch($match_id)
+    public static function getUsersInterestMatch($match_id, $type = 1)
     {
         if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
             return [];
         } else {
-            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, &$uids) {
-                $uids = $redis->sMembers(sprintf(self::USER_INTEREST_MATCH, $match_id));
+            RedisPool::invoke('redis', function(Redis $redis) use ($type, $match_id, &$uids) {
+                $uids = $redis->sMembers(sprintf(($type == 1) ? self::USER_INTEREST_MATCH : self::USER_INTEREST_BASKETBALL_MATCH, $match_id));
             });
             return $uids;
         }
@@ -665,6 +670,21 @@ class AppFunc
             return false;
         }
 
+    }
+
+    //是否属于热门篮球赛事
+    public static function isInHotBasketballCompetition($competitionId)
+    {
+        if ($setting = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::BASKETBALL_COMPETITION)->get()) {
+            $com_arr = json_decode($setting->sys_value, true);
+            if (in_array($competitionId, $com_arr)) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
 
@@ -708,7 +728,7 @@ class AppFunc
             } else {
                 if (!$notice['only_notice_my_interest']) return true;
                 //仅提示关注的比赛
-                if (!$interest = AdminInterestMatches::getInstance()->where('uid', $user_id)->get()) {
+                if (!$interest = AdminInterestMatches::getInstance()->where('uid', $user_id)->where('type', AdminInterestMatches::FOOTBALL_TYPE)->get()) {
                     return false;
                 } else {
 
@@ -758,34 +778,30 @@ class AppFunc
      * @param $match_id
      * @return array
      */
-    public static function getUsersInRoom($match_id)
+    public static function getUsersInRoom($match_id, $type = 1)
     {
         if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
             return [];
         } else {
-            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, &$fd_arr) {
-                $fd_arr = $redis->sMembers(sprintf(self::USERS_IN_ROOM, $match_id));
+            RedisPool::invoke('redis', function(Redis $redis) use ($type, $match_id, &$fd_arr) {
+                $fd_arr = $redis->sMembers(sprintf(($type == 1) ? self::USERS_IN_ROOM : self::USER_INTEREST_BASKETBALL_MATCH, $match_id));
             });
             return $fd_arr;
         }
     }
 
-    /**
-     * 用户进入房间
-     * @param $match_id
-     * @param $fd
-     * @return array
-     */
-    public static function userEnterRoom($match_id, $fd)
+    //用户进入房间
+    public static function userEnterRoom($match_id, $fd, $type = 1)
     {
         if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
             return [];
         } else {
-            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd) {
-                $redis->sAdd(sprintf(self::USERS_IN_ROOM, $match_id), $fd);
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd, $type) {
+                $redis->sAdd(sprintf(($type == 1) ? self::USERS_IN_ROOM : self::USER_IN_BASKETBALL_ROOM, $match_id), $fd);
             });
         }
     }
+
 
     /**
      * 用户退出房间
@@ -793,14 +809,14 @@ class AppFunc
      * @param $fd
      * @return bool
      */
-    public static function userOutRoom($match_id, $fd)
+    public static function userOutRoom($match_id, $fd, $type = 1)
     {
         if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
             return false;
         } else {
             OnlineUser::getInstance()->update($fd, ['match_id' => 0]);
-            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd) {
-                $redis->sRem(sprintf(self::USERS_IN_ROOM, $match_id), $fd);
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd, $type) {
+                $redis->sRem(sprintf(($type == 1) ? self::USERS_IN_ROOM : self::USER_IN_BASKETBALL_ROOM, $match_id), $fd);
             });
             return true;
         }
@@ -815,7 +831,6 @@ class AppFunc
 
     public static function getPlayingTime($match_id)
     {
-//        $time = Cache::get('match_time_' . $match_id);
         RedisPool::invoke('redis', function(Redis $redis) use ($match_id, &$time) {
             $time = $redis->get(sprintf(self::MATCHING_TIME, $match_id));
         });
@@ -862,11 +877,13 @@ class AppFunc
      * 用户关注比赛
      * @param $match_id
      * @param $uid
+     * @param int $sport_type
      * @return bool
+     * @throws \Throwable
      */
-    public static function userDoInterestMatch($match_id, $uid)
+    public static function userDoInterestMatch($match_id, $uid, $sport_type = 1)
     {
-        if ($matchRes = AdminInterestMatches::getInstance()->where('uid', $uid)->get()) {
+        if ($matchRes = AdminInterestMatches::getInstance()->where('uid', $uid)->where('type', $sport_type)->get()) {
             $match_ids = json_decode($matchRes->match_ids, true);
             if ($match_ids) {
                 if (in_array($match_id, $match_ids)) {
@@ -879,8 +896,8 @@ class AppFunc
 
             }
             $matchRes->match_ids = $update_match;
-            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $uid) {
-                $redis->sAdd(sprintf(self::USER_INTEREST_MATCH, $match_id), $uid);
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $uid, $sport_type) {
+                $redis->sAdd(sprintf(($sport_type == 1) ? self::USER_INTEREST_MATCH : self::USER_INTEREST_BASKETBALL_MATCH, $match_id), $uid);
             });
             if ($matchRes->update()) {
                 return true;
@@ -888,9 +905,8 @@ class AppFunc
                 return false;
             }
         } else {
-            $insert = ['uid' => $uid, 'match_ids' => json_encode([$match_id])];
+            $insert = ['uid' => $uid, 'match_ids' => json_encode([$match_id]), 'type' => $sport_type];
             if (AdminInterestMatches::getInstance()->insert($insert)) {
-
                 return true;
             } else {
                 return false;
@@ -900,14 +916,15 @@ class AppFunc
 
 
     /**
-     * 用户取消关注比赛
      * @param $match_id
      * @param $uid
+     * @param int $type
      * @return bool
+     * @throws \Throwable
      */
-    public static function userDelInterestMatch($match_id, $uid)
+    public static function userDelInterestMatch($match_id, $uid, $type = 1)
     {
-        if ($match = AdminInterestMatches::getInstance()->where('uid', $uid)->get()) {
+        if ($match = AdminInterestMatches::getInstance()->where('uid', $uid)->where('type', $type)->get()) {
             $match_ids = json_decode($match->match_ids, true);
             $data = [];
             foreach ($match_ids as $id) {
@@ -918,8 +935,8 @@ class AppFunc
                 }
             }
             $match->match_ids = json_encode($data);
-            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $uid) {
-                $redis->sRem(sprintf(self::USER_INTEREST_MATCH, $match_id), $uid);
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $uid, $type) {
+                $redis->sRem(sprintf(($type == 1) ? self::USER_INTEREST_MATCH : self::USER_INTEREST_BASKETBALL_MATCH, $match_id), $uid);
             });
             if ($match->update()) {
                 return true;
@@ -946,6 +963,20 @@ class AppFunc
     {
         if ($match = AdminMatch::getInstance()->where('match_id', $match_id)->get()) {
             $format = FrontService::formatMatchThree([$match], 0, false);
+            if (isset($format[0])) {
+                return $format[0];
+            } else {
+                return [];
+            }
+        } else {
+            return [];
+        }
+    }
+
+    public static function getBasicFootballMatch($match_id)
+    {
+        if ($match = BasketballMatch::getInstance()->where('match_id', $match_id)->get()) {
+            $format = FrontService::formatBasketballMatch([$match], 0, false);
             if (isset($format[0])) {
                 return $format[0];
             } else {

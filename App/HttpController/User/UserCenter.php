@@ -737,8 +737,8 @@ class UserCenter   extends FrontUserController{
      * @Api(name="篮球相关配置",path="/api/user/basketballSetting",version="3.0")
      * @ApiDescription(value="serverClient for basketballSetting")
      * @Method(allow="{GET｜POST}")
-     * @Param(name="type",type="int",required="",description="类型 //1notice 2push 3private")
-     * @ApiSuccess({"code":0,"msg":"ok","data":{"only_notice_my_interest":0,"start":1,"over":1}})
+     * @Param(name="type",type="int",required="",description="类型 //1notice 2push")
+     * @ApiSuccess({"code":0,"msg":"ok","data":null})
      */
     public function basketballSetting()
     {
@@ -765,7 +765,7 @@ class UserCenter   extends FrontUserController{
         } else {
             if ($type == 1) {
                 $decode = json_decode($this->params['notice'], true);
-                if (!isset($decode['start']) || !isset($decode['goal']) || !isset($decode['over']) || !isset($decode['only_notice_my_interest'])) {
+                if (!isset($decode['start']) || !isset($decode['over']) || !isset($decode['only_notice_my_interest'])) {
                     return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
                 }
                 $column = 'basketball_notice';
@@ -1171,16 +1171,15 @@ class UserCenter   extends FrontUserController{
         }
 
 
-        $user_info = AdminUser::getInstance()->field(['id', 'photo', 'level', 'is_offical', 'level', 'point'])->where('id', $this->auth['id'])->get();
+        $user_info = AdminUser::getInstance()->field(['id', 'photo', 'level', 'is_offical', 'level', 'point', 'third_wx_unionid'])->where('id', $this->auth['id'])->get();
 
         $return = ['user_info' => $user_info, 'task_list' => $user_tasks];
         $return['d_value'] = AppFunc::getPointsToNextLevel($user_info);
         $return ['t_value'] = AppFunc::getPointOfLevel((int)$user_info->level);
-        if (!$user_info->third_wx_unionid) {
+        if (empty($user_info->third_wx_unionid)) {
             $special_status = 1; //可用
         } else {
             $special_status = 0; //不可用
-
         }
         $return['special'] = ['id' => 5, 'name' => '完善资料', 'status' => $special_status, 'times_per_day' => 1, 'icon' =>'http://live-broadcast-system.oss-cn-hongkong.aliyuncs.com/a83ffbe56572911e.png', 'points_per_time' => 200];
 

@@ -375,23 +375,23 @@ class User extends FrontUserController
     {
         if (!isset($this->params['competition_id']) || !$this->params['competition_id']) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
         }
         if (!$this->auth['id']) {
             return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 
         }
-        $uComs = AdminUserInterestCompetition::getInstance()->where('user_id', $this->auth['id'])->get();
+        $type = !empty($this->params['type']) ? (int)$this->params['type'] : 1; //默认为足球 1：足球 2篮球
+        $uComs = AdminUserInterestCompetition::getInstance()->where('user_id', $this->auth['id'])->where('type', $type)->get();
         if ($uComs) {
             $uComs->competition_ids = $this->params['competition_id'];
             $bool = $uComs->update();
         } else {
             $data = [
                 'competition_ids' => $this->params['competition_id'],
-                'user_id' => $this->auth['id']
+                'user_id' => $this->auth['id'],
+                'type' => $type
             ];
             $bool = AdminUserInterestCompetition::getInstance()->insert($data);
-
         }
 
         if (!$bool) {
@@ -412,6 +412,7 @@ class User extends FrontUserController
      * @Method(allow="{POST}")
      * @Param(name="match_id",type="int",required="",description="比赛id")
      * @Param(name="type",type="string",required="",description="类型 add | del")
+     * @Param(name="sport_type",type="int",required="",description="比赛类型 1：足球 2篮球")
      * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
     public function userInterestMatch()
@@ -428,19 +429,20 @@ class User extends FrontUserController
         {
             $uid = $this->auth['id'];
             $match_id = $this->params['match_id'];
+            $sport_type = !empty($this->params['sport_type']) ? (int)$this->params['sport_type'] : 1;
             if ($this->params['type'] == 'add')
             {
                 //用户关注的比赛数量
-                if ($userInterestMatchRes = AdminInterestMatches::create()->where('uid', $uid)->get()) {
+                if ($userInterestMatchRes = AdminInterestMatches::create()->where('uid', $uid)->where('type', $sport_type)->get()) {
                     $count = count(json_decode($userInterestMatchRes->match_ids, true));
                     if ($count >= 50) {
                         return $this->writeJson(Status::CODE_MATCH_COUNT_LIMIT, Status::$msg[Status::CODE_MATCH_COUNT_LIMIT]);
 
                     }
                 }
-                $res = AppFunc::userDoInterestMatch($match_id, $uid);
+                $res = AppFunc::userDoInterestMatch($match_id, $uid, $sport_type);
             } else if($this->params['type'] == 'del') {
-                $res = AppFunc::userDelInterestMatch($match_id, $uid);
+                $res = AppFunc::userDelInterestMatch($match_id, $uid, $sport_type);
             } else {
                 return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 

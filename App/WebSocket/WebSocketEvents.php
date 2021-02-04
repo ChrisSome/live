@@ -78,6 +78,7 @@ class WebSocketEvents
             'match_id' => (int)$match_id,
             'user_id' => isset($user) ? (int)$user->id : 0,
             'level' => isset($user) ? $user->level : 0,
+            'type' => 0
         ];
         $user_online = OnlineUser::getInstance()->get($fd);
         if (!$user_online) {
@@ -104,7 +105,6 @@ class WebSocketEvents
      */
     static function onClose(\swoole_server $server, int $fd, int $reactorId)
     {
-        Log::getInstance()->info('fd was closed-' . $fd);
         OnlineUser::getInstance()->delete($fd);
         ServerManager::getInstance()->getSwooleServer()->close($fd);
 

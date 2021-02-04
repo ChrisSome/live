@@ -104,6 +104,23 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/footBall/updateSeasonTeamPlayer', '/Match/Crontab/updateSeasonTeamPlayer');   //赛季比赛
             $r->addRoute(['GET'], '/footBall/updateYesterdayMatch', '/Match/Crontab/updateYesterdayMatch');   //赛季比赛
             $r->addRoute(['GET'], '/footBall/updateMatchTrend', '/Match/Crontab/updateMatchTrend');   //赛季比赛
+            //篮球数据脚本
+            $r->addRoute(['GET'], '/basketball/getBasketBallCategoryList', '/Match/CrontabBasketball/getBasketBallCategoryList');   //获取分类
+            $r->addRoute(['GET'], '/basketball/getBasketBallCompetitionList', '/Match/CrontabBasketball/getBasketBallCompetitionList');   //获取赛事列表
+            $r->addRoute(['GET'], '/basketball/getBasketballTeamList', '/Match/CrontabBasketball/getBasketballTeamList');   //获取篮球球队列表
+            $r->addRoute(['GET'], '/basketball/getLineUpList', '/Match/CrontabBasketball/getLineUpList');   //获取篮球阵容列表
+            $r->addRoute(['GET'], '/basketball/getPlayerList', '/Match/CrontabBasketball/getPlayerList');   //获取球员列表
+            $r->addRoute(['GET'], '/basketball/getPlayerHonor', '/Match/CrontabBasketball/getPlayerHonor');   //获取球员荣誉列表
+            $r->addRoute(['GET'], '/basketball/getMatchListDiary', '/Match/CrontabBasketball/getMatchListDiary');   //获取比赛列表
+            $r->addRoute(['GET'], '/basketball/getHonorList', '/Match/CrontabBasketball/getHonorList');   //荣誉列表
+            $r->addRoute(['GET'], '/basketball/getSeasonList', '/Match/CrontabBasketball/getSeasonList');   //赛季列表
+            $r->addRoute(['GET'], '/basketball/getSeasonAllStatsDetail', '/Match/CrontabBasketball/getSeasonAllStatsDetail');   //获取赛季球队球员统计详情-全量
+            $r->addRoute(['GET'], '/basketball/seasonMatch', '/Match/CrontabBasketball/seasonMatch');   //赛季比赛列表
+            $r->addRoute(['GET'], '/basketball/seasonTable', '/Match/CrontabBasketball/seasonTable');   //赛季积分榜数据
+            $r->addRoute(['GET'], '/basketball/squadList', '/Match/CrontabBasketball/squadList');   //球队阵容列表
+            $r->addRoute(['GET'], '/basketball/basketballMatchTlive', '/Match/CrontabBasketball/basketballMatchTlive');   //篮球直播
+            $r->addRoute(['GET'], '/basketball/updateBasketballMatchTrend', '/Match/CrontabBasketball/updateBasketballMatchTrend');   //篮球趋势
+            $r->addRoute(['GET'], '/basketball/getMatchesForWeek', '/Match/CrontabBasketball/getMatchesForWeek');   //未来一周比赛
 
 
 
@@ -162,7 +179,7 @@ class Router extends AbstractRouter
 
 
 
-            //赛事
+            //足球相关
             $r->addRoute(['GET'], '/footBall/competitionList', '/Match/FootballApi/getCompetition');   //赛事列表
             $r->addRoute(['GET'], '/footBall/matchListPlaying', '/Match/FootballApi/matchListPlaying');   //正在进行中比赛列表
             $r->addRoute(['GET'], '/footBall/userInterestMatchList', '/Match/FootballApi/userInterestMatchList');   //用户关注的比赛列表
@@ -173,10 +190,20 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/footBall/noticeInMatch', '/Match/FootballApi/noticeInMatch');   //直播间公告
             $r->addRoute(['GET'], '/footBall/matchInfo', '/Match/FootballApi/getMatchInfo');   //比赛信息
             $r->addRoute(['GET'], '/footBall/getTodayAllMatch', '/Match/FootballApi/getTodayAllMatch');   //今天所有比赛
+            //篮球相关
+            $r->addRoute(['GET'], '/basketball/basketballMatchPlaying', '/Match/BasketballApi/basketballMatchPlaying');   //今天所有比赛
+            $r->addRoute(['GET'], '/basketball/basketballMatchSchedule', '/Match/BasketballApi/basketballMatchSchedule');   //赛程
+            $r->addRoute(['GET'], '/basketball/basketballMatchResult', '/Match/BasketballApi/basketballMatchResult');   //赛果比赛
+            $r->addRoute(['GET'], '/basketball/basketballMatchInterest', '/Match/BasketballApi/basketballMatchInterest');   //关注的篮球比赛列表
+            $r->addRoute(['GET'], '/basketball/basketballMatchToday', '/Match/BasketballApi/basketballMatchToday');   //关注的篮球比赛列表
+            $r->addRoute(['GET'], '/basketball/getRecommendCompetition', '/Match/BasketballApi/getRecommendCompetition');   //推荐的篮球赛事
+            $r->addRoute(['GET'], '/basketball/getCountryCompetition', '/Match/BasketballApi/getCountryCompetition');   //国家赛事
+            //篮球数据部分
+            $r->addRoute(['GET'], '/basketball/getPlayerInfo', '/Match/BasketballApi/getPlayerInfo');   //球员信息
+            $r->addRoute(['GET'], '/basketball/teamInfo', '/Match/BasketballApi/teamInfo');   //球队信息
+            $r->addRoute(['GET'], '/basketball/getMatchListDiaryBak', '/Match/CrontabBasketball/getMatchListDiaryBak');   //球队信息
 
-            $r->addRoute(['GET'], '/footBall/test', '/Match/FootballApi/test');   //历史交锋
-
-
+            $r->addRoute(['GET'], '/footBall/test', '/Match/Crontab/test');   //历史交锋
             $r->addRoute(['GET'], '/footBall/fixMatch', '/Match/Crontab/fixMatch');   //比赛查询
 
 

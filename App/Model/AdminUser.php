@@ -119,7 +119,10 @@ class AdminUser extends BaseModel
         $default = json_decode($recommandCompetitionId->sys_value, true);
         if (!$uid) return [$default, []];
         //用户关注赛事 与 比赛
-        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
+        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])
+            ->where('c.type', AdminUserInterestCompetition::FOOTBALL_TYPE)
+            ->where('m.type', AdminInterestMatches::FOOTBALL_TYPE)
+            ->get(['user_id' => $uid]);
 
         $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
         $userInterestCompetition = isset($res->competition_ids) ? json_decode($res->competition_ids, true) : [];
@@ -132,23 +135,32 @@ class AdminUser extends BaseModel
         return [array_values($selectCompetitionIdArr), $interestMatchArr];
     }
 
-    public static function getUserShowCompetitionIdBak($uid)
+    /**
+     * 需要给用户展示的篮球赛事id和用户关注的篮球比赛id
+     * @param $uid
+     */
+    public static function getUserShowBasketballCompetition($uid)
     {
         //默认赛事
-        $recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get();
+        $recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::BASKETBALL_COMPETITION)->get();
         $default = json_decode($recommandCompetitionId->sys_value, true);
         if (!$uid) return [$default, []];
+        //用户关注赛事 与 比赛
+        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])
+            ->where('c.type', AdminUserInterestCompetition::BASKETBALL_TYPE)
+            ->where('m.type', AdminInterestMatches::FOOTBALL_TYPE)
+            ->get(['user_id' => $uid]);
 
-        //用户关注的赛事
-        if ($userInterestComRes = AdminUserInterestCompetition::create()->where('user_id', $uid)->get()) {
-            $userInterestCompetition = json_decode($userInterestComRes->competition_ids, true);
+        $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
+        $userInterestCompetition = isset($res->competition_ids) ? json_decode($res->competition_ids, true) : [];
+        if ($userInterestCompetition) {
             $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
         } else {
             $selectCompetitionIdArr = [];
         }
 
-        //用户关注
-
+        return [array_values($selectCompetitionIdArr), $interestMatchArr];
     }
+
 
 }

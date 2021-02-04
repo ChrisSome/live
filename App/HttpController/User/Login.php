@@ -95,6 +95,8 @@ class Login extends FrontUserController
                 return $this->writeJson(Statuses::CODE_USER_STATUS_CANCLE, Statuses::$msg[Statuses::CODE_USER_STATUS_CANCLE]);
 
             }
+            $mobile_code->status = AdminUserPhonecode::STATUS_USED;
+            $mobile_code->update();
 
         } else if ($type == 2) { //账号密码登录
             $password = $this->params['password'];
@@ -187,15 +189,15 @@ class Login extends FrontUserController
             ->regex('/^1[3456789]\d{9}$/', '手机号格式不正确');
 
         if ($valitor->validate($this->params)) {
-
             $mobile = $this->params['mobile'];
-
         } else {
             return $this->writeJson(Statuses::CODE_W_PARAM, $valitor->getError()->__toString());
-
         }
         if (Cache::get('user-send-msg-' . $mobile) >= 10) {
             return $this->writeJson(Statuses::CODE_PHONE_CODE_LIMIT, Statuses::$msg[Statuses::CODE_PHONE_CODE_LIMIT]);
+        } else if (Cache::get('user_send_msg_' . $mobile)) {
+            return $this->writeJson(Statuses::CODE_PHONE_CODE_LIMIT_TIME, Statuses::$msg[Statuses::CODE_PHONE_CODE_LIMIT_TIME]);
+
         }
 
         $code = Tool::getInstance()->generateCode();
@@ -207,6 +209,7 @@ class Login extends FrontUserController
         } else {
             Cache::inc('user-send-msg-' . $mobile, 1);
         }
+        Cache::set('user_send_msg_' . $mobile, 1, 60);
         return $this->writeJson(Statuses::CODE_OK, '验证码以发送至尾号' . substr($mobile, -4) .'手机', $res);
 
     }

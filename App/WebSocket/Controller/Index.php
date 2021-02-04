@@ -60,8 +60,13 @@ class Index extends Base
     {
         $client = $this->caller()->getClient();
         $fd = $client->getFd();
-        //更新
-        OnlineUser::getInstance()->updateHeartbeat($fd);
-        $this->response()->setMessage('PONG');
+        if (OnlineUser::getInstance()->get($fd)) {
+            OnlineUser::getInstance()->updateHeartbeat($fd);
+            $this->response()->setMessage('PONG');
+        } else {
+            $this->response()->setMessage('PONGFAIL');
+
+        }
+
     }
 }

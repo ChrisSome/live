@@ -235,7 +235,7 @@ class InformationApi extends FrontUserController
             if ($competition_id = $this->params['competition_id']) {
 
                 $matches = AdminMatch::getInstance()->where('competition_id', $competition_id)->where('status_id', FootballApi::STATUS_NO_START)->order('match_time', 'ASC')->limit(2)->all();
-                $format_matches = FrontService::handMatch($matches, 0, true);
+                $format_matches = FrontService::formatMatchThree($matches, 0, true);
 
                 $page = $this->params['page'] ?: 1;
                 $size = $this->params['size'] ?: 10;
@@ -457,6 +457,7 @@ class InformationApi extends FrontUserController
         // 填充用户信息
         $information['user_info'] = Utils::queryHandler(AdminUser::getInstance(),
             'id=?', $information['user_id'], 'id,nickname,photo,is_offical,level');
+        $information['user_info']['is_follow'] = AppFunc::isFollow($authId, $information['id']);
         // 是否未被举报
         $tmp = Utils::queryHandler(AdminUserOperate::getInstance(),
             'item_type=3 and type=1 and is_cancel=0 and item_id=? and user_id=?', [$informationId, $authId]);
@@ -748,7 +749,53 @@ class InformationApi extends FrontUserController
 
     }
 
-
+    /**
+     * 篮球资讯title栏
+     * @Api(name="篮球资讯title栏",path="/api/information/basketballInformationTitleBar",version="3.0")
+     * @ApiDescription(value="serverClient for basketballInformationTitleBar")
+     * @Method(allow="{GET}")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": [
+        {
+        "competition_id": 0,
+        "short_name_zh": "头条",
+        "type": 1
+        },
+        {
+        "competition_id": 0,
+        "short_name_zh": "转会",
+        "type": 2
+        },
+        {
+        "competition_id": 1,
+        "short_name_zh": "NBA",
+        "type": 3
+        },
+        {
+        "competition_id": 2,
+        "short_name_zh": "WNBA",
+        "type": 3
+        },
+        {
+        "competition_id": 3,
+        "short_name_zh": "CBA",
+        "type": 3
+        },
+        {
+        "competition_id": 4,
+        "short_name_zh": "NBL",
+        "type": 3
+        },
+        {
+        "competition_id": 3943,
+        "short_name_zh": "金龙杯",
+        "type": 3
+        }
+        ]
+        })
+     */
     public function basketballInformationTitleBar()
     {
         $format = [
@@ -776,7 +823,45 @@ class InformationApi extends FrontUserController
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $format);
 
     }
-
+    /**
+     * 根据条件查询资讯列表
+     * @Api(name="根据条件查询资讯列表",path="/api/information/basketballInformationList",version="3.0")
+     * @ApiDescription(value="serverClient for basketballInformationList")
+     * @Method(allow="{GET}")
+     * @Param(name="type",type="int",required="",description="头条 ｜转会 ｜ 普通赛事")
+     * @Param(name="basketComid",type="int",required="",description="普通赛事id")
+     * @Param(name="page",type="int",required="",description="页码")
+     * @Param(name="size",type="int",required="",description="每页数")
+     * @ApiSuccess({
+        "code": 0,
+        "msg": "ok",
+        "data": {
+        "list": [
+        {
+        "id": 213,
+        "title": "篮球资讯",
+        "img": "http://backgroundtest.ymtyadmin.com/upload/article/42b71372e97ed99e02bfc7e2e0ccfd9e.jpeg",
+        "status": 1,
+        "is_fabolus": false,
+        "fabolus_number": 0,
+        "respon_number": 0,
+        "competition_id": 1,
+        "created_at": "2021-02-02 13:25:27",
+        "is_title": false,
+        "competition_short_name_zh": "世界杯",
+        "user_info": {
+        "id": 2,
+        "nickname": "321",
+        "photo": "http://live-broadcast-avatar.oss-cn-hongkong.aliyuncs.com/b57075a366d9c6b7.jpg",
+        "level": 1,
+        "is_offical": 0
+        }
+        }
+        ],
+        "count": 1
+        }
+        })
+     */
     public function basketballInformationList()
     {
         $type = !empty($this->params['type']) ? (int)$this->params['type'] : 1;
@@ -788,14 +873,15 @@ class InformationApi extends FrontUserController
         $size = !empty($this->params['size']) ? (int)$this->params['size'] : 15;
         //头条或转会
         if (!$this->params['basketComid']) {
-            $basketballInformation = AdminInformation::create()->where('type', $type)->where('sport_type', 1)->getLimit($page, $size, 'created_at', 'DESC');
+            $basketballInformation = AdminInformation::create()->where('type', $type)->where('sport_type', 2)->getLimit($page, $size, 'created_at', 'DESC');
         } else {
-            $basketballInformation = AdminInformation::create()->where('type', 3)->where('sport_type', 1)->where('competition_id', (int)$this->params['basketComid'])->getLimit($page, $size, 'created_at', 'DESC');
-
+            $basketballInformation = AdminInformation::create()->where('type', 3)->where('sport_type', 2)->where('competition_id', (int)$this->params['basketComid'])->getLimit($page, $size, 'created_at', 'DESC');
         }
-        $formatInformation = FrontService::formatInformation($basketballInformation, $userId);
+        $list   = $basketballInformation->all(null);
+        $count = $basketballInformation->lastQueryResult()->getTotalCount();
+        $formatInformation = FrontService::handInformation($list, $userId);
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatInformation);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $formatInformation, 'count' => $count]);
 
     }
 

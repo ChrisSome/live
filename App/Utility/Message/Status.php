@@ -50,6 +50,7 @@ class Status
     const CODE_WRING_CATEGORY = 328;      //被禁言
     const CODE_MATCH_COUNT_LIMIT = 329;      //最多只能添加50场比赛
     const CODE_PHONE_CODE_LIMIT = 330;      //短信一个号码每天只有10条
+    const CODE_PHONE_CODE_LIMIT_TIME = 331;      //1分钟只能一次
 
 
 
@@ -106,7 +107,7 @@ class Status
         self::CODE_WRING_CATEGORY => '请先选择分类',
         self::CODE_MATCH_COUNT_LIMIT => '最多只能关注50场比赛哦',
         self::CODE_PHONE_CODE_LIMIT => '短信发送超限，请明天再试',
-
+        self::CODE_PHONE_CODE_LIMIT_TIME => '频率过快，请稍后再试',
 
 
         self::CODE_ADD_POST_SENSITIVE  => '内容包含敏感词：%s',

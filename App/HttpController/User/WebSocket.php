@@ -53,7 +53,59 @@ class WebSocket extends FrontUserController
         foreach ($fd_arr as $fd) {
             $connection = $server->connection_info($fd);
             if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-                Log::getInstance()->info('tlive content-' . json_encode($diff) . '-fd-' . $fd);
+                Log::getInstance()->info('tlive content-' . json_encode($diff) . '-fd-' . $fd . '-match_id-' . $match_id);
+                $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
+            }
+        }
+    }
+
+    /**
+     * 异常比赛的提示
+     * @param $match_id
+     * @param $status
+     * @param $type 1足球 2篮球
+     */
+    public function noticeException($match_id, $status, $type)
+    {
+        $fd_arr = AppFunc::getUsersInRoom($match_id, 2);
+        if (!$fd_arr) {
+            return;
+        }
+        $tool = Tool::getInstance();
+        $server = ServerManager::getInstance()->getSwooleServer();
+        $returnData = [
+            'event' => 'exception-match-notice',
+            'match_id' => $match_id,
+            'status' => $status,
+            'type' => $type
+        ];
+        foreach ($fd_arr as $fd) {
+            $connection = $server->connection_info($fd);
+            if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+                Log::getInstance()->info('exception-match-' . json_encode($returnData));
+                $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
+            }
+        }
+    }
+
+    public function basketballContentPush($diff, $match_id, $status_id)
+    {
+        $fd_arr = AppFunc::getUsersInRoom($match_id, 2);
+        if (!$fd_arr) {
+            return;
+        }
+        $tool = Tool::getInstance();
+        $server = ServerManager::getInstance()->getSwooleServer();
+        $returnData = [
+            'event' => 'basketball_match_tlive',
+            'match_id' => $match_id,
+            'content' => $diff,
+            'status_id' => $status_id
+        ];
+        foreach ($fd_arr as $fd) {
+            $connection = $server->connection_info($fd);
+            if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+                Log::getInstance()->info('basketball tlive content-' . json_encode($diff) . '-fd-' . $fd . '-match_id-' . $match_id);
                 $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
             }
         }

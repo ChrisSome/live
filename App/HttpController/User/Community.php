@@ -591,7 +591,14 @@ class Community extends FrontUserController
             //帖子信息
             $formatPost = FrontService::handPosts([$postInfo], $this->auth['id']);
             $returnPost = isset($formatPost[0]) ? $formatPost[0] : [];
-            if ($boolInsert) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnPost);
+            if ($boolInsert) {
+                //加积分
+                $data['task_id'] = 2;
+                $data['user_id'] = $uid;
+                \EasySwoole\EasySwoole\Task\TaskManager::getInstance()->async(new SerialPointTask($data));
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnPost);
+            }
+
             return $this->writeJson(Status::CODE_ADD_POST, Status::$msg[Status::CODE_ADD_POST]);
         }
 

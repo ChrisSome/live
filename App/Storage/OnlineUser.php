@@ -33,6 +33,7 @@ class OnlineUser
             'match_id' => ['type' => Table::TYPE_INT, 'size' => 8], //比赛id
             'user_id' => ['type' => Table::TYPE_INT, 'size' => 8], //用户id
             'level' => ['type' => Table::TYPE_INT, 'size' => 8], //用户级别
+            'type' => ['type' => Table::TYPE_INT, 'size' => 3], //1足球 2篮球  0未进直播间
         ]);
 
         $this->table = TableManager::getInstance()->get('onlineUsers');
@@ -60,7 +61,8 @@ class OnlineUser
             'user_id' => (int)$info['user_id'],
             'level' => (int)$user_level,
             'last_heartbeat' => time(),
-            'match_id' => !empty($info['match_id']) ? (int)$info['match_id'] : 0
+            'match_id' => !empty($info['match_id']) ? (int)$info['match_id'] : 0,
+            'type' => !empty($info['type']) ? (int)$info['type'] : 1
         ]);
     }
 
@@ -117,9 +119,7 @@ class OnlineUser
             $connection = $server->connection_info($item['fd']);
             $time = $item['last_heartbeat'];
             if (!is_array($connection) || $connection['websocket_status'] != 3 || ($time + $ttl) < time()) {
-                Log::getInstance()->info('heartbeatCheck-' . json_encode($connection));
                 Log::getInstance()->info('heartbeatCheck-time-' . json_encode($item) .'-' . $ttl . '-' . time());
-
                 if ($item['match_id']) {
                     AppFunc::userOutRoom($item['match_id'], $item['fd']);
                 }
