@@ -54,7 +54,7 @@ class AdminPostComment extends BaseModel
     public function uInfo()
     {
 
-        if ($user = $this->hasOne(AdminUser::class, null, 't_u_id', 'id')) {
+        if ($user = $this->hasOne(AdminUser::class, null, 'user_id', 'id')) {
             return $user->field(['id', 'mobile', 'photo', 'nickname', 'level', 'is_offical']);
         }
         return [];
