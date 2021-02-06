@@ -580,7 +580,7 @@ class  FrontService {
             $formatUsers[$v->id] = $v;
         });
         array_walk($operates, function($vi, $ki) use(&$formatOperate){
-            $formatOperate[$vi->information] = $vi;
+            $formatOperate[$vi->user_id] = $vi;
         });
         foreach ($informations as $item)
         {

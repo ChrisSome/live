@@ -129,7 +129,7 @@ class AdminUser extends BaseModel
         if ($userInterestCompetition) {
             $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
         } else {
-            $selectCompetitionIdArr = [];
+            $selectCompetitionIdArr = $default;
         }
 
         return [array_values($selectCompetitionIdArr), $interestMatchArr];
