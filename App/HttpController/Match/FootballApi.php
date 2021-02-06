@@ -87,7 +87,7 @@ class FootballApi extends FrontUserController
         }
         })
      */
-    public function getCompetition()
+    public function getCompetition() :bool
     {
         $recommend = [];
         if ($arr = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::RECOMMEND_COM)->get()) {
@@ -159,7 +159,7 @@ class FootballApi extends FrontUserController
         }
         })
      */
-    public function matchListPlaying()
+    public function matchListPlaying() :bool
     {
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
 
@@ -218,7 +218,7 @@ class FootballApi extends FrontUserController
      * 赛果列表
      * @return bool
      */
-    public function matchResult()
+    public function matchResult() :bool
     {
 
         if (!isset($this->params['time'])) {
@@ -299,7 +299,7 @@ class FootballApi extends FrontUserController
         }
         })
      */
-    public function userInterestMatchList()
+    public function userInterestMatchList() :bool
     {
         if (!$this->auth['id']) {
             return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
@@ -653,7 +653,7 @@ class FootballApi extends FrontUserController
         }
         })
      */
-    public function lineUpDetail()
+    public function lineUpDetail() :bool
     {
         $match_id = $this->params['match_id'] ?: 0;
         if (!$match_id) {
@@ -970,7 +970,7 @@ class FootballApi extends FrontUserController
         }
         })
      */
-    public function getClashHistory()
+    public function getClashHistory() :bool
     {
 
         if (!isset($this->params['match_id'])) {
@@ -1091,7 +1091,7 @@ class FootballApi extends FrontUserController
      * 直播间公告
      * @return bool
      */
-    public function noticeInMatch()
+    public function noticeInMatch() :bool
     {
         $setting = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_MATCH_NOTICEMENT)->get();
 
@@ -1146,7 +1146,7 @@ class FootballApi extends FrontUserController
         }
         })
      */
-    public function getTodayAllMatch()
+    public function getTodayAllMatch() :bool
     {
         $start = strtotime(date('Y-m-d'));
         $end = $start + 60 * 60 * 24;
@@ -1228,7 +1228,7 @@ class FootballApi extends FrontUserController
         }
         })
      */
-    public function getMatchInfo()
+    public function getMatchInfo() :bool
     {
         if (!isset($this->params['match_id'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -1316,10 +1316,8 @@ class FootballApi extends FrontUserController
     }
 
 
-    public function getMatchHistory()
+    public function getMatchHistory() :bool
     {
-
-
         $url = sprintf($this->matchHistory, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', 3478550);
 
         $res = Tool::getInstance()->postApi($url);

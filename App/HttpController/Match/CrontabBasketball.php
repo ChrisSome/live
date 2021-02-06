@@ -100,7 +100,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getBasketBallCompetitionList()
+    public function getBasketBallCompetitionList() :bool
     {
         $maxUpdated = BasketBallCompetition::create()->max('updated_at') + 1;
 
@@ -158,7 +158,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getBasketballTeamList()
+    public function getBasketballTeamList() :bool
     {
         $maxUpdated = BasketballTeam::create()->max('updated_at') + 1;
 
@@ -217,7 +217,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getLineUpList()
+    public function getLineUpList() :bool
     {
         $maxUpdated = (int)BasketballLineUp::create()->max('updated_at') + 1;
         $url = sprintf($this->lineUp, $this->user, $this->secret, $maxUpdated);
@@ -260,7 +260,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getPlayerList()
+    public function getPlayerList() :bool
     {
         $maxUpdated = (int)BasketballPlayer::create()->max('updated_at') + 1;
         $url = sprintf($this->playerList, $this->user, $this->secret, $maxUpdated);
@@ -332,7 +332,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getPlayerHonor()
+    public function getPlayerHonor() :bool
     {
         $maxUpdated = (int)BasketballPlayerHonor::create()->max('updated_at') + 1;
 
@@ -378,7 +378,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getMatchListDiary()
+    public function getMatchListDiary() :bool
     {
         $data = date('Ymd');
 //        $data = '20210125';
@@ -476,7 +476,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getHonorList()
+    public function getHonorList() :bool
     {
         $maxUpdated = (int)BasketballHonor::create()->max('updated') + 1;
         $url = sprintf($this->honorList, $this->user, $this->secret, $maxUpdated);
@@ -517,7 +517,7 @@ class CrontabBasketball extends FrontUserController
      * @return bool
      * @throws \Throwable
      */
-    public function getSeasonList()
+    public function getSeasonList() :bool
     {
         $maxUpdated = (int)BasketballSeasonList::create()->max('updated_at') + 1;
         $url = sprintf($this->seasonList, $this->user, $this->secret, $maxUpdated);
@@ -558,7 +558,7 @@ class CrontabBasketball extends FrontUserController
     }
 
     //获取赛季球队球员统计详情-全量
-    public function getSeasonAllStatsDetail()
+    public function getSeasonAllStatsDetail() :bool
     {
 
         $seasonList = BasketballSeasonList::getInstance()->field(['season_id'])->all();
@@ -584,12 +584,11 @@ class CrontabBasketball extends FrontUserController
 
     }
     //赛季比赛列表
-    public function seasonMatch()
+    public function seasonMatch() :bool
     {
 
         $maxSeasonId = BasketballMatchSeason::getInstance()->max('season_id');
         $seasonList = BasketballSeasonList::getInstance()->where('season_id', (int)$maxSeasonId, '>')->all();
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $seasonList);
 
         foreach ($seasonList as $item) {
             $url = sprintf($this->matchSeason, $this->user, $this->secret, $item['season_id']);
@@ -653,7 +652,7 @@ class CrontabBasketball extends FrontUserController
 
 
     //赛季积分榜数据 ,每天一次
-    public function seasonTable()
+    public function seasonTable() :bool
     {
         $seasonList = BasketballSeasonList::getInstance()->field(['season_id'])->where('season_id', 0, '>')->all();
         foreach ($seasonList as $item) {
@@ -681,7 +680,7 @@ class CrontabBasketball extends FrontUserController
 
     }
 
-    public function squadList()
+    public function squadList() :bool
     {
         while (true) {
             $maxUpdatedId = BasketballSquadList::getInstance()->max('updated_at') + 1;
@@ -711,13 +710,12 @@ class CrontabBasketball extends FrontUserController
             }
         }
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
     }
 
     /**
      * 篮球直播 10s/次
      */
-    public function basketballMatchTlive()
+    public function basketballMatchTlive() :bool
     {
         $url = sprintf($this->matchTlive, $this->user, $this->secret);
         $res = Tool::getInstance()->postApi($url);

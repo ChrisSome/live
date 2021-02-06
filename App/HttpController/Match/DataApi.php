@@ -54,12 +54,6 @@ class DataApi extends FrontUserController
     protected $FIFA_male_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/men?user=%s&secret=%s'; //FIFA男子排名
     protected $FIFA_female_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/women?user=%s&secret=%s'; //FIFA女子子排名
 
-
-    public function competitionDes()
-    {
-        $competition_id = $this->params[''];
-    }
-
     /**
      * 热推赛事
      * @Api(name="热推赛事",path="/api/footBall/getHotCompetition",version="3.0")
@@ -95,7 +89,7 @@ class DataApi extends FrontUserController
         ]
         })
      */
-    public function getHotCompetition()
+    public function getHotCompetition() :bool
     {
         $hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
         $competitionIds = json_decode($hot_competition['sys_value'], true);
@@ -123,38 +117,12 @@ class DataApi extends FrontUserController
 
 
 
-    public function getHotCompetition1()
-    {
-        $hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
-        $competitionIds = json_decode($hot_competition['sys_value'], true);
-//        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])->get(['user_id' => $uid]);
-        $res = AdminSeason::create()->alias('s')->join('admin_competition_list as c', 'c.competition_id = s.competition_id')
-            ->field('s.season_id, s.year, s.has_table, c.logo, c.short_name_zh, c.competition_id')->where('s.competition_id', $competitionIds, 'in')->all();
-        if (!$res) return $this->writeJson(Status::CODE_WRONG_INTERNET, Status::$msg[Status::CODE_WRONG_INTERNET]);
-        $seasons = [];
-        foreach ($res as $item) {
-            $format_season = ['season_id' => $item['season_id'], 'has_table' => $item['has_table'], 'year' => $item['year'], 'competition_id' => $item['competition_id']];
-
-            if (isset($data[$item->competition_id]) && $format_season['competition_id'] == $item->competition_id) {
-                $data[$item->competition_id]['seasons'][] = ['season_id' => $item['season_id'], 'has_table' => $item['has_table'], 'year' => $item['year']];
-            } else {
-                $data[$item->competition_id]['competition_id'] = $item['competition_id'];
-                $data[$item->competition_id]['logo'] = $item['logo'];
-                $data[$item->competition_id]['short_name_zh'] = $item['short_name_zh'];
-                $data[$item->competition_id]['seasons'][0] = $format_season;
-            }
-        }
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
-
-    }
-
 
     /**
      * 国家分类赛事
      * @return bool
      */
-    public function getCompetitionByCountry()
+    public function getCompetitionByCountry() :bool
     {
         $type = (int)$this->params['type'];
         if (!$type) {
@@ -185,7 +153,7 @@ class DataApi extends FrontUserController
     /**
      * 最新FIFA女子男子排名
      */
-    public function FIFAMaleRank()
+    public function FIFAMaleRank() :bool
     {
         //区域id，1-欧洲足联、2-南美洲足联、3-中北美洲及加勒比海足协、4-非洲足联、5-亚洲足联、6-大洋洲足联
         $region_id = isset($this->params['region_id']) ? $this->params['region_id'] : 0;
@@ -223,7 +191,7 @@ class DataApi extends FrontUserController
      * 全部赛事 国家分类
      * @return bool
      */
-    public function CategoryCountry()
+    public function CategoryCountry() :bool
     {
         $categorys = AdminCountryCategory::getInstance()->all();
         foreach ($categorys as $category) {
@@ -326,7 +294,7 @@ class DataApi extends FrontUserController
         }
         })
      */
-    public function getPlayerInfo()
+    public function getPlayerInfo() :bool
     {
         $player_id = $this->params['player_id'];
         if (!$player_id) {

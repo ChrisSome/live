@@ -123,7 +123,7 @@ class BasketballApi extends FrontUserController
         }
         })
      */
-    public function basketballMatchPlaying()
+    public function basketballMatchPlaying() :bool
     {
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
 
@@ -192,7 +192,7 @@ class BasketballApi extends FrontUserController
         }
         })
      */
-    public function basketballMatchSchedule()
+    public function basketballMatchSchedule() :bool
     {
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
         //需要展示的赛事id 以及用户关注的比赛
@@ -269,7 +269,7 @@ class BasketballApi extends FrontUserController
         }
         })
      */
-    public function basketballMatchResult()
+    public function basketballMatchResult() :bool
     {
 
         if (!isset($this->params['time'])) {
@@ -381,7 +381,7 @@ class BasketballApi extends FrontUserController
         }
         })
      */
-    public function basketballMatchInterest()
+    public function basketballMatchInterest() :bool
     {
         if (!$this->auth['id']) {
             return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
@@ -445,7 +445,7 @@ class BasketballApi extends FrontUserController
         }
         })
      */
-    public function basketballMatchToday()
+    public function basketballMatchToday() :bool
     {
         //| ------ | ------------------------------------------------------------------------------
         //| 0      | 比赛异常，说明：暂未判断具体原因的异常比赛，可能但不限于：腰斩、取消等等，建议隐藏处理
@@ -539,7 +539,7 @@ class BasketballApi extends FrontUserController
         ]
         })
      */
-    public function getRecommendCompetition()
+    public function getRecommendCompetition() :bool
     {
         $recommandCompetitionId = AdminSysSettings::create()->where('sys_key', AdminSysSettings::JSON_BASKETBALL_COMPETITION)->get();
         $userId = !empty($this->auth['id']) ? (int)$this->auth['id'] : 0;
@@ -586,7 +586,7 @@ class BasketballApi extends FrontUserController
         ]
         })
      */
-    public function getCountryCompetition()
+    public function getCountryCompetition() :bool
     {
         $countryId = !empty($this->params['country_id']) ? (int)$this->params['country_id'] : 0;
         $categoryId = !empty($this->params['category_id']) ? (int)$this->params['category_id'] : 0;
@@ -645,7 +645,7 @@ class BasketballApi extends FrontUserController
         }
         })
      */
-    public function getPlayerInfo()
+    public function getPlayerInfo() :bool
     {
         $playerId = !empty($this->params['player_id']) ? (int)$this->params['player_id'] : 0;
         if (!$playerId) return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -753,7 +753,7 @@ class BasketballApi extends FrontUserController
      * @Param(name="type",type="int",required="",description="数据类型 1基本信息 2积分 3赛季赛程 4数据 5阵容")
      * @ApiSuccess({"code":0,"msg":"验证码以发送至尾号0962手机","data":72})
      */
-    public function teamInfo()
+    public function teamInfo() :bool
     {
 
         $teamId = isset($this->params['team_id']) ? (int)$this->params['team_id'] : 0;

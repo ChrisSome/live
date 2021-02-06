@@ -60,7 +60,7 @@ class InformationApi extends FrontUserController
         ]
         })
      */
-    public function titleBar()
+    public function titleBar() :bool
     {
         $return = [];
 
@@ -172,7 +172,7 @@ class InformationApi extends FrontUserController
         }
         })
      */
-    public function getCategoryInformation()
+    public function getCategoryInformation() :bool
     {
         //资讯文章
         $page =  !empty($this->params['page']) ? $this->params['page'] : 1;
@@ -312,7 +312,7 @@ class InformationApi extends FrontUserController
         }
         })
      */
-    public function competitionContent()
+    public function competitionContent() :bool
     {
         $competition_id = !empty($this->params['competition_id']) ? (int)$this->params['competition_id'] : 0;
         if ($competition_id) {
@@ -445,7 +445,7 @@ class InformationApi extends FrontUserController
         }
         })
      */
-    public function informationInfo()
+    public function informationInfo() :bool
     {
 
         $params = $this->params;
@@ -566,7 +566,7 @@ class InformationApi extends FrontUserController
      * @Param(name="t_u_id",type="int",required="",description="被回复人id")
      * @ApiSuccess({"code":0,"msg":"OK","data":null})
      */
-    public function informationComment()
+    public function informationComment() :bool
     {
 
         if (!$this->auth['id']) {
@@ -721,7 +721,7 @@ class InformationApi extends FrontUserController
         }
         })
      */
-    public function informationChildComment()
+    public function informationChildComment() :bool
     {
         $top_comment_id = !empty($this->params['top_comment_id']) ? (int)$this->params['top_comment_id'] : 0;
         $page = isset($this->params['page']) ? $this->params['page'] : 1;
@@ -796,7 +796,7 @@ class InformationApi extends FrontUserController
         ]
         })
      */
-    public function basketballInformationTitleBar()
+    public function basketballInformationTitleBar() :bool
     {
         $format = [
             [
@@ -862,7 +862,7 @@ class InformationApi extends FrontUserController
         }
         })
      */
-    public function basketballInformationList()
+    public function basketballInformationList() :bool
     {
         $type = !empty($this->params['type']) ? (int)$this->params['type'] : 1;
         if (!isset($this->params['basketComid'])) {
