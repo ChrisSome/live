@@ -580,7 +580,7 @@ class  FrontService {
             $formatUsers[$v->id] = $v;
         });
         array_walk($operates, function($vi, $ki) use(&$formatOperate){
-            $formatOperate[] = $vi->user_id;
+            $formatOperate[$vi->item_id] = 1;
         });
         foreach ($informations as $item)
         {
@@ -590,7 +590,7 @@ class  FrontService {
             $data['title'] = $item['title'];
             $data['img'] = $item['img'];
             $data['status'] = $item['status'];
-            $data['is_fabolus'] = $uid ? (in_array($uid, $formatOperate) ? true : false) : false;
+            $data['is_fabolus'] = $uid ? (isset($formatOperate[$item->id]) ? true : false) : false;
             $data['fabolus_number'] = $item['fabolus_number'];
             $data['respon_number'] = $item['respon_number'];
             $data['competition_id'] = $item['competition_id'];
