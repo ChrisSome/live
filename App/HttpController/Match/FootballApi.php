@@ -1168,7 +1168,9 @@ class FootballApi extends FrontUserController
         $userId = !empty($this->auth['id']) ? (int)$this->auth['id'] : 0;
 
         list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($userId);
-
+        if (!$selectCompetitionIdArr) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
+        }
         $todayMatch = AdminMatch::getInstance()->where('match_time', $start, '>=')
             ->where('competition_id', $selectCompetitionIdArr, 'in')
             ->where('status_id', 0, '<>')
