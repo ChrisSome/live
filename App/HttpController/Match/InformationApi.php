@@ -538,6 +538,8 @@ class InformationApi extends FrontUserController
                     'home_team_name' => $tmp[0]['home_team_name'],
                     'away_team_name' => $tmp[0]['away_team_name'],
                     'format_match_time' => $tmp[0]['format_match_time'],
+                    'home_team_logo' => $tmp[0]['home_team_logo'],
+                    'away_team_logo' => $tmp[0]['away_team_logo'],
                 ];
             }
         }

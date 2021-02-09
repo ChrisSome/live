@@ -1593,6 +1593,7 @@ class Crontab extends FrontUserController
     function test() {
 
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
 
         if ($decode = json_decode($res, true)) {
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
