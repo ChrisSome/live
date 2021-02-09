@@ -50,7 +50,7 @@ class EasySwooleEvent implements Event
         $redisPoolConfig = \EasySwoole\RedisPool\Redis::getInstance()->register('redis',$redisPoolConfig);
         //配置连接池连接数
         $redisPoolConfig->setMinObjectNum(15);
-        $redisPoolConfig->setMaxObjectNum(2000);
+        $redisPoolConfig->setMaxObjectNum(500);
 
         //数据库
         $dbConf = Config::getInstance()->getConf('MYSQL');
@@ -67,11 +67,9 @@ class EasySwooleEvent implements Event
         $config->setMaxIdleTime(15); //连接池对象最大闲置时间(秒)
         $config->setMinObjectNum(15); //设置最小连接池存在连接对象数量
 
-        $config->setMaxObjectNum(200); //设置最大连接池存在连接对象数量
+        $config->setMaxObjectNum(2000); //设置最大连接池存在连接对象数量
         $config->setAutoPing(5); //设置自动ping客户端链接的间隔
 
-//        $connection = new \EasySwoole\ORM\Db\Connection($config);
-//        \EasySwoole\ORM\DbManager::getInstance()->addConnection($connection);
         DbManager::getInstance()->addConnection(new Connection($config));
     }
 
