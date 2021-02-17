@@ -8,6 +8,7 @@ use App\lib\Tool;
 use App\Model\AdminInterestMatches;
 use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
+use App\Model\AdminNotice;
 use App\Model\AdminNoticeMatch;
 use App\Model\AdminUser;
 use App\Storage\OnlineUser;

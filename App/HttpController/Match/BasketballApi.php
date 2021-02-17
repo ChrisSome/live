@@ -7,6 +7,7 @@ use App\lib\FrontService;
 use App\Model\AdminInterestMatches;
 use App\Model\AdminInterestMatchesBak;
 use App\Model\AdminMatch;
+use App\Model\AdminMessage;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
 use App\Model\AdminUserInterestCompetition;
@@ -14,14 +15,17 @@ use App\Model\BasketBallCompetition;
 use App\Model\BasketballHonor;
 use App\Model\BasketballMatch;
 use App\Model\BasketballMatchSeason;
+use App\Model\BasketballMatchTlive;
 use App\Model\BasketballPlayer;
 use App\Model\BasketballPlayerHonor;
 use App\Model\BasketballSeasonAllStatsDetail;
 use App\Model\BasketballSeasonTable;
 use App\Model\BasketballSquadList;
 use App\Model\BasketballTeam;
+use App\Model\ChatHistory;
 use App\Utility\Message\Status;
 
+use easySwoole\Cache\Cache;
 use EasySwoole\HttpAnnotation\AnnotationController;
 use EasySwoole\HttpAnnotation\AnnotationTag\Api;
 use EasySwoole\HttpAnnotation\AnnotationTag\Param;
@@ -126,7 +130,6 @@ class BasketballApi extends FrontUserController
     public function basketballMatchPlaying() :bool
     {
         $uid = isset($this->auth['id']) ? (int)$this->auth['id'] : 0;
-
         list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowBasketballCompetition($uid);
 
         $response = ['list' => [], 'user_interest_count' => count($interestMatchArr)];
@@ -385,13 +388,11 @@ class BasketballApi extends FrontUserController
     {
         if (!$this->auth['id']) {
             return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
-
         }
         $res = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->where('type', AdminInterestMatches::BASKETBALL_TYPE)->get();
         $matchIds = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
         if (!$matchIds) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
-
-        $matches = AdminMatch::getInstance()->where('match_id', $matchIds, 'in')->order('match_time', 'ASC')->all();
+        $matches = BasketballMatch::getInstance()->where('match_id', $matchIds, 'in')->order('match_time', 'ASC')->all();
         $data = FrontService::formatBasketballMatch($matches, $this->auth['id'], $matchIds);
         $count = count($data);
         $response = ['list' => $data, 'count' => $count];
@@ -545,6 +546,8 @@ class BasketballApi extends FrontUserController
         $userId = !empty($this->auth['id']) ? (int)$this->auth['id'] : 0;
         if (!$userInterestCompetition = AdminUserInterestCompetition::getInstance()->where('user_id', $userId)->where('type', 2)->get()) {
             $userInterestCompetition = [];
+        } else {
+            $userInterestCompetition = json_decode($userInterestCompetition->competition_ids, true);
         }
         if ($default = json_decode($recommandCompetitionId->sys_value, true)) {
             foreach ($default as $k => $item) {
@@ -958,6 +961,157 @@ class BasketballApi extends FrontUserController
 
 
         }
+
+    }
+
+    public function getMatchInfo()
+    {
+
+        $type = isset($this->params['type']) ? (int)$this->params['type'] : 1;
+        if (!$matchId = (int)$this->params['match_id']) {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+        }
+        if (!$match = BasketballMatch::getInstance()->where('match_id', $matchId)->get()) {
+            return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+        }
+
+        switch ($type) {
+            case 1: //直播 比赛详情
+                $basic = FrontService::formatBasketballMatch([$match], $this->auth['id'], []);
+                $formatMatch = $basic[0];
+                //最后一节技术统计
+                if ($basketBallTlive = BasketballMatchTlive::getInstance()->where('match_id', $matchId)->where('is_stop', 1)->get()) {
+                    $stats = json_decode($basketBallTlive->stats, true);
+                    $matchTrend = json_decode($basketBallTlive->match_trend, true);
+                    $formatTlive = json_decode($basketBallTlive->tlive, true);
+                } else {
+                    $basketBallTlive = Cache::get('basketBall-stats-' . $matchId);
+                    $stats = json_decode($basketBallTlive, true);
+                    $formatTlive = [];
+                    if ($tlive = Cache::get('basketBall-tlive-' . $matchId)) {
+                        $formatTlive = json_decode($tlive, true);
+                    }
+                    $matchTrend = [];
+                }
+                $info = ['basic' => $formatMatch, 'score' => json_decode($basketBallTlive->score, true), 'tlive' => $formatTlive, 'stats' => $stats, 'match_trend' => $matchTrend];
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $info);
+
+                break;
+            case 2: //球员技术统计
+
+                if ($basketBallTlive = BasketballMatchTlive::getInstance()->where('match_id', $matchId)->where('is_stop', 1)->get()) {
+                    $players = json_decode($basketBallTlive->players, true);
+                    $homePlayerData = $players[0];  //主队球员数据
+                    $awayPlayerData = $players[1];  //客队球员数据
+                    //获取主队球员得分 篮板 助攻最多
+                    $homeFormatItem = [];
+                    array_walk($homePlayerData, function ($v, $k) use(&$homeFormatItem) {
+                        $homeEx = explode("^", $v[6]);
+                        $newItem = [
+                            'player_id' => $v[0],
+                            'name_zh' => $v[1],
+                            'player_logo' => $v[4],
+                            'player_number' => $v[5],
+                            'score' => $homeEx[13],
+                            'bank' => $homeEx[6],
+                            'assist' => $homeEx[7],
+                        ];
+                        $homeFormatItem[] = $newItem;
+                        unset($newItem);
+                        unset($v);
+                    });
+                    //主队得分王
+                    $lastScore = array_column($homeFormatItem,'score');
+                    array_multisort($lastScore, SORT_DESC, $homeFormatItem);
+                    $homeScore = $homeFormatItem[0];
+                    //主队篮板王
+                    $lastBank = array_column($homeFormatItem,'bank');
+                    array_multisort($lastBank, SORT_DESC, $homeFormatItem);
+                    $homeBank = $homeFormatItem[0];
+                    //主队助攻王
+                    $lastAssist = array_column($homeFormatItem,'assist');
+                    array_multisort($lastAssist, SORT_DESC, $homeFormatItem);
+                    $homeAssist = $homeFormatItem[0];
+
+                    //获取客队球员得分 篮板 助攻最多
+                    $awayFormatItem = [];
+                    array_walk($awayPlayerData, function ($v, $k) use(&$awayFormatItem) {
+                        $awayEx = explode("^", $v[6]);
+                        $newItem = [
+                            'player_id' => $v[0],
+                            'name_zh' => $v[1],
+                            'player_logo' => $v[4],
+                            'player_number' => $v[5],
+                            'score' => $awayEx[13],
+                            'bank' => $awayEx[6],
+                            'assist' => $awayEx[7],
+                            'is_first' => $awayEx[16], //是否是替补（1-替补，0-首发）
+                            'time' => $awayEx[0], //出场时间
+                            'shot' => $awayEx[1], //命中次数-投篮次数
+                            'three' => $awayEx[2], //三分球投篮命中次数-三分投篮次数
+                        ];
+                        $awayFormatItem[] = $newItem;
+                        unset($newItem);
+                    });
+                    //主队得分王
+                    $lastScore = array_column($awayFormatItem, 'score');
+                    array_multisort($lastScore, SORT_DESC, $awayFormatItem);
+                    $awayScore = $awayFormatItem[0];
+                    //主队篮板王
+                    $lastBank = array_column($awayFormatItem,'bank');
+                    array_multisort($lastBank, SORT_DESC, $awayFormatItem);
+                    $awayBank = $awayFormatItem[0];
+                    //主队助攻王
+                    $lastAssist = array_column($awayFormatItem,'assist');
+                    array_multisort($lastBank, SORT_DESC, $awayFormatItem);
+                    $awayAssist = $awayFormatItem[0];
+                    $return = [
+                        'home' => ['score' => $homeScore, 'bank' => $homeBank, 'assist' => $homeAssist],
+                        'away' => ['score' => $awayScore, 'bank' => $awayBank, 'assist' => $awayAssist],
+                    ];
+                    return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
+                }
+                    break;
+            case 3: //聊天，倒数二十条消息
+                $formatMessage = [];
+                if ($message = ChatHistory::getInstance()->where('type', 2)->where('match_id', $matchId)->order('created_at', 'DESC')->limit(20)->all()) {
+                    $senderUserIds = array_column($message, 'sender_user_id');
+                    $atUserIds = array_column($message, 'at_user_id');
+                    $userIds = array_merge($senderUserIds, $atUserIds);
+                    $senderUsers = AdminUser::getInstance()->where('id', $userIds, 'in')->field(['id', 'nickname', 'level', 'photo'])->all();
+                    //用户映射图
+                    $formatUsers = [];
+                    array_walk($senderUserIds, function ($v, $k) use (&$formatUsers) {
+                        $formatUsers[$k] = $v;
+                    });
+                    $formatUsers = [];
+                    array_walk($message, function ($mv, $kv) use(&$formatMessage, $formatUsers) {
+                        $senderUserId = $kv['sender_user_id'];
+                        $atUserId = $kv['at_user_id'];
+                        $senderUserInfo = isset($formatUsers[$senderUserId]) ? ['id' => $formatUsers[$senderUserId]['id'], 'level'=>$formatUsers[$senderUserId]['level'], 'nickname' => $formatUsers[$senderUserId]['nickname'], 'photo' => $formatUsers[$senderUserId]['photo']] : [];
+                        $atUserInfo = isset($formatUsers[$atUserId]) ? ['id' => $formatUsers[$atUserId]['id'], 'level'=>$formatUsers[$atUserId]['level'], 'nickname' => $formatUsers[$atUserId]['nickname'], 'photo' => $formatUsers[$atUserId]['photo']] : [];
+                        $formatMessageItem = [
+                            'content' => $kv['content'],
+                            'sender_user_info' => $senderUserInfo,
+                            'at_user_info' => $atUserInfo,
+                        ];
+                        $formatMessage[] = $formatMessageItem;
+                    });
+
+                }
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMessage);
+
+
+                break;
+        }
+
+
+    }
+
+
+    public function fixMatch()
+    {
 
     }
 

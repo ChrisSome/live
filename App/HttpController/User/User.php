@@ -378,7 +378,6 @@ class User extends FrontUserController
         }
         if (!$this->auth['id']) {
             return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
-
         }
         $type = !empty($this->params['type']) ? (int)$this->params['type'] : 1; //默认为足球 1：足球 2篮球
         $uComs = AdminUserInterestCompetition::getInstance()->where('user_id', $this->auth['id'])->where('type', $type)->get();

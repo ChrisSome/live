@@ -365,16 +365,20 @@ class  FrontService {
         return $data;
     }
 
+    /**
+     * @param $matches
+     * @param $uid
+     * @param $interestMatchArr
+     * @return array
+     */
     static function formatBasketballMatch($matches, $uid, $interestMatchArr)
     {
         if (!$matches) return [];
         $data = [];
 
         //用户关注比赛
-
         $userInterestMatchIds = $interestMatchArr;
         foreach ($matches as $match) {
-
             //用户关注比赛
             $is_interest = false;
             if ($userInterestMatchIds && $uid && in_array($match->match_id, $userInterestMatchIds)) {
@@ -399,7 +403,6 @@ class  FrontService {
                     $home_total += $home_scores[$i];
                     $away_total += $away_scores[$i];
                 }
-
             }
             if ($match->status_id == 10) {
                 if ($home_total > $away_total) {
@@ -425,7 +428,7 @@ class  FrontService {
             $item['is_interest'] = $is_interest;
             $item['neutral'] = $match->neutral;  //1中立 0否
             $item['matching_time'] = Cache::get('basketball-playing-time-' . $match->match_id);  //比赛进行时间
-            $item['matching_info'] = Cache::get('basketball-matching-info-' . $match->match_id);
+//            $item['matching_info'] = Cache::get('basketball-matching-info-' . $match->match_id);
             $item['has_living'] = $has_living;
             $item['living_url'] = $living_url;
             $item['note'] = $match->note;  //备注   欧青连八分之一决赛

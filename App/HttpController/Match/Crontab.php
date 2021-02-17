@@ -1591,6 +1591,12 @@ class Crontab extends FrontUserController
     }
 
     function test() {
+        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+        $decode = json_decode($res, true);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
+
+        $user_ids = AppFunc::getUsersInterestMatch(3151577);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user_ids);
 
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
@@ -1615,6 +1621,21 @@ class Crontab extends FrontUserController
         }
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
 
+    }
+
+
+    public function testWorking() :void
+    {
+        Log::getInstance()->info('program is running');
+    }
+
+    public function testMysql()
+    {
+        if ($user = AdminUser::getInstance()->where('id', 1)->get()) {
+            Log::getInstance()->info('mysql is running');
+        } else {
+            Log::getInstance()->info('mysql died');
+        }
     }
 
 

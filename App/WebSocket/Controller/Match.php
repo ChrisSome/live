@@ -156,6 +156,12 @@ class Match extends Base
 
         return;
     }
+
+    /**
+     * @throws \EasySwoole\Mysqli\Exception\Exception
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
+     */
     public function enterBasketballRoom()
     {
         $client = $this->caller()->getClient();
@@ -180,103 +186,11 @@ class Match extends Base
         $user['fd'] = $fd;
         //设置房间对象
         AppFunc::userEnterRoom($args['match_id'], $fd, AppFunc::TYPE_BASKETBALL);
-        //最近二十条聊天记录
-        $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->where('sport_type', 2)->order('created_at', 'DESC')->limit(20)->all();
-        //比赛状态
-        if ($match = BasketballMatch::getInstance()->where('match_id', $matchId)->get()) {
-            if ($match_data_info = Cache::get('basketball-matching-info-' . $matchId)) {
-                /**
-                 * 比赛未结束 信息从cache中拿
-                 *
-                 */
-                $return_data = json_decode($match_data_info, true);
-                $tlive = json_decode(Cache::get('basketball-match-tlive-' . $matchId), true) ?: [];
-                $stats = json_decode(Cache::get('basketball_match_stats_' . $matchId), true) ?: [];
-            } else if ($matchTlive = AdminMatchTlive::create()->where('match_id', $matchId)->get()) {
-                $tlive = json_decode($matchTlive->tlive, true);
-                $stats = json_decode($matchTlive->stats, true);
-                $score = json_decode($matchTlive->score, true);
-                $match_trend = json_decode($matchTlive->match_trend, true);
-                $goal_tlive = [];
-                $corner_tlive = [];
-                $yellow_card_tlive = [];
-                $red_card_tlive = [];
-                if ($tlive) {
-                    foreach ($tlive as $item) {
-                        $item['time'] = intval($item['time']);
-                        if ($item['type'] == 1) { //进球
-                            $goal_tlive[] = $item;
-                        } else if ($item['type'] == 2) { //角球
-                            $corner_tlive[] = $item;
-                        } else if ($item['type'] == 3) { //黄牌
-                            $yellow_card_tlive[] = $item;
-                        } else if ($item['type'] == 4) { //红牌
-                            $red_card_tlive[] = $item;
-                        } else {
-                            continue;
-                        }
-
-                        unset($item);
-                    }
-                }
-
-                $matchStats = [];
-                if ($stats) {
-                    foreach ($stats as $stat) {
-                        if ($stat['type'] == 21 || $stat['type'] == 22 || $stat['type'] == 23 || $stat['type'] == 24 ||  $stat['type'] == 25) {
-                            $matchStats[] = $stat;
-                        }
-                    }
-                }
-
-                $return_data = [
-                    'signal_count' => ['goal' => $goal_tlive, 'corner' => $corner_tlive, 'yellow_card' => $yellow_card_tlive, 'red_card' => $red_card_tlive],
-                    'match_trend' => $match_trend,
-                    'match_id' => $matchId,
-                    'time' => 0,
-                    'status' => 8,
-                    'match_stats' => $matchStats,
-                    'score' => ['home' => $score[2], 'away' => $score[3]],
-
-                ];
-            } else {
-                $return_data = [];
-                $tlive = [];
-                $stats = [];
-            }
-
-        } else {
-            $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_WRONG_MATCH, WebSocketStatus::$msg[WebSocketStatus::STATUS_WRONG_MATCH]));
-            return;
-        }
-        $messages = [];
-
-        if ($lastMessages) {
-            foreach ($lastMessages as $lastMessage) {
-                $senderUser = $lastMessage->getSenderNickname();
-                $data['message_id'] = $lastMessage['id'];
-                $data['sender_user_id'] = $lastMessage['sender_user_id'];
-                $data['sender_user_nickname'] = $senderUser['nickname'];
-                $data['sender_user_level'] = $senderUser['level'];
-                $data['at_user_id'] = $lastMessage['at_user_id'];
-                $data['at_user_nickname'] = $lastMessage->getAtNickname()['nickname'];
-                $data['content'] = $lastMessage['content'];
-                $messages[] = $data;
-                unset($data);
-            }
-        }
         $respon = [
-            'event' => 'match-enter',
-            'data' => [
-                'userInfo' => $user,
-                'matching_info' => $return_data,
-                'lastMessage' => $messages,
-                'stats' => $stats,
-                'tlive' => $tlive,
-            ],
+            'event' => 'basketball-match-enter',
+            'data' => [],
         ];
         $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $respon));
-
         return;
     }
 

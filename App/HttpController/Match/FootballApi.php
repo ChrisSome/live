@@ -309,7 +309,7 @@ class FootballApi extends FrontUserController
         $matchIds = json_decode($res->match_ids, true);
         if (!$matchIds) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
 
-        $matches = AdminMatch::getInstance()->where('match_id', $matchIds, 'in')->order('match_time', 'ASC')->all();
+        $matches = AdminMatch::getInstance()->where('match_id', $matchIds, 'in')->order('match_time', 'DESC')->all();
         $data = FrontService::formatMatchThree($matches, $this->auth['id'], $matchIds);
         $count = count($data);
         $response = ['list' => $data, 'count' => $count];

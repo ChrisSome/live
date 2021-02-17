@@ -123,7 +123,6 @@ class AdminUser extends BaseModel
             ->where('c.type', AdminUserInterestCompetition::FOOTBALL_TYPE)
             ->where('m.type', AdminInterestMatches::FOOTBALL_TYPE)
             ->get(['user_id' => $uid]);
-
         $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
         $userInterestCompetition = isset($res->competition_ids) ? json_decode($res->competition_ids, true) : [];
         if ($userInterestCompetition) {
@@ -131,7 +130,6 @@ class AdminUser extends BaseModel
         } else {
             $selectCompetitionIdArr = $default;
         }
-
         return [array_values($selectCompetitionIdArr), $interestMatchArr];
     }
 
@@ -156,7 +154,7 @@ class AdminUser extends BaseModel
         if ($userInterestCompetition) {
             $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
         } else {
-            $selectCompetitionIdArr = [];
+            $selectCompetitionIdArr = $default;
         }
 
         return [array_values($selectCompetitionIdArr), $interestMatchArr];

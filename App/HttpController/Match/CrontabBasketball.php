@@ -52,6 +52,7 @@ class CrontabBasketball extends FrontUserController
     protected $squadList = 'https://open.sportnanoapi.com/api/v4/basketball/team/squad/list?user=%s&secret=%s&time=%s';//获取球队阵容列表
     protected $matchTlive = 'https://open.sportnanoapi.com/api/sports/basketball/match/detail_live?user=%s&secret=%s';//获取篮球直播
     protected $matchTrend = 'https://open.sportnanoapi.com/api/v4/basketball/match/trend/detail?user=%s&secret=%s&id=%s';//获取篮球比赛趋势
+    protected $matchHistory = 'https://open.sportnanoapi.com/api/v4/basketball/match/live/history?user=%s&secret=%s&id=%s';//获取历史比赛统计数据
 
 
     /**
@@ -100,7 +101,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getBasketBallCompetitionList() :bool
+    public function getBasketBallCompetitionList()
     {
         $maxUpdated = BasketBallCompetition::create()->max('updated_at') + 1;
 
@@ -112,8 +113,8 @@ class CrontabBasketball extends FrontUserController
         $decodeDatas = $teams['results'];
 
         if (!$decodeDatas) {
-            Log::getInstance()->info(date('Y-d-d H:i:s') . '篮球赛事更新无数据');
-            return;
+            return Log::getInstance()->info(date('Y-d-d H:i:s') . '篮球赛事更新无数据');
+
         } else {
             foreach ($decodeDatas as $data) {
                 if ($basCompetition = BasketBallCompetition::create()->where('competition_id', $data['id'])->get()) {
@@ -158,7 +159,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getBasketballTeamList() :bool
+    public function getBasketballTeamList()
     {
         $maxUpdated = BasketballTeam::create()->max('updated_at') + 1;
 
@@ -217,7 +218,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getLineUpList() :bool
+    public function getLineUpList()
     {
         $maxUpdated = (int)BasketballLineUp::create()->max('updated_at') + 1;
         $url = sprintf($this->lineUp, $this->user, $this->secret, $maxUpdated);
@@ -260,7 +261,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getPlayerList() :bool
+    public function getPlayerList()
     {
         $maxUpdated = (int)BasketballPlayer::create()->max('updated_at') + 1;
         $url = sprintf($this->playerList, $this->user, $this->secret, $maxUpdated);
@@ -332,7 +333,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getPlayerHonor() :bool
+    public function getPlayerHonor()
     {
         $maxUpdated = (int)BasketballPlayerHonor::create()->max('updated_at') + 1;
 
@@ -378,7 +379,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getMatchListDiary() :bool
+    public function getMatchListDiary()
     {
         $data = date('Ymd');
 //        $data = '20210125';
@@ -476,7 +477,7 @@ class CrontabBasketball extends FrontUserController
      * @throws \EasySwoole\ORM\Exception\Exception
      * @throws \Throwable
      */
-    public function getHonorList() :bool
+    public function getHonorList()
     {
         $maxUpdated = (int)BasketballHonor::create()->max('updated') + 1;
         $url = sprintf($this->honorList, $this->user, $this->secret, $maxUpdated);
@@ -517,7 +518,7 @@ class CrontabBasketball extends FrontUserController
      * @return bool
      * @throws \Throwable
      */
-    public function getSeasonList() :bool
+    public function getSeasonList()
     {
         $maxUpdated = (int)BasketballSeasonList::create()->max('updated_at') + 1;
         $url = sprintf($this->seasonList, $this->user, $this->secret, $maxUpdated);
@@ -558,7 +559,7 @@ class CrontabBasketball extends FrontUserController
     }
 
     //获取赛季球队球员统计详情-全量
-    public function getSeasonAllStatsDetail() :bool
+    public function getSeasonAllStatsDetail()
     {
 
         $seasonList = BasketballSeasonList::getInstance()->field(['season_id'])->all();
@@ -584,7 +585,7 @@ class CrontabBasketball extends FrontUserController
 
     }
     //赛季比赛列表
-    public function seasonMatch() :bool
+    public function seasonMatch()
     {
 
         $maxSeasonId = BasketballMatchSeason::getInstance()->max('season_id');
@@ -652,7 +653,7 @@ class CrontabBasketball extends FrontUserController
 
 
     //赛季积分榜数据 ,每天一次
-    public function seasonTable() :bool
+    public function seasonTable()
     {
         $seasonList = BasketballSeasonList::getInstance()->field(['season_id'])->where('season_id', 0, '>')->all();
         foreach ($seasonList as $item) {
@@ -682,32 +683,30 @@ class CrontabBasketball extends FrontUserController
 
     public function squadList() :bool
     {
-        while (true) {
-            $maxUpdatedId = BasketballSquadList::getInstance()->max('updated_at') + 1;
-            $url = sprintf($this->squadList, $this->user, $this->secret, $maxUpdatedId);
-            $res = Tool::getInstance()->postApi($url);
-            $decodeDatas = json_decode($res, true);
-            $results = $decodeDatas['results'];
-            if (!$results) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 2);
+        $maxUpdatedId = BasketballSquadList::getInstance()->max('updated_at') + 1;
+        $url = sprintf($this->squadList, $this->user, $this->secret, $maxUpdatedId);
+        $res = Tool::getInstance()->postApi($url);
+        $decodeDatas = json_decode($res, true);
+        $results = $decodeDatas['results'];
+        if (!$results) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 2);
 
-            foreach ($results as $item) {
+        foreach ($results as $item) {
 
-                if ($squad = BasketballSquadList::getInstance()->where('team_id', $item['id'])->get()) {
-                    $squad->squad = json_encode($item['squad']);
-                    $squad->team = json_encode($item['team']);
-                    $squad->updated_at = $item['updated_at'];
-                    $squad->update();
-                } else {
+            if ($squad = BasketballSquadList::getInstance()->where('team_id', $item['id'])->get()) {
+                $squad->squad = json_encode($item['squad']);
+                $squad->team = json_encode($item['team']);
+                $squad->updated_at = $item['updated_at'];
+                $squad->update();
+            } else {
 
-                    $insert['team_id'] = $item['id'];
-                    $insert['squad'] = json_encode($item['squad']);
-                    $insert['team'] = json_encode($item['team']);
-                    $insert['updated_at'] = $item['updated_at'];
+                $insert['team_id'] = $item['id'];
+                $insert['squad'] = json_encode($item['squad']);
+                $insert['team'] = json_encode($item['team']);
+                $insert['updated_at'] = $item['updated_at'];
 
-                    BasketballSquadList::getInstance()->insert($insert);
-                }
-
+                BasketballSquadList::getInstance()->insert($insert);
             }
+
         }
 
     }
@@ -715,14 +714,14 @@ class CrontabBasketball extends FrontUserController
     /**
      * 篮球直播 10s/次
      */
-    public function basketballMatchTlive() :bool
+    public function basketballMatchTlive()
     {
+
         $url = sprintf($this->matchTlive, $this->user, $this->secret);
         $res = Tool::getInstance()->postApi($url);
         $decodeDatas = json_decode($res, true);
 
         foreach ($decodeDatas as $matchItem) {
-
             /**
              * 字段解释
              * score [2783605, 8, 0, [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]] 比赛id，比赛状态，小节剩余秒数 ，主队分数， 客队分数
@@ -734,7 +733,6 @@ class CrontabBasketball extends FrontUserController
             if (!$match = BasketballMatch::getInstance()->where('match_id', $matchItem['id'])->get()) {
                 continue;
             }
-
             if (BasketballMatchTlive::getInstance()->where('match_id', $matchItem['id'])->where('is_stop', 1)->get()) {
                 continue;
             }
@@ -863,8 +861,6 @@ class CrontabBasketball extends FrontUserController
         }
 
         //update的推送
-
-
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
 
 
@@ -903,6 +899,51 @@ class CrontabBasketball extends FrontUserController
 
         }
 
+    }
+
+
+    public function fixMatch()
+    {
+
+        $matchId = $this->params['match_id'];
+        $url = sprintf($this->matchHistory, $this->user, $this->secret, $matchId);
+        $res = Tool::getInstance()->postApi($url);
+        $decodeDatas = json_decode($res, true);
+        $result = $decodeDatas['results'];
+
+        $match_res = Tool::getInstance()->postApi(sprintf($this->matchTrend, $this->user, $this->secret, $matchId));
+        $match_trend = json_decode($match_res, true);
+
+        if ($match_trend['code'] != 0) {
+            $match_trend_info = [];
+        } else {
+            $match_trend_info = $match_trend['results'];
+        }
+        $match = BasketballMatch::getInstance()->where('match_id', $matchId)->get();
+
+        $match->home_scores = json_encode($result['score'][3]);
+        $match->away_scores = json_encode($result['score'][4]);
+        $match->status_id = $result['score'][1];
+        $match->update();
+        if ($matchTlive = BasketballMatchTlive::getInstance()->where('match_id', $matchId)->get()) {
+            $matchTlive->score = json_encode($result['score']);
+            $matchTlive->stats = json_encode($result['stats']);
+            $matchTlive->tlive = json_encode($result['tlive']);
+            $matchTlive->players = json_encode($result['players']);
+            $matchTlive->match_trend = json_encode($match_trend_info);
+            $matchTlive->update();
+        } else {
+            $insert = [
+                'score' => json_encode($result['score']),
+                'stats' => json_encode($result['stats']),
+                'tlive' => json_encode($result['tlive']),
+                'players' => json_encode($result['players']),
+                'match_trend' => json_encode($match_trend_info),
+                'match_id' => $matchId,
+            ];
+            BasketballMatchTlive::getInstance()->insert($insert);
+        }
+        return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES], 1);
     }
 
 
