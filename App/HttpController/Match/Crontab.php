@@ -1466,7 +1466,7 @@ class Crontab extends FrontUserController
                             $corner_count_new += 1;
                             $format_signal_corner_tlive = $format_signal_tlive;
                             $corner_count_tlive[] = $format_signal_corner_tlive;
-                        } else if (($format_signal_tlive['type'] == 1 || $format_signal_tlive['type'] == 8) && $signal_tlive['main']) { //进球或点球
+                        } else if ($format_signal_tlive['type'] == 1 && $signal_tlive['main']) { //进球或点球
                             $last_goal_tlive = $format_signal_tlive;
                             $goal_count_new += 1;
                             $goal_tlive_total[] = $format_signal_tlive;
