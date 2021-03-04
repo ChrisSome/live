@@ -34,9 +34,9 @@ class AdminInformation extends BaseModel
         return $this->hasOne(AdminMatch::class, null, 'match_id', 'match_id');
     }
 
-    public function getCompetition()
+    public function getCompetition($sportType = 1)
     {
-        return $this->hasOne(AdminCompetition::class, null, 'competition_id', 'competition_id');
+        return $this->hasOne(($sportType == 1) ? AdminCompetition::class : BasketBallCompetition::class, null, 'competition_id', 'competition_id');
 
     }
 

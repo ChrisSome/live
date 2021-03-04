@@ -43,7 +43,6 @@ class MatchNotice  implements TaskInterface
          * 用户不登录 不推送 会提示
          */
         // TODO: Implement run() method.
-
         $type = $this->taskData['type'];
         $match_id = $this->taskData['match_id'];
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
@@ -134,7 +133,7 @@ class MatchNotice  implements TaskInterface
      */
     public function userNotice($type, $match_id, $home, $away, $position = 0, $time = 0)
     {
-
+        Log::getInstance()->info('match-notice-' . $match_id . '-' . $type);
         $tool = Tool::getInstance();
         $server = ServerManager::getInstance()->getSwooleServer();
         list($home_name_zh, $away_name_zh) = AppFunc::getMatchTeamName($match_id);
@@ -177,9 +176,10 @@ class MatchNotice  implements TaskInterface
             $returnData['is_interest'] = $is_interest;
             $connection = $server->connection_info($fd);
             if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-                Log::getInstance()->info('match-notice-4' . $match_id . '-type-' . $type . '-fd-' . $fd);
-
+                Log::getInstance()->info('socket-push-succ-' . $match_id . '-type-' . $type . '-fd-' . $fd);
                 $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
+            } else {
+                Log::getInstance()->info('socket-failed-' . json_encode($connection) . '-user-' . json_encode($user));
             }
         }
 

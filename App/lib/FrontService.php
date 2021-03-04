@@ -19,6 +19,7 @@ use App\Model\AdminUserOperate;
 use App\Model\AdminUserPost;
 use App\Model\AdminUserPostsCategory;
 use App\Model\AdminUserSetting;
+use App\Model\BasketBallCompetition;
 use App\Utility\Log\Log;
 use easySwoole\Cache\Cache;
 
@@ -231,6 +232,7 @@ class  FrontService {
                 'user_info' => $userInfo,
                 't_u_info' => $toUserInfo,
                 'is_follow' => AppFunc::isFollow($authId, $userId),
+                'top_comment_id' => $v['top_comment_id']
             ];
         }
         return $list;
@@ -378,6 +380,12 @@ class  FrontService {
 
         //用户关注比赛
         $userInterestMatchIds = $interestMatchArr;
+        $competitionIds = array_column($matches, 'competition_id');
+        $competition = BasketBallCompetition::getInstance()->field(['competition_id', 'name_zh', 'short_name_zh'])->where('competition_id', $competitionIds, 'in')->all();
+        array_walk($competition, function ($v, $k) use(&$formatCompetition) {
+            $item = ['competition_id' => $v->competition_id, 'name_zh' => $v->name_zh, 'short_name_zh' => $v->short_name_zh];
+            $formatCompetition[$v->competition_id] = $item;
+        });
         foreach ($matches as $match) {
             //用户关注比赛
             $is_interest = false;
@@ -393,7 +401,6 @@ class  FrontService {
             } else if (in_array($match->status_id, BasketballApi::STATUS_RESULT)) {
                 $is_start = false;
             }
-            $has_living = 0;
             $home_win = 0;
             $home_scores = json_decode($match->home_scores, true);
             $away_scores = json_decode($match->away_scores, true);
@@ -411,27 +418,27 @@ class  FrontService {
                     $home_win = 2;
                 }
             }
-            $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
             $item['home_team_name'] = $match->home_team_name;
             $item['home_team_logo'] = $match->home_team_logo;
+            $item['home_team_id'] = $match->home_team_id;
             $item['away_team_name'] = $match->away_team_name;
             $item['away_team_logo'] = $match->away_team_logo;
+            $item['away_team_id'] = $match->away_team_id;
             $item['round'] = $match->round;
             $item['competition_id'] = $match->competition_id;
-            $item['competition_name'] = $match->competition_name;
+            $item['competition_name'] = !empty($formatCompetition[$match->competition_id]['short_name_zh']) ? $formatCompetition[$match->competition_id]['short_name_zh'] : '';
             $item['match_time'] = date('H:i', $match['match_time']);
             $item['format_match_time'] = date('Y-m-d H:i', $match['match_time']); //开赛时间
-            $item['user_num'] = count(AppFunc::getUsersInRoom($match->match_id));
+            $item['user_num'] = count(AppFunc::getUsersInRoom($match->match_id), 2);
             $item['match_id'] = $match->match_id;
             $item['is_start'] = $is_start;
             $item['status_id'] = $match->status_id;
             $item['is_interest'] = $is_interest;
             $item['neutral'] = $match->neutral;  //1中立 0否
-            $item['matching_time'] = Cache::get('basketball-playing-time-' . $match->match_id);  //比赛进行时间
-//            $item['matching_info'] = Cache::get('basketball-matching-info-' . $match->match_id);
-            $item['has_living'] = $has_living;
-            $item['living_url'] = $living_url;
-            $item['note'] = $match->note;  //备注   欧青连八分之一决赛
+            $item['kind'] = $match->kind;  //类型id，1-常规赛、2-季后赛、3-季前赛、4-全明星、5-杯赛、0-无
+            $item['left-seconds-in-current-matter'] = (int)Cache::get('left-seconds-in-current-matter-' . $match->match_id);  //比赛进行时间
+            $item['matching_info'] = Cache::get('basketball-matching-info-' . $match->match_id);
+            $item['note'] = $match->note;  //备注
             $item['home_scores'] = $match->home_scores;  //主队比分
             $item['away_scores'] = $match->away_scores;  //主队比分
             $item['coverage'] = $match->coverage;  //阵容 动画
@@ -566,7 +573,7 @@ class  FrontService {
      * @param $informations
      * @return array
      */
-    public static  function handInformation($informations, $uid)
+    public static  function handInformation($informations, $uid, $sportType = 1)
     {
         if (!$informations) {
             return [];
@@ -588,7 +595,7 @@ class  FrontService {
         foreach ($informations as $item)
         {
             if ($item->created_at > date('Y-m-d H:i:s')) continue;
-            $competition = $item->getCompetition();
+            $competition = $item->getCompetition($sportType);
             $data['id'] = $item['id'];
             $data['title'] = $item['title'];
             $data['img'] = $item['img'];
@@ -652,7 +659,6 @@ class  FrontService {
             $id = intval($v['id']);
             $userId = intval($v['user_id']);
             $user = empty($userMapper[$userId]) ? [] : $userMapper[$userId];
-            var_dump($user);
             if (empty($user)) continue;
             $competitionId = intval($v['competition_id']);
             $competition = empty($competitionMapper[$competitionId]) ? null : $competitionMapper[$competitionId];

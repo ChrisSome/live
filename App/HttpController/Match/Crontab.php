@@ -10,10 +10,10 @@ use App\Model\AdminClashHistory;
 use App\Model\AdminCompetition;
 use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
-use App\Model\AdminInterestMatches;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
-use App\Model\BasketballMatch;
+use App\Model\SeasonAllTableDetailBak;
+use App\Model\SeasonTeamPlayerBak;
 use App\Storage\OnlineUser;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
@@ -41,6 +41,7 @@ use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
+use Swoole\Coroutine\MySQL;
 
 /**
  *                             _ooOoo_
@@ -109,7 +110,7 @@ class Crontab extends FrontUserController
     protected $season_all_table_detail = 'https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s'; //获取赛季积分榜数据-全量
 
 
-    protected $uriPlayerOne = '/api/v4/football/player/list?user=%s&secret=%s&id=%s';  //球员
+    protected $changingMatch = 'https://open.sportnanoapi.com/api/v4/football/match/list?user=%s&secret=%s&time=%s';  //变动比赛
 
 
     /**
@@ -240,8 +241,8 @@ class Crontab extends FrontUserController
                     'home_team_logo' => $home_team->logo,
                     'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
                     'away_team_logo' => $away_team->logo,
-                    'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
-                    'competition_color' => $competition->primary_color
+                    'competition_name' => isset($competition->short_name_zh) ? $competition->short_name_zh : $competition->name_zh,
+                    'competition_color' => isset($competition->primary_color) ? $competition->primary_color : ''
                 ];
 
                 AdminMatch::getInstance()->insert($insertData);
@@ -293,8 +294,8 @@ class Crontab extends FrontUserController
                     'home_team_logo' => $home_team->logo,
                     'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
                     'away_team_logo' => $away_team->logo,
-                    'competition_name' => !empty($competition->short_name_zh) ? $competition->short_name_zh : $competition->name_zh,
-                    'competition_color' => $competition->primary_color
+                    'competition_name' => !empty($competition->short_name_zh) ? $competition->short_name_zh : '',
+                    'competition_color' => isset($competition->primary_color) ? $competition->primary_color : ''
                 ];
                 SeasonMatchList::getInstance()->insert($insertData);
             }
@@ -307,6 +308,131 @@ class Crontab extends FrontUserController
         }
     }
 
+    public function updateChangingMatch()
+    {
+        $time = AdminMatch::getInstance()->max('updated_at');
+        $url = sprintf($this->changingMatch, $this->user, $this->secret, $time);
+
+        $res = Tool::getInstance()->postApi($url);
+        $teams = json_decode($res, true);
+
+        $decodeDatas = $teams['results'];
+
+        if (!$decodeDatas) {
+            Log::getInstance()->info(date('Y-d-d H:i:s') . ' 更新无数据');
+            return;
+        }
+
+        foreach ($decodeDatas as $data) {
+            $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+            $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+            if (!$home_team || !$away_team) continue;
+            $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+
+            if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
+                $signal->home_scores = json_encode($data['home_scores']);
+                $signal->home_team_name = $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh;
+                $signal->away_team_name = $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh;
+                $signal->away_scores = json_encode($data['away_scores']);
+                $signal->home_position = $data['home_position'];
+                $signal->away_position = $data['away_position'];
+                $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                $signal->status_id = $data['status_id'];
+                $signal->updated_at = $data['updated_at'];
+                $signal->match_time = $data['match_time'];
+                $signal->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
+                $signal->referee_id = isset($data['referee_id']) ? intval($data['referee_id']) : 0;
+                $signal->round = isset($data['round']) ? json_encode($data['round']) : '';
+                $signal->update();
+
+            } else {
+
+                $insertData = [
+                    'match_id' => $data['id'],
+                    'competition_id' => $data['competition_id'],
+                    'home_team_id' => $data['home_team_id'],
+                    'away_team_id' => $data['away_team_id'],
+                    'match_time' => $data['match_time'],
+                    'neutral' => $data['neutral'],
+                    'note' => $data['note'],
+                    'season_id' => $data['season_id'],
+                    'home_scores' => json_encode($data['home_scores']),
+                    'away_scores' => json_encode($data['away_scores']),
+                    'home_position' => $data['home_position'],
+                    'away_position' => $data['away_position'],
+                    'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                    'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                    'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                    'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                    'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                    'status_id' => $data['status_id'],
+                    'updated_at' => $data['updated_at'],
+                    'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                    'home_team_logo' => $home_team->logo,
+                    'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                    'away_team_logo' => $away_team->logo,
+                    'competition_name' => isset($competition->short_name_zh) ? $competition->short_name_zh : $competition->name_zh,
+                    'competition_color' => isset($competition->primary_color) ? $competition->primary_color : ''
+                ];
+
+                AdminMatch::getInstance()->insert($insertData);
+
+            }
+
+            //更新赛季比赛列表 （有新赛季或者新阶段的时候新增）
+            if ($signal_season_match = SeasonMatchList::getInstance()->where('match_id', $data['id'])->get()) {
+                $signal_season_match->home_scores = json_encode($data['home_scores']);
+                $signal_season_match->away_scores = json_encode($data['away_scores']);
+                $signal_season_match->home_position = $data['home_position'];
+                $signal_season_match->away_position = $data['away_position'];
+                $signal_season_match->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                $signal_season_match->status_id = $data['status_id'];
+                $signal_season_match->updated_at = $data['updated_at'];
+                $signal_season_match->match_time = $data['match_time'];
+                $signal_season_match->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
+                $signal_season_match->referee_id = isset($data['referee_id']) ? intval($data['referee_id']) : 0;
+                $signal_season_match->round = isset($data['round']) ? json_encode($data['round']) : '';
+                $signal_season_match->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                $signal_season_match->update();
+            } else {
+                $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+                $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                if (!$home_team || !$away_team) continue;
+                $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+
+                $insertData = [
+                    'match_id' => $data['id'],
+                    'competition_id' => $data['competition_id'],
+                    'home_team_id' => $data['home_team_id'],
+                    'away_team_id' => $data['away_team_id'],
+                    'match_time' => $data['match_time'],
+                    'neutral' => $data['neutral'],
+                    'note' => $data['note'],
+                    'season_id' => $data['season_id'],
+                    'home_scores' => json_encode($data['home_scores']),
+                    'away_scores' => json_encode($data['away_scores']),
+                    'home_position' => $data['home_position'],
+                    'away_position' => $data['away_position'],
+                    'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                    'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                    'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                    'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                    'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                    'status_id' => $data['status_id'],
+                    'updated_at' => $data['updated_at'],
+                    'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                    'home_team_logo' => $home_team->logo,
+                    'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                    'away_team_logo' => $away_team->logo,
+                    'competition_name' => !empty($competition->short_name_zh) ? $competition->short_name_zh : '',
+                    'competition_color' => isset($competition->primary_color) ? $competition->primary_color : ''
+                ];
+                SeasonMatchList::getInstance()->insert($insertData);
+            }
+        }
+        Log::getInstance()->info('变动比赛更新完成');
+    }
+
 
     /**
      * 昨天的比赛 十分钟一次  凌晨0-3
@@ -317,72 +443,147 @@ class Crontab extends FrontUserController
         $this->getTodayMatches(1);
     }
 
-    /**
-     * 凌晨五点跑一次
-     * 更新赛季球队球员统计详情-全量
-     * 更新赛季积分榜
-     */
-    public function updateYesterdayMatch()
+    //重新更新赛季积分榜，赛事球队球员统计详情
+    public function getAll()
     {
 
-        $time = date("Ymd", strtotime("-1 day"));
-        $timestamp = strtotime($time);
-        $end_timestamp = $timestamp + 60 * 60 *24;
-        $match = AdminMatch::getInstance()->where('match_time', $timestamp, '>=')->where('match_time', $end_timestamp, '<')->where('status_id', 8)->all();
-        foreach ($match as $match_item) {
-            $season_id = $match_item->season_id;
-            if (isset($season_id_arr) && in_array($season_id, $season_id_arr)){
-                continue;
-            }
-            //更新赛季球队球员统计详情-全量
-            $url = sprintf($this->all_stat, $this->user, $this->secret, $season_id);
-            $res = Tool::getInstance()->postApi($url);
-            $decodeDatas = json_decode($res, true);
-            if ($decodeDatas['code'] == 0) {
-                if (!$table = SeasonTeamPlayer::getInstance()->where('season_id', $season_id)->get()) {
-                    $data = [
-                        'players_stats' => json_encode($decodeDatas['results']['players_stats']),
-                        'shooters' => json_encode($decodeDatas['results']['shooters']),
-                        'teams_stats' => json_encode($decodeDatas['results']['teams_stats']),
-                        'updated_at' => json_encode($decodeDatas['results']['updated_at']),
-                        'season_id' => $season_id,
-                    ];
-                    SeasonTeamPlayer::getInstance()->insert($data);
-                } else {
-                    $table->players_stats = json_encode($decodeDatas['results']['players_stats']);
-                    $table->shooters = json_encode($decodeDatas['results']['shooters']);
-                    $table->teams_stats = json_encode($decodeDatas['results']['teams_stats']);
-                    $table->updated_at = json_encode($decodeDatas['results']['updated_at']);
-                    $table->update();
+        $maxSeasonId = SeasonAllTableDetailBak::getInstance()->max('season_id');
+        $seasonids = AdminSeason::getInstance()->field(['season_id'])->where('season_id', $maxSeasonId, '>')->limit(1000)->all();
+
+        foreach ($seasonids as $data) {
+
+            if ($data['season_id']) {
+                $seasonId = $data['season_id'];
+                //赛季排行榜
+                $url = sprintf($this->season_all_table_detail, $this->user, $this->secret, $seasonId);
+                $res = Tool::getInstance()->postApi($url);
+                $decode = json_decode($res, true);
+                $decodeTable = $decode['results'];
+
+                if (!empty($decode['results'])) {
+                    if ($seasonTable = SeasonAllTableDetailBak::getInstance()->where('season_id', $seasonId)->get()) {
+                        $seasonTable->promotions = !empty($decodeTable['promotions']) ? json_encode($decodeTable['promotions']) : '';
+                        $seasonTable->tables = !empty($decodeTable['tables']) ? json_encode($decodeTable['tables']) : '';
+                        $seasonTable->update();
+                    } else {
+                        $insertTable = [
+                            'promotions' => !empty($decodeTable['promotions']) ? json_encode($decodeTable['promotions']) : '',
+                            'tables' => !empty($decodeTable['tables']) ? json_encode($decodeTable['tables']) : '',
+                            'season_id' => $seasonId
+                        ];
+
+                        SeasonAllTableDetailBak::getInstance()->insert($insertTable);
+                    }
                 }
 
             }
-            //更新赛季积分榜
-
-            $url = sprintf($this->season_all_table_detail, $this->user, $this->secret, $season_id);
-            $res = Tool::getInstance()->postApi($url);
-            $decodeDatas = json_decode($res, true);
-            if ($decodeDatas['code'] == 0) {
-                if (!$table = SeasonAllTableDetail::getInstance()->where('season_id', $season_id)->get()) {
-                    $data = [
-                        'promotions' => json_encode($decodeDatas['results']['promotions']),
-                        'tables' => json_encode($decodeDatas['results']['tables']),
-                        'season_id' => $season_id,
-                    ];
-                    SeasonAllTableDetail::getInstance()->insert($data);
-                } else {
-                    $table->promotions = json_encode($decodeDatas['results']['promotions']);
-                    $table->tables = json_encode($decodeDatas['results']['tables']);
-                    $table->update();
-                }
-
-            }
-            $season_id_arr[] = $season_id;
-
-
         }
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+    }
 
+    public function getAlltest()
+    {
+        ini_set('memory_limit', '512M');
+        $maxSeasonId = SeasonTeamPlayerBak::getInstance()->max('season_id');
+        $seasonids = AdminSeason::getInstance()->field(['season_id'])->where('season_id', $maxSeasonId, '>')->limit(1000)->all();
+
+        foreach ($seasonids as $data) {
+            if ($data['season_id']) {
+                $seasonId = $data['season_id'];
+                //赛季球队球员统计详情
+                $url = sprintf($this->all_stat, $this->user, $this->secret, $seasonId);
+                $res = Tool::getInstance()->postApi($url);
+                $decode = json_decode($res, true);
+                $results = !empty($decode['results']) ? $decode['results'] : [];
+
+                if ($results) {
+                    if ($seasonTeamPlayerRes = SeasonTeamPlayerBak::getInstance()->where('season_id', $seasonId)->get()) {
+
+                        $seasonTeamPlayerRes->updated_at = $results['updated_at'];
+                        $seasonTeamPlayerRes->players_stats = !empty($results['players_stats']) ? json_encode($results['players_stats']) : '[]';
+                        $seasonTeamPlayerRes->shooters = !empty($results['shooters']) ? json_encode($results['shooters']) : '[]';
+                        $seasonTeamPlayerRes->teams_stats = !empty($results['teams_stats']) ? json_encode($results['teams_stats']) : '[]';
+                        $seasonTeamPlayerRes->update();
+
+                    } else {
+                        $insertDataOne = [
+                            'updated_at' => $results['updated_at'],
+                            'players_stats' => !empty($results['players_stats']) ? json_encode($results['players_stats']) : json_encode([]),
+                            'shooters' => !empty($results['shooters']) ? json_encode($results['shooters']) : json_encode([]),
+                            'teams_stats' => !empty($results['teams_stats']) ? json_encode($results['teams_stats']) : json_encode([]),
+                            'season_id' => $seasonId
+                        ];
+
+                        SeasonTeamPlayerBak::getInstance()->insert($insertDataOne);
+                    }
+                }
+
+            }
+        }
+    }
+
+    //根据昨天进行比赛的赛事赛季，更新赛季积分榜及赛季球队球员统计
+    public function updateYesterdayMatch()
+    {
+        //昨天的比赛
+        $time = date("Ymd", strtotime("-1 day"));
+        $url = sprintf($this->uriM, $this->user, $this->secret, $time);
+        $res = Tool::getInstance()->postApi($url);
+        $matches = json_decode($res, true);
+        $decodeDatas = $matches['results'];
+        foreach ($decodeDatas as $data) {
+            if ($data['season_id']) {
+                $seasonId = $data['season_id'];
+                //赛季球队球员统计详情
+                $url = sprintf($this->all_stat, $this->user, $this->secret, $seasonId);
+                $res = Tool::getInstance()->postApi($url);
+                $decode = json_decode($res, true);
+                $results = !empty($decode['results']) ? $decode['results'] : [];
+                if ($results) {
+                    if ($seasonTeamPlayerRes = SeasonTeamPlayer::getInstance()->where('season_id', $seasonId)->get()) {
+                        $seasonTeamPlayerRes->upadted_at = $results['updated_at'];
+                        $seasonTeamPlayerRes->players_stats = !empty($results['players_stats']) ? json_encode($results['players_stats']) : '';
+                        $seasonTeamPlayerRes->shooters = !empty($results['shooters']) ? json_encode($results['shooters']) : '';
+                        $seasonTeamPlayerRes->teams_stats = !empty($results['teams_stats']) ? json_encode($results['teams_stats']) : '';
+                        $seasonTeamPlayerRes->update();
+                    } else {
+                        $insertDataOne = [
+                            'updated_at' => $results['updated_at'],
+                            'players_stats' => !empty($results['players_stats']) ? json_encode($results['players_stats']) : '',
+                            'shooters' => !empty($results['shooters']) ? json_encode($results['shooters']) : '',
+                            'teams_stats' => !empty($results['teams_stats']) ? json_encode($results['teams_stats']) : '',
+                            'season_id' => $seasonId
+                        ];
+                        SeasonTeamPlayer::getInstance()->insert($insertDataOne);
+                    }
+                }
+
+
+                //赛季排行榜
+                $url = sprintf($this->season_all_table_detail, $this->user, $this->secret, $seasonId);
+                $res = Tool::getInstance()->postApi($url);
+                $decode = json_decode($res, true);
+                $decodeTable = $decode['results'];
+                if (!empty($decode['results'])) {
+                    if ($seasonTable = SeasonAllTableDetail::getInstance()->where('season_id', $seasonId)->get()) {
+                        $seasonTable->promotions = !empty($decodeTable['promotions']) ? json_encode($decodeTable['promotions']) : '';
+                        $seasonTable->tables = !empty($decodeTable['tables']) ? json_encode($decodeTable['tables']) : '';
+                        $seasonTable->updated_at = $decodeTable['updated_at'];
+                        $seasonTable->update();
+                    } else {
+                        $insertTable = [
+                            'promotions' => !empty($decodeTable['promotions']) ? json_encode($decodeTable['promotions']) : '',
+                            'tables' => !empty($decodeTable['tables']) ? json_encode($decodeTable['tables']) : '',
+                            'updated_at' => !empty($decodeTable['updated_at']) ? $decodeTable['updated_at'] : '',
+                        ];
+                        SeasonAllTableDetail::getInstance()->insert($insertTable);
+                    }
+                }
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeTable);
+
+            }
+        }
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
 
     }
 
@@ -1368,15 +1569,14 @@ class Crontab extends FrontUserController
             Log::getInstance()->info('accept data success');
             $match_info = [];
             foreach ($decode as $item) {
-
+                $matchId = $item['id'];
                 //无效比赛 跳过
-                if (!$match = AdminMatch::getInstance()->where('match_id', $item['id'])->get()) {
-                    Log::getInstance()->info('match do not exist-' . $item['id']);
+                if (!$match = AdminMatch::getInstance()->where('match_id', $matchId)->get()) {
                     continue;
                 }
 
                 //比赛结束 跳过
-                if (AdminMatchTlive::getInstance()->where('match_id', $item['id'])->where('is_stop', 1)->get()) {
+                if (AdminMatchTlive::getInstance()->where('match_id', $matchId)->where('is_stop', 1)->get()) {
                     continue;
                 }
                 $status = $item['score'][1];
@@ -1390,30 +1590,27 @@ class Crontab extends FrontUserController
                 if (!in_array($status, [1, 2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
                     if (!in_array($match->id, $cacheExceptionMatchIds)) {
                         //提示
-                        (new WebSocket())->noticeException($item['id'], $status, 1);
+                        (new WebSocket())->noticeException($matchId, $status, 1);
                         array_push($cacheExceptionMatchIds, $match->id);
                         Cache::set('exception-match', json_encode($cacheExceptionMatchIds), 60 * 60);
                     }
                     continue;
                 }
-
                 //比赛结束通知
                 if ($item['score'][1] == 8) { //结束
-                    TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'],  'item' => $item,'score' => $item['score'],  'type'=>12]));
+                    TaskManager::getInstance()->async(new MatchNotice(['match_id' => $matchId,  'item' => $item,'score' => $item['score'],  'type'=>12]));
                 }
 
                 //不在热门赛事中  跳过
                 if (!AppFunc::isInHotCompetition($match->competition_id)) {
                     continue;
                 }
-
-
                 $match_trend_info = [];
-                if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $item['id'])->get()) {
+                if ($matchTrendRes = AdminMatchTlive::create()->where('match_id', $matchId)->get()) {
                     $match_trend_info = json_decode($matchTrendRes->match_trend, true);
                 }
                 //设置比赛进行时间
-                AppFunc::setPlayingTime($item['id'], $item['score']);
+                AppFunc::setPlayingTime($matchId, $item['score']);
                 //比赛开始的通知
                 if ($item['score'][1] == 2 && !Cache::get('match_notice_start:' . $item['id'])) { //开始
                     TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'score' => $item['score'],'item' => $item,  'type'=>10]));
@@ -1431,16 +1628,11 @@ class Crontab extends FrontUserController
                     Cache::set('match_stats_' . $item['id'], json_encode($matchStats), 60 * 240);
 
                 }
-                $corner_count_tlive = [];
+                $corner_count_tlive = $goal_incident = $yellow_card_incident = $red_card_incident = [];
                 $corner_count_new = 0;
-
                 $goal_count_new = 0;
                 $yellow_card_count_new = 0;
                 $red_card_count_new = 0;
-
-                $goal_tlive_total = [];
-                $yellow_card_tlive_total = [];
-                $red_card_tlive_total = [];
 
                 if (isset($item['tlive'])) {
 
@@ -1458,57 +1650,56 @@ class Crontab extends FrontUserController
                         $diff = array_slice($item['tlive'], $match_tlive_count_old);
                         (new WebSocket())->contentPush($diff, $item['id']);
                     }
-
-
-                    foreach ($item['tlive'] as $signal_tlive) {
-                        $format_signal_tlive = ['time' => intval($signal_tlive['time']), 'type' => (int)$signal_tlive['type'], 'position' => (int)$signal_tlive['position']];
-                        if ($format_signal_tlive['type'] == 2 && $signal_tlive['main']) { //角球
-                            $corner_count_new += 1;
-                            $format_signal_corner_tlive = $format_signal_tlive;
-                            $corner_count_tlive[] = $format_signal_corner_tlive;
-                        } else if (($format_signal_tlive['type'] == 1 || $format_signal_tlive['type'] == 8) && $signal_tlive['main']) { //进球或点球
-                            $last_goal_tlive = $format_signal_tlive;
-                            $goal_count_new += 1;
-                            $goal_tlive_total[] = $format_signal_tlive;
-                        } else if ($format_signal_tlive['type'] == 3 && $signal_tlive['main']) { //黄牌
-                            $last_yellow_card_tlive = $format_signal_tlive;
-                            $yellow_card_count_new += 1;
-                            $yellow_card_tlive_total[] = $format_signal_tlive;
-                        } else if ($format_signal_tlive['type'] == 4 && $signal_tlive['main']) { //红牌
-                            $last_red_card_tlive = $format_signal_tlive;
-                            $red_card_count_new += 1;
-                            $red_card_tlive_total[] = $format_signal_tlive;
-                        }
-                        else {
-                            continue;
+                    if (!empty($item['incidents'])) {
+                        foreach ($item['incidents'] as $itemIncident) {
+                            if ($itemIncident['type'] == 1) { //进球
+                                $goal_count_new += 1;
+                                $last_goal_incident = $itemIncident;
+                                $goal_incident[] = $itemIncident;
+                            } else if ($itemIncident['type'] == 3) { //黄牌
+                                $yellow_card_count_new += 1;
+                                $last_yellow_card_incident = $itemIncident;
+                                $yellow_card_incident[] = $itemIncident;
+                            } else if ($itemIncident['type'] == 4) { //红牌
+                                $red_card_count_new += 1;
+                                $last_red_card_incident = $itemIncident;
+                                $red_card_incident[] = $itemIncident;
+                            }
                         }
                     }
-                    if ($goal_count_new > $goal_count_old && isset($last_goal_tlive)) {
-                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_goal_tlive, 'score' => $item['score'], 'type'=>1]));
+                    //角球单独处理 利用tlive
+                    if (!empty($item['tlive'])) {
+                        foreach ($item['tlive'] as $itemTlive) {
+                            if ($itemTlive['type'] == 2 && $itemTlive['main']) { //角球
+                                $corner_count_new += 1;
+                                $itemTlive['time'] = (int)trim($itemTlive['time'], "'");
+                                $corner_count_tlive[] = $itemTlive;
+
+                            }
+                        }
+                    }
+
+                    if ($goal_count_new > $goal_count_old && isset($last_goal_incident)) { //进球
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_goal_incident, 'score' => $item['score'], 'type'=>1]));
                         Cache::set('goal_count_' . $item['id'], $goal_count_new, 60 * 240);
                     }
 
-                    if ($yellow_card_count_new > $yellow_card_count_old && isset($last_yellow_card_tlive)) {
-                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_yellow_card_tlive, 'score' => $item['score'], 'type'=>3]));
+                    if ($yellow_card_count_new > $yellow_card_count_old && isset($last_yellow_card_tlive)) { //黄牌
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_yellow_card_incident, 'score' => $item['score'], 'type'=>3]));
                         Cache::set('yellow_card_count' . $item['id'], $yellow_card_count_new, 60 * 240);
                     }
 
-                    if ($red_card_count_new > $red_card_count_old && isset($last_red_card_tlive)) {
-                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_red_card_tlive, 'score' => $item['score'], 'type'=>4]));
+                    if ($red_card_count_new > $red_card_count_old && isset($last_red_card_tlive)) { //红牌
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_red_card_incident, 'score' => $item['score'], 'type'=>4]));
                         Cache::set('red_card_count' . $item['id'], $red_card_count_new, 60 * 240);
                     }
-
                     Cache::set('match_tlive_' . $item['id'], json_encode($item['tlive']), 60 * 240);
-
                 }
-
-
-
-                $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow_card' => $yellow_card_tlive_total, 'red_card' => $red_card_tlive_total];
+                $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_incident, 'yellow_card' => $yellow_card_incident, 'red_card' => $red_card_incident];
                 $signal_match_info['match_trend'] = $match_trend_info;
                 $signal_match_info['match_id'] = $item['id'];
                 $signal_match_info['time'] = AppFunc::getPlayingTime($item['id']);
-                $signal_match_info['status'] = $status;
+                $signal_match_info['status_id'] = $status;
                 $signal_match_info['match_stats'] = $matchStats;
                 $signal_match_info['score'] = [
                     'home' => $item['score'][2],
@@ -1590,38 +1781,6 @@ class Crontab extends FrontUserController
 
     }
 
-    function test() {
-        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
-        $decode = json_decode($res, true);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
-
-        $user_ids = AppFunc::getUsersInterestMatch(3151577);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user_ids);
-
-        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
-
-        if ($decode = json_decode($res, true)) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
-
-        }
-
-
-
-        $online = OnlineUser::getInstance()->table();
-        foreach ($online as $item) {
-            $users[] = $item;
-        }
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $users);
-
-        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
-
-        if ($decode = json_decode($res, true)) {
-
-        }
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
-
-    }
 
 
     public function testWorking() :void

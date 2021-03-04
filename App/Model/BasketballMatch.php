@@ -12,4 +12,10 @@ class BasketballMatch extends BaseModel
     {
         return $this->hasOne(BasketBallCompetition::class, null, 'competition_id', 'competition_id');
     }
+
+    public function getLimit($page, $limit)
+    {
+        return $this->limit(($page - 1) * $limit, $limit)
+            ->withTotalCount();
+    }
 }

@@ -780,11 +780,16 @@ class AppFunc
      */
     public static function getUsersInRoom($match_id, $type = 1)
     {
-        if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
+        if ($type == 1) {
+            $match = AdminMatch::getInstance()->where('match_id', (int)$match_id)->get();
+        } else {
+            $match = BasketballMatch::getInstance()->where('match_id', (int)$match_id)->get();
+        }
+        if (!$match) {
             return [];
         } else {
             RedisPool::invoke('redis', function(Redis $redis) use ($type, $match_id, &$fd_arr) {
-                $fd_arr = $redis->sMembers(sprintf(($type == 1) ? self::USERS_IN_ROOM : self::USER_INTEREST_BASKETBALL_MATCH, $match_id));
+                $fd_arr = $redis->sMembers(sprintf(($type == 1) ? self::USERS_IN_ROOM : self::USER_IN_BASKETBALL_ROOM, $match_id));
             });
             return $fd_arr;
         }
@@ -794,11 +799,12 @@ class AppFunc
     public static function userEnterRoom($match_id, $fd, $type = 1)
     {
         if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
-            return [];
+            return false;
         } else {
             RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd, $type) {
                 $redis->sAdd(sprintf(($type == 1) ? self::USERS_IN_ROOM : self::USER_IN_BASKETBALL_ROOM, $match_id), $fd);
             });
+            return true;
         }
     }
 
@@ -973,7 +979,7 @@ class AppFunc
         }
     }
 
-    public static function getBasicFootballMatch($match_id)
+    public static function getBasicBasketballMatch($match_id)
     {
         if ($match = BasketballMatch::getInstance()->where('match_id', $match_id)->get()) {
             $format = FrontService::formatBasketballMatch([$match], 0, false);
@@ -986,6 +992,8 @@ class AppFunc
             return [];
         }
     }
+
+
 
 
     public static function changeArrToStr(array $arr)

@@ -26,7 +26,12 @@ use App\Model\AdminSysSettings;
 use App\Model\AdminTeam;
 use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
+use App\Model\AdminUser;
 use App\Model\AdminUserInterestCompetition;
+use App\Model\BasketBallCompetition;
+use App\Model\BasketballMatchSeason;
+use App\Model\BasketballPlayer;
+use App\Model\BasketballTeam;
 use App\Model\SeasonAllTableDetail;
 use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
@@ -1094,16 +1099,16 @@ class DataApi extends FrontUserController
             $selectSeasonId = intval($this->params['season_id']);
         }
         // 类型
-        $type = intval($this->params['type']); //0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队
+        $type = isset($this->params['type']) ? intval($this->params['type']) : 0; //0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队
         if ($type == 1) { // 积分榜
             // 输出数据
             $result = [
-                'data' => [],
+                'table' => [],
                 'promotion' => 0,
                 'competition_describe' => '',
             ];
             // 赛季数据
-            $result['season_list'] = Utils::queryHandler(AdminSeason::getInstance(), 'competition_id=?', $competitionId, '*', false);
+//            $result['season_list'] = Utils::queryHandler(AdminSeason::getInstance(), 'competition_id=?', $competitionId, '*', false);
             // 赛事描述
             $competitionDescribe = Cache::get('competition_describe_' . $selectSeasonId);
             if (empty($competitionDescribe)) {
@@ -1132,6 +1137,7 @@ class DataApi extends FrontUserController
                         $id = intval($v['team_id']);
                         if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
                     });
+
                     if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
                         'team_id in (' . join(',', $teamIds) . ')', null,
                         'team_id,name_zh,logo', false, null, 'team_id,*,1');
@@ -1140,7 +1146,7 @@ class DataApi extends FrontUserController
                         $tid = intval($v['team_id']);
                         $pid = intval($v['promotion_id']);
                         $team = empty($teamMapper[$tid]) ? [] : $teamMapper[$tid];
-                        $result['data'][] = [
+                        $result['table'][] = [
                             'won' => $v['won'],
                             'draw' => $v['draw'],
                             'loss' => $v['loss'],
@@ -1155,48 +1161,75 @@ class DataApi extends FrontUserController
                             'name_zh' => empty($team['name_zh']) ? '' : $team['name_zh'],
                         ];
                     }
+                    return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
                 } else {
-                    $list = $teamIds = [];
-                    foreach ($tables as $k => $v) {
-                        $rows = empty($v['rows']) ? [] : $v['rows'];
-                        $items = [];
-                        array_walk($rows, function ($vv, $kk) use (&$items, &$teamIds) {
-                            $id = intval($vv['team_id']);
-                            if ($id > 0 && !in_array($id, $teamIds)) $teamIds[] = $id;
-                            if ($id > 0) $items[] = [
-                                'team_id' => $id,
-                                'name_zh' => '',
-                                'logo' => '',
-                                'total' => $vv['total'],
-                                'won' => $vv['won'],
-                                'draw' => $vv['draw'],
-                                'loss' => $vv['loss'],
-                                'goals' => $vv['goals'],
-                                'points' => $vv['points'],
-                                'goals_against' => $vv['goals_against'],
-                            ];
-                        });
-                        $stageInfo = AdminStageList::create()->field(['stage_id', 'season_id', 'name_zh'])->where('stage_id', $v['stage_id'])->get();
-                        $list[] = ['list' => $items, 'group' => $v['group'], 'stage' => $stageInfo];
-                    }
-                    // 填充数据
-                    if (!empty($teamIds)) $teamMapper = Utils::queryHandler(AdminTeam::getInstance(),
-                        'team_id in (' . join(',', $teamIds) . ')', null,
-                        'team_id,name_zh,logo', false, null, 'team_id,*,1');
-                    foreach ($list as $k => $v) {
-                        foreach ($v['list'] as $kk => $vv) {
-                            $id = intval($vv['team_id']);
-                            if (empty($teamMapper[$id])) {
-                                unset($v['list'][$kk]);
-                                continue;
+                    $decodeTable = json_decode($tmp['tables'], true);
+                    if (!$decodeTable) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], null);
+                    //球队视图映射  阶段视图映射
+                    $teamIds = $stageIds = [];
+                    array_walk($decodeTable, function ($v, $k) use(&$teamIds, &$stageIds) {
+                        array_walk($v['rows'], function ($tv, $tk) use (&$teamIds) {
+                            if (!in_array($tv['team_id'], $teamIds)) {
+                                $teamIds[] = $tv['team_id'];
                             }
-                            $team = $teamMapper[$id];
-                            $v['list'][$kk]['logo'] = $team['logo'];
-                            $v['list'][$kk]['name_zh'] = $team['name_zh'];
+                        });
+                        if (!in_array($v['stage_id'], $stageIds)) {
+                            $stageIds[] = $v['stage_id'];
                         }
-                        $list[$k]['list'] = array_values($v['list']);
+
+                    });
+
+
+                    $teams = AdminTeam::getInstance()->field(['team_id', 'short_name_zh', 'logo'])->where('team_id', $teamIds, 'in')->all();
+                    foreach ($teams as $team) {
+                        $formatTeams[$team['team_id']] = $team;
                     }
-                    $result['data'] = $list;
+
+                    $stages = AdminStageList::getInstance()->field(['stage_id', 'name_zh'])->where('stage_id', $stageIds, 'in')->all();
+                    foreach ($stages as $stage) {
+                        $formatStages[$stage['stage_id']] = $stage;
+                    }
+
+                    foreach ($decodeTable as $items) {
+                        if (!$items['rows']) continue;
+                        if (!$stageInfo = $formatStages[$items['stage_id']]) continue;
+                        foreach ($items['rows'] as $item) {
+                            if (!$teamInfo= $formatTeams[$item['team_id']]) continue;
+                            $pushItem = [
+                                'won' => $item['won'],
+                                'draw' => $item['draw'],
+                                'loss' => $item['loss'],
+                                'goals' => $item['goals'],
+                                'total' => $item['total'],
+                                'points' => $item['points'],
+                                'goals_against' => $item['goals_against'],
+                                'team_info' => $teamInfo,
+                            ];
+                            $pushItems[] = $pushItem;
+                            unset($pushItem);
+
+                        }
+                        $formatItem[] = [
+                            'item' => $pushItems,
+                            'group' => $items['group'],
+                            'stageInfo' => $formatStages[$items['stage_id']]
+                        ];
+                        unset($pushItems);
+                    }
+                    $return['promotion'] = 0;
+                    $competitionRule = [];
+                    if ($competitionRuleRes = AdminCompetitionRuleList::getInstance()->where('competition_id', $competitionId)->all()) {
+                        foreach ($competitionRuleRes as $re) {
+                            if (!empty($re->season_ids) && in_array($selectSeasonId, json_decode($re->season_ids))) {
+                                $competitionRule = $re->text;
+                            }
+                        }
+                    }
+                    $return['competition_describe'] = $competitionRule;
+                    $return['formatTable'] = $formatItem;
+
+                    return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
                 }
             }
         } elseif ($type == 2) { //比赛
@@ -1211,37 +1244,30 @@ class DataApi extends FrontUserController
                 'season_id=?', $selectSeasonId,
                 'name_zh,stage_id,round_count,group_count', false);
             $firstStage = empty($result['stage']) ? [] : $result['stage'][0];
-            $stageId = $selectSeasonId == $competition['cur_season_id'] ?
-                intval($competition['cur_stage_id']) : (empty($firstStage['stage_id']) ? 0 : intval($firstStage['stage_id']));
-            if (!empty($this->params['stage_id']) && intval($this->params['stage_id']) > 0) $stageId = intval($this->params['stage_id']);
-            $roundId = $selectSeasonId == $competition['cur_season_id'] ?
-                intval($competition['cur_round']) : (empty($firstStage['round_count']) ? 0 : intval($firstStage['round_count']));
-            if (!empty($this->params['round_id']) && intval($this->params['round_id']) > 0) $roundId = intval($this->params['round_id']);
-            $groupId = 1;
-            if (!empty($this->params['group_id']) && intval($this->params['group_id']) > 0) $groupId = intval($this->params['group_id']);
-            // 比赛信息 (取前100场比赛)
-            $tmp = Utils::queryHandler(SeasonMatchList::getInstance(), 'season_id=? limit 100', $selectSeasonId, '*', false);
-            foreach ($tmp as $v) {
-                $round = json_decode($v['round'], true);
-                $isOk = intval($round['stage_id']) == $stageId && (intval($round['round_num']) == $roundId || intval($round['group_num']) == $groupId);
-
-                if (!$isOk) continue;
-
-                $decodeHomeScore = json_decode($v['home_scores'], true);
-                $decodeAwayScore = json_decode($v['away_scores'], true);
-                $data = [];
-                $data['match_id'] = intval($v['match_id']);
-                $data['match_time'] = date('Y-m-d H:i:s', $v['match_time']);
-                $data['home_team_name_zh'] = $v['home_team_name'];
-                $data['away_team_name_zh'] = $v['away_team_name'];
-                $data['status_id'] = $v['status_id'];
-                [$data['home_scores'], $data['away_scores']] = AppFunc::getFinalScore($decodeHomeScore, $decodeAwayScore);
-                [$data['half_home_scores'], $data['half_away_scores']] = AppFunc::getHalfScore($decodeHomeScore, $decodeAwayScore);
-                [$data['home_corner'], $data['away_corner']] = AppFunc::getCorner($decodeHomeScore, $decodeAwayScore);
-                //list($data['home_scores'], $data['away_scores'], $data['half_home_scores'], $data['half_away_scores'], $data['home_corner'], $data['away_corner']) = AppFunc::getAllScoreType($decode_home_score, $decode_away_score);
-                $result['match_list'][] = $data;
-
+            $selectStageId = !empty($this->params['stage_id']) ? (int)$this->params['stage_id'] : (int)$competition['cur_stage_id'];
+            $selectRound = !empty($this->params['round_id']) ? (int)$this->params['round_id'] : 0;
+            $selectGroup = !empty($this->params['group_id']) ? (int)$this->params['group_id'] : 0;
+            $matchList = SeasonMatchList::getInstance()->where('season_id', $selectSeasonId)->all();
+            foreach ($matchList as $match) {
+                if (empty($match->round)) continue;
+                $matchRound = json_decode($match->round, true);
+                if (($selectStageId == $matchRound['stage_id'] && $selectRound == $matchRound['round_num']) || ($selectStageId == $matchRound['stage_id'] && $selectGroup == $matchRound['group_num'])) {
+                    $decodeHomeScore = json_decode($match['home_scores'], true);
+                    $decodeAwayScore = json_decode($match['away_scores'], true);
+                    $data = [];
+                    $data['match_id'] = intval($match['match_id']);
+                    $data['match_time'] = date('Y-m-d H:i:s', $match['match_time']);
+                    $data['home_team_name_zh'] = $match['home_team_name'];
+                    $data['away_team_name_zh'] = $match['away_team_name'];
+                    $data['status_id'] = $match['status_id'];
+                    [$data['home_scores'], $data['away_scores']] = AppFunc::getFinalScore($decodeHomeScore, $decodeAwayScore);
+                    [$data['half_home_scores'], $data['half_away_scores']] = AppFunc::getHalfScore($decodeHomeScore, $decodeAwayScore);
+                    [$data['home_corner'], $data['away_corner']] = AppFunc::getCorner($decodeHomeScore, $decodeAwayScore);
+                    $result['match_list'][] = $data;
+                }
             }
+
+
 
         } else { // 最佳球员
             // 输出数据
@@ -1292,7 +1318,7 @@ class DataApi extends FrontUserController
                 return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
             }
         }
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => $result]);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
     }
 
     /**
@@ -1342,6 +1368,45 @@ class DataApi extends FrontUserController
             $result = Utils::queryHandler(AdminPlayer::getInstance(),
                 'name_zh like ?', [$keywords],
                 'player_id,name_zh,logo', false, 'market_value desc', null, $page, $size);
+        } elseif ($type == 6) { //篮球球员
+            $result = Utils::queryHandler(BasketballPlayer::getInstance(),
+                'name_zh like ?', [$keywords],
+                'player_id,name_zh,logo', false, 'salary desc', null, $page, $size);
+        } elseif ($type == 5) { //篮球球队
+            $result = Utils::queryHandler(BasketballTeam::getInstance(),
+                'name_zh like ?', [$keywords],
+                'team_id,name_zh,logo', false, 'competition_id ASC', null, $page, $size);
+        } elseif ($type == 4) { //篮球赛事
+            $result = Utils::queryHandler(BasketBallCompetition::getInstance(),
+                'short_name_zh like ?', [$keywords],
+                'competition_id,name_zh,short_name_zh,logo', false, 'competition_id ASC', null, $page, $size);
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+    }
+
+    public function basketballContentByKeyWord(): bool
+    {
+        // 关键字
+        $keywords = isset($this->params['key_word']) ? trim($this->params['key_word']) : '';
+        if (empty($keywords)) return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+        $keywords = '%' . $keywords . '%';
+        // 参数整理
+        $type = empty($this->params['type']) || intval($this->params['type']) < 1 ? 0 : intval($this->params['type']);
+        $page = empty($this->params['page']) || intval($this->params['page']) < 1 ? 1 : intval($this->params['page']);
+        $size = empty($this->params['size']) || intval($this->params['size']) < 1 ? 10 : intval($this->params['size']);
+        // 输出数据
+        if ($type == 1) { //赛事
+            $result = Utils::queryHandler(BasketBallCompetition::getInstance(),
+                'name_zh like ? or short_name_zh like ?', [$keywords, $keywords],
+                'competition_id,name_zh,short_name_zh,logo', false, 'competition_id desc', null, $page, $size);
+        } elseif ($type == 2) { //球队
+            $result = Utils::queryHandler(BasketballTeam::getInstance(),
+                'name_zh like ?', [$keywords],
+                'team_id,name_zh,logo', false, 'team_id desc', null, $page, $size);
+        } elseif ($type == 3) { //球员
+            $result = Utils::queryHandler(BasketballPlayer::getInstance(),
+                'name_zh like ?', [$keywords],
+                'player_id,name_zh,logo', false, 'market_value desc', null, $page, $size);
         }
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
     }
@@ -1358,6 +1423,45 @@ class DataApi extends FrontUserController
             'category_id=? and country_id=0', $categoryId,
             'competition_id,short_name_zh,logo', false);
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
+    }
+
+    public function test()
+    {
+        // 配置数据
+        $data = Utils::queryHandler(AdminSysSettings::getInstance(),
+            'sys_key=?', [AdminSysSettings::SETTING_DATA_COMPETITION], 'sys_value');
+        $data = empty($data['sys_value']) ? [] : json_decode($data['sys_value'], true);
+        // 赛事数据
+        $competitionId = empty($data[0]) || intval($data[0]) < 1 ? 0 : intval($data[0]);
+        if (!empty($this->params['competition_id']) && intval($this->params['competition_id']) > 0) {
+            $competitionId = intval($this->params['competition_id']);
+        }
+        if ($competitionId < 1) return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+        $competition = Utils::queryHandler(AdminCompetition::getInstance(), 'competition_id=?', $competitionId);
+        if (empty($competition)) return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+        //
+        $selectSeasonId = intval($competition['cur_season_id']);
+        if (!empty($this->params['season_id']) && intval($this->params['season_id']) > 0) {
+            $selectSeasonId = intval($this->params['season_id']);
+        }
+        // 类型
+        $type = isset($this->params['type']) ? intval($this->params['type']) : 0; //0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队
+        if ($seasonTableRes = SeasonAllTableDetail::getInstance()->where('season_id', $selectSeasonId)->get()) {
+            $seasonTable = json_decode($seasonTableRes->tables, true);
+        }
+        //非升降级比赛
+        if (!$seasonTableRes->promotions || !json_decode($seasonTableRes->promotions, true)) {
+
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatItem);
+
+
+        } else {
+            //升降级比赛
+
+        }
+
+
+
     }
 
 }

@@ -3,6 +3,7 @@
 namespace App\Model;
 
 use App\Base\BaseModel;
+use EasySwoole\Mysqli\QueryBuilder;
 
 class BasketBallCompetition extends BaseModel
 {
@@ -32,6 +33,20 @@ class BasketBallCompetition extends BaseModel
         } else {
             return [];
         }
+    }
+
+    public function getCurrentSeason()
+    {
+        return $this->hasOne(BasketballSeasonList::class, function (QueryBuilder  $queryBuilder) {
+            $queryBuilder->where('is_current', 1);
+        } , 'competition_id', 'competition_id');
+        //return $this->hasOne(AdminUserOperate::class, function (QueryBuilder $queryBuilder) use($uid, $cid) {
+        //            $queryBuilder->where('type', 1);
+        //            $queryBuilder->where('user_id', $uid);
+        //            $queryBuilder->where('item_id', $cid);
+        //            $queryBuilder->where('is_cancel', 0);
+        //            $queryBuilder->where('item_type', 2);
+        //        }, 'id', 'item_id');
     }
 
 }

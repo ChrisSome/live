@@ -61,6 +61,7 @@ class Status
     const CONDE_WRONG_RESPONSE = 403; //比赛列表请求失败
     const CODE_MATCH_FOLLOW_ERR = 404; //比赛关注失败
     const CODE_MATCH_LINE_UP_ERR = 405; //比赛首发阵容获取失败
+    const CODE_RES_EXIST = 411; //数据存在
     //数据错误
     const CODE_WRONG_USER = 501; //未查询到有效用户
     const CODE_WRONG_RES = 502; //未查询到有效数据
@@ -108,7 +109,7 @@ class Status
         self::CODE_MATCH_COUNT_LIMIT => '最多只能关注50场比赛哦',
         self::CODE_PHONE_CODE_LIMIT => '短信发送超限，请明天再试',
         self::CODE_PHONE_CODE_LIMIT_TIME => '频率过快，请稍后再试',
-
+        self::CODE_RES_EXIST => '数据已经存在',
 
         self::CODE_ADD_POST_SENSITIVE  => '内容包含敏感词：%s',
 

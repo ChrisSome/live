@@ -11,6 +11,7 @@ class AdminSysSettings extends BaseModel
     const SYSTEM_SETTING_KEY = 'admin:system:%s';
     const SETTING_DATA_COMPETITION = 'data_competition';
     const SETTING_TITLE_BANNER = 'information_title_banner';
+    const SETTING_BASKETBALL_TITLE_BANNER = 'basketball_title_banner';
     const SETTING_HOT_SEARCH = 'hot_setting';
     const SETTING_HOT_SEARCH_CONTENT = 'default_search_content';
     const SETTING_HOT_SEARCH_COMPETITION = 'hot_search_competition';  //热搜赛事

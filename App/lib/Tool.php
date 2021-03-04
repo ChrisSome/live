@@ -28,7 +28,6 @@ class Tool
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);  //SSL 报错时使用
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-
             return curl_exec($ch);
         } catch (\Exception $e) {
             return false;

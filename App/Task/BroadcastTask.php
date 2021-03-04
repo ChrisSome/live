@@ -49,7 +49,7 @@ class BroadcastTask implements TaskInterface
         $server = ServerManager::getInstance()->getSwooleServer();
         //获取该房间内所有用户
         $aMessage = $taskData['payload'];
-
+        $sportType = (int)$aMessage['sportType'];
         $insertId = DbManager::getInstance()->invoke(function ($client) use ($aMessage) {
             $chatModel = ChatHistory::invoke($client);
             $chatModel->sender_user_id = (int)$aMessage['fromUserId'];
@@ -57,6 +57,7 @@ class BroadcastTask implements TaskInterface
             $chatModel->match_id = (int)$aMessage['matchId'];
             $chatModel->content = $aMessage['content'];
             $chatModel->at_user_id = (int)$aMessage['atUserId'];
+            $chatModel->sport_type = (int)$aMessage['sportType'];
 
             $data = $chatModel->save();
             return $data;
@@ -88,7 +89,7 @@ class BroadcastTask implements TaskInterface
 
         ];
 
-        if ($users = AppFunc::getUsersInRoom($aMessage['matchId'])) {
+        if ($users = AppFunc::getUsersInRoom($aMessage['matchId'], $sportType)) {
             foreach ($users as $user) {
                 $connection = $server->connection_info($user);
                 if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送

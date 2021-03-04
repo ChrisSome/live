@@ -201,6 +201,7 @@ class FootballApi extends FrontUserController
         $model = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
             ->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')
             ->where('is_delete', 0)
+            ->where('status_id', 1)
             ->where('competition_id', $selectCompetitionIdArr, 'in')
             ->order('match_time', 'ASC')->limit(($page - 1) * $limit, $limit)->withTotalCount();
         $list = $model->all(null);
@@ -995,40 +996,45 @@ class FootballApi extends FrontUserController
         } else {
             $res = SeasonAllTableDetail::getInstance()->where('season_id', $currentSeasonId)->get();
             $decode = isset($res->tables) ? json_decode($res->tables, true) : [];
-            $promotions = isset($res->promotions) ? json_decode($res->promotions, true) : [];
+            if (!$decode) {
+                $promotions = isset($res->promotions) ? json_decode($res->promotions, true) : [];
 
-            $homeIntvalRank = $awayIntvalRank = null;
-            if ($promotions) {
-                $rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
-                foreach ($rows as $item) {
-                    if ($item['team_id'] == $matchInfo->home_team_id) {
-                        $homeIntvalRank = $item;
-                    } else if ($item['team_id'] == $matchInfo->away_team_id) {
-                        $awayIntvalRank = $item;
+                $homeIntvalRank = $awayIntvalRank = null;
+                if ($promotions) {
+                    $rows = isset($decode[0]['rows']) ? $decode[0]['rows'] : [];
+                    foreach ($rows as $item) {
+                        if ($item['team_id'] == $matchInfo->home_team_id) {
+                            $homeIntvalRank = $item;
+                        } else if ($item['team_id'] == $matchInfo->away_team_id) {
+                            $awayIntvalRank = $item;
+                        }
+                        if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) break;
                     }
-                    if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) break;
-                }
 
+                } else {
+
+                    foreach ($decode as $item_row) {
+                        foreach ($item_row['rows'] as $k_row) {
+                            $team_ids[] = $k_row['team_id'];
+                            if ($k_row['team_id'] == $matchInfo->home_team_id) {
+                                $homeIntvalRank = $k_row;
+                            }
+
+                            if ($k_row['team_id'] == $matchInfo->away_team_id) {
+                                $awayIntvalRank = $k_row;
+                            }
+
+                            if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) {
+
+                                break;
+                            }
+                        }
+                    }
+                }
             } else {
-
-                foreach ($decode as $item_row) {
-                    foreach ($item_row['rows'] as $k_row) {
-                        $team_ids[] = $k_row['team_id'];
-                        if ($k_row['team_id'] == $matchInfo->home_team_id) {
-                            $homeIntvalRank = $k_row;
-                        }
-
-                        if ($k_row['team_id'] == $matchInfo->away_team_id) {
-                            $awayIntvalRank = $k_row;
-                        }
-
-                        if (!empty($homeIntvalRank) && !empty($awayIntvalRank)) {
-
-                            break;
-                        }
-                    }
-                }
+                $homeIntvalRank = $awayIntvalRank = [];
             }
+
 
             $intvalRank = ['homeIntvalRank' => $homeIntvalRank, 'awayIntvalRank' => $awayIntvalRank];
 
@@ -1072,15 +1078,22 @@ class FootballApi extends FrontUserController
                 $awayRecentSchedule[] = $scheduleItem;
             }
         }
+        //用户关注比赛
+        $userId = !empty($this->auth['id']) ? (int)$this->auth['id'] : 0;
+        if ($userInterestMatch = AdminInterestMatches::getInstance()->where('uid', $userId)->where('type', 1)->get()) {
+            $userIntereMatchIds = json_decode($userInterestMatch->match_ids, true);
+        } else {
+            $userIntereMatchIds = [];
+        }
         $returnData = [
             'intvalRank' => $intvalRank, //积分排名
             'historyResult' => !empty($sensus['history']) ? json_decode($sensus['history'], true) : [],//历史战绩
             'recentResult' => !empty($sensus['recent']) ? json_decode($sensus['recent'], true) : [],
             'history' => FrontService::formatMatchThree(array_slice($formatHistoryMatches, 0, 10), 0, []),//历史交锋
-            'homeRecent' => FrontService::formatMatchThree(array_slice($homeRecentMatches, 0, 10), 0, []),//主队近期战绩
-            'awayRecent' => FrontService::formatMatchThree(array_slice($awayRecentMatches, 0, 10), 0, []),//客队近期战绩
-            'homeRecentSchedule' => FrontService::formatMatchThree(array_slice($homeRecentSchedule, 0, 10), 0, []),//主队近期赛程
-            'awayRecentSchedule' => FrontService::formatMatchThree(array_slice($awayRecentSchedule, 0, 10), 0, []),//客队近期赛程
+            'homeRecent' => FrontService::formatMatchThree(array_slice($homeRecentMatches, 0, 10), $userId, $userIntereMatchIds),//主队近期战绩
+            'awayRecent' => FrontService::formatMatchThree(array_slice($awayRecentMatches, 0, 10), $userId, $userIntereMatchIds),//客队近期战绩
+            'homeRecentSchedule' => FrontService::formatMatchThree(array_slice($homeRecentSchedule, 0, 10), $userId, $userIntereMatchIds),//主队近期赛程
+            'awayRecentSchedule' => FrontService::formatMatchThree(array_slice($awayRecentSchedule, 0, 10), $userId, $userIntereMatchIds),//客队近期赛程
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
 
@@ -1235,9 +1248,10 @@ class FootballApi extends FrontUserController
         if (!isset($this->params['match_id'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
-        } else if (!$match = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->get()) {
+        } else if ((!$match = SeasonMatchList::getInstance()->where('match_id', $this->params['match_id'])->get())
+        && (!$match = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->get())) {
 
-            return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
+            return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH], $match);
 
         }
         //用户关注的比赛
@@ -1259,6 +1273,7 @@ class FootballApi extends FrontUserController
 
         $matchId = $return['match_id'];
         if (!$return['matching_info']) {
+
             if ($matchTlive = AdminMatchTlive::getInstance()->where('match_id', $return['match_id'])->get()) { //已结束并且同步数据
                 $tlive = json_decode($matchTlive->tlive, true);
                 $stats = json_decode($matchTlive->stats, true);
@@ -1269,6 +1284,7 @@ class FootballApi extends FrontUserController
                 $yellow_card_tlive = [];
                 $red_card_tlive = [];
                 if ($tlive) {
+
                     foreach ($tlive as $item) {
                         $item['time'] = intval($item['time']);
                         if ($item['type'] == 1) { //进球
@@ -1301,7 +1317,7 @@ class FootballApi extends FrontUserController
                     'match_trend' => $match_trend,
                     'match_id' => $matchId,
                     'time' => 0,
-                    'status' => 8,
+                    'status_id' => 8,
                     'match_stats' => $matchStats,
                     'score' => ['home' => $score[2], 'away' => $score[3]],
 

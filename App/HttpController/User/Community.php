@@ -22,6 +22,9 @@ use App\Model\AdminUser;
 use App\Model\AdminUserFeedBack;
 use App\Model\AdminUserPost;
 use App\Model\AdminUserPostsCategory;
+use App\Model\BasketballMatch;
+use App\Model\BasketballMatchSeason;
+use App\Model\BasketballTeam;
 use App\Task\SerialPointTask;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status as Statuses;
@@ -171,7 +174,7 @@ class Community extends FrontUserController
             $commentModel = $commentModel->where('user_id', $info->user_id);
         }
         switch ($order_type){
-            case 1: //热度  回复数
+            case 1: //热度  点赞数
                 $comments = $commentModel->order('fabolus_number', 'DESC')->order('created_at', 'ASC')->limit(($page - 1) * $size, $size)
                     ->withTotalCount();
                 break;
@@ -306,7 +309,7 @@ class Community extends FrontUserController
         $orderType = empty($params['order_type']) || intval($params['order_type']) < 1 ? 1 : intval($params['order_type']);
         $isRefine = empty($params['is_refine']) || intval($params['is_refine']) < 1 ? false : true;
         $page = empty($params['page']) || intval($params['page']) < 1 ? 1 : intval($params['page']);
-        $size = empty($params['size']) || intval($params['size']) < 1 ? 15 : intval($params['size']);
+        $size = empty($params['size']) || intval($params['size']) < 1 ? 10 : intval($params['size']);
         // 当前登录用户ID
         $authId = empty($this->auth['id']) || intval($this->auth['id']) < 1 ? 0 : intval($this->auth['id']);
         // 状态条件
@@ -353,8 +356,11 @@ class Community extends FrontUserController
         $where = 'status in (' . $statusStr . ')';
         if ($categoryId != 1) $where .= ' and cat_id=' . $categoryId;
         $result = array_merge($result, $getPostListHandler($where));
-        if($result === false) return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+        if(!$result) {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+        } else {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $result);
+        }
     }
 
     /**
@@ -385,7 +391,7 @@ class Community extends FrontUserController
         $information = AdminInformation::getInstance()->where('status', AdminInformation::STATUS_NORMAL)->where('title',  '%' . $key_word . '%', 'like')->getLimit($page, $size);
         $format_information = FrontService::handInformation($information->all(null), $this->auth['id']);
         $information_count = $information->lastQueryResult()->getTotalCount();
-        //比赛
+        //足球比赛
         list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowCompetitionId($uid);
         if ($team = AdminTeam::getInstance()->where('name_zh', '%' . $key_word . '%', 'like')->all()) {
             $team_ids = array_column($team, 'team_id');
@@ -393,7 +399,6 @@ class Community extends FrontUserController
                 $team_ids_str = AppFunc::changeArrToStr($team_ids);
                 $matches = AdminMatch::getInstance()->where('home_team_id in ' . $team_ids_str . ' or away_team_id in ' . $team_ids_str)->getLimit($page, $size);
                 $match_list = $matches->all(null);
-
             } else {
                 $match_list = [];
 
@@ -405,6 +410,26 @@ class Community extends FrontUserController
             $format_match = [];
             $match_count = 0;
         }
+        //篮球比赛
+        list($selectCompetitionIdArr, $interestMatchArr) = AdminUser::getUserShowBasketballCompetition($uid);
+        if ($team = BasketballTeam::getInstance()->where('name_zh', '%' . $key_word . '%', 'like')->all()) {
+            $team_ids = array_column($team, 'team_id');
+            if ($team_ids) {
+                $team_ids_str = AppFunc::changeArrToStr($team_ids);
+                $matches = BasketballMatchSeason::getInstance()->where('home_team_id in ' . $team_ids_str . ' or away_team_id in ' . $team_ids_str)->getLimit($page, $size, 'match_time');
+                $match_list = $matches->all(null);
+            } else {
+                $match_list = [];
+
+            }
+            $format_basketball_match = FrontService::formatBasketballMatch($match_list, $uid, $interestMatchArr);
+            $match_basketballl_count = count($format_match);
+
+        } else {
+            $format_basketball_match = [];
+            $match_basketballl_count = 0;
+        }
+
 
 
         //用户
@@ -420,9 +445,10 @@ class Community extends FrontUserController
             'format_posts' => ['data' => $format_posts, 'count' => $post_count],
             'format_matches' => ['data' => $format_match, 'count' => $match_count],
             'information' =>['data' => $format_information, 'count' => $information_count],
-            'users' => ['data' => $format_users, 'count' => $user_count]
+            'users' => ['data' => $format_users, 'count' => $user_count],
+            'format_basketball_match' => ['data' => $format_basketball_match, 'count' => $match_basketballl_count]
         ];
-        $type = !empty($this->params['type']) ? $this->params['type'] : 1;//1：全部 2帖子 3资讯 4赛事 5用户
+        $type = !empty($this->params['type']) ? $this->params['type'] : 1;//1：全部 2帖子 3资讯 4赛事 5用户 6篮球比赛
         if ($type == 1) {
             $return_data = $data;
         } else if ($type == 2) {
@@ -433,8 +459,13 @@ class Community extends FrontUserController
         } else if ($type == 4) {
             $return_data = ['data' => $format_match, 'count' => $match_count];
 
-        } else {
+        } else if ($type == 5) {
             $return_data = ['data' => $format_users, 'count' => $user_count];
+
+        } else if ($type == 6) {
+            $return_data = ['data' => $format_basketball_match, 'count' => $match_basketballl_count];
+        } else {
+            $return_data = ['data' => [], 'count' => 0];
 
         }
 
@@ -641,6 +672,7 @@ class Community extends FrontUserController
         if (!$uid = $this->params['user_id']) {
             return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
         }
+        $fabolus_number = AdminMessage::create()->where('user_id', $uid)->where('type', 2)->where('item_type', [1,2,4], 'in')->where('status', AdminMessage::STATUS_DEL, '<>')->count();
 
         $user_info = AdminUser::getInstance()->where('id', $uid)->field(['id', 'nickname', 'photo', 'level', 'point', 'is_offical'])->get();
         $user_info['fans_count'] = count(AppFunc::getUserFans($uid));
@@ -652,7 +684,7 @@ class Community extends FrontUserController
             $user_info['is_me'] = false;
             $user_info['is_follow'] = false;
         }
-
+        $user_info['fabolus_number'] = $fabolus_number;
         $total = [
             'post_total' => AdminUserPost::getInstance()->where('user_id', $uid)
                 ->where('status', AdminUserPost::NEW_STATUS_NORMAL)->count('id'),

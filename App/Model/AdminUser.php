@@ -119,12 +119,11 @@ class AdminUser extends BaseModel
         $default = json_decode($recommandCompetitionId->sys_value, true);
         if (!$uid) return [$default, []];
         //用户关注赛事 与 比赛
-        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])
-            ->where('c.type', AdminUserInterestCompetition::FOOTBALL_TYPE)
-            ->where('m.type', AdminInterestMatches::FOOTBALL_TYPE)
-            ->get(['user_id' => $uid]);
-        $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
-        $userInterestCompetition = isset($res->competition_ids) ? json_decode($res->competition_ids, true) : [];
+        $resMatch = AdminInterestMatches::getInstance()->where('uid', $uid)->where('type', AdminInterestMatches::FOOTBALL_TYPE)->get();
+        $interestMatchArr = isset($resMatch->match_ids) ? json_decode($resMatch->match_ids, true) : [];
+        $resCompetition = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->where('type', AdminUserInterestCompetition::FOOTBALL_TYPE)->get();
+        $userInterestCompetition = isset($resCompetition->competition_ids) ? json_decode($resCompetition->competition_ids, true) : [];
+
         if ($userInterestCompetition) {
             $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
         } else {
@@ -136,6 +135,7 @@ class AdminUser extends BaseModel
     /**
      * 需要给用户展示的篮球赛事id和用户关注的篮球比赛id
      * @param $uid
+     * @param $type
      */
     public static function getUserShowBasketballCompetition($uid)
     {
@@ -144,13 +144,10 @@ class AdminUser extends BaseModel
         $default = json_decode($recommandCompetitionId->sys_value, true);
         if (!$uid) return [$default, []];
         //用户关注赛事 与 比赛
-        $res = AdminUserInterestCompetition::create()->alias('c')->join('admin_user_interest_matches as m', 'c.user_id=m.uid', 'left')->field(['c.*', 'm.match_ids'])
-            ->where('c.type', AdminUserInterestCompetition::BASKETBALL_TYPE)
-            ->where('m.type', AdminInterestMatches::FOOTBALL_TYPE)
-            ->get(['user_id' => $uid]);
-
-        $interestMatchArr = isset($res->match_ids) ? json_decode($res->match_ids, true) : [];
-        $userInterestCompetition = isset($res->competition_ids) ? json_decode($res->competition_ids, true) : [];
+        $resMatch = AdminInterestMatches::getInstance()->where('uid', $uid)->where('type', 2)->get();
+        $interestMatchArr = isset($resMatch->match_ids) ? json_decode($resMatch->match_ids, true) : [];
+        $resCompetition = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->where('type', 2)->get();
+        $userInterestCompetition = isset($resCompetition->competition_ids) ? json_decode($resCompetition->competition_ids, true) : [];
         if ($userInterestCompetition) {
             $selectCompetitionIdArr = array_intersect($default, $userInterestCompetition);
         } else {

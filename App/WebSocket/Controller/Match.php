@@ -11,6 +11,7 @@ use App\Model\AdminMatchTlive;
 use App\Model\AdminUser;
 use App\Model\BasketballMatch;
 use App\Model\ChatHistory;
+use App\Model\SeasonMatchList;
 use App\Storage\MatchLive;
 use App\Storage\OnlineUser;
 use App\Utility\Log\Log;
@@ -32,10 +33,10 @@ class Match extends Base
         $fd = $client->getFd();
         $args = $this->caller()->getArgs();
         $tool = Tool::getInstance();
-        if (!isset($args['match_id'])) {
+        $type = isset($args['type']) ? 1 : 2;
+        if (!isset($args['match_id']) || !in_array($type, [1, 2])) {
             //参数不正确
             $this->response()->setMessage($tool->writeJson(403, '参数不正确'));
-
             return;
         }
         if (!OnlineUser::getInstance()->get($fd)) {
@@ -47,7 +48,7 @@ class Match extends Base
 
         //记录房间内用户
         $matchId = $args['match_id'];
-        OnlineUser::getInstance()->update($fd, ['match_id' => $matchId, 'type' => 1]);
+        OnlineUser::getInstance()->update($fd, ['match_id' => $matchId, 'type' => $type]);
         $user['match_id'] = $matchId;
         $user['fd'] = $fd;
         //设置房间对象
@@ -56,7 +57,7 @@ class Match extends Base
         $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->where('sport_type', 1)->order('created_at', 'DESC')->limit(20)->all();
         //比赛状态
         $match = DbManager::getInstance()->invoke(function ($client) use ($matchId) {
-            $matchModel = AdminMatch::invoke($client);
+            $matchModel = SeasonMatchList::invoke($client);
             $data = $matchModel->where('match_id', $matchId)->get();
             return $data;
         });
@@ -111,7 +112,7 @@ class Match extends Base
                     'match_trend' => $match_trend,
                     'match_id' => $matchId,
                     'time' => 0,
-                    'status' => 8,
+                    'status_id' => 8,
                     'match_stats' => $matchStats,
                     'score' => ['home' => $score[2], 'away' => $score[3]],
 
@@ -204,7 +205,7 @@ class Match extends Base
         $fd = (int)$client->getFd();
         $args = $this->caller()->getArgs();
         $tool = Tool::getInstance();
-        $sportType = isset($args['sport_type']) ? (int)$args['sport_type'] : 1;
+        $sportType = isset($args['type']) ? (int)$args['type'] : 1;
         if (!isset($args['match_id'])) {
             //参数不正确
             $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_W_PARAM, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_PARAM]));

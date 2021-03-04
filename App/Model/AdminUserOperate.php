@@ -15,9 +15,9 @@ class AdminUserOperate extends BaseModel
 
     protected $tableName = "admin_user_operates";
 
-    public function getLimit($page, $limit)
+    public function getLimit($page, $limit, $sortColumn = 'created_at')
     {
-        return $this->order('created_at', 'DESC')
+        return $this->order($sortColumn, 'DESC')
             ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();
     }

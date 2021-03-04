@@ -41,7 +41,6 @@ class EasySwooleEvent implements Event
         // 加载配置项
         self::loadConf();
 
-//        //设置redis
         //$redisConf = Config::getInstance()->getConf('database')['REDIS'];
         $redisConf = Config::getInstance()->getConf('REDIS');
         $redisPoolConfig = new  \EasySwoole\Redis\Config\RedisConfig();
@@ -49,8 +48,8 @@ class EasySwooleEvent implements Event
         $redisPoolConfig->setPort($redisConf['port']);
         $redisPoolConfig = \EasySwoole\RedisPool\Redis::getInstance()->register('redis',$redisPoolConfig);
         //配置连接池连接数
-        $redisPoolConfig->setMinObjectNum(15);
-        $redisPoolConfig->setMaxObjectNum(500);
+        $redisPoolConfig->setMinObjectNum(8);
+        $redisPoolConfig->setMaxObjectNum(30);
 
         //数据库
         $dbConf = Config::getInstance()->getConf('MYSQL');
@@ -62,13 +61,13 @@ class EasySwooleEvent implements Event
         $config->setPort($dbConf['port']);
         $config->setCharset($dbConf['charset']);
         //连接池配置
-        $config->setGetObjectTimeout(3.0); //设置获取连接池对象超时时间
+        $config->setGetObjectTimeout(5.0); //设置获取连接池对象超时时间
         $config->setIntervalCheckTime(30*1000); //设置检测连接存活执行回收和创建的周期
         $config->setMaxIdleTime(15); //连接池对象最大闲置时间(秒)
-        $config->setMinObjectNum(15); //设置最小连接池存在连接对象数量
+        $config->setMinObjectNum(10); //设置最小连接池存在连接对象数量
 
-        $config->setMaxObjectNum(2000); //设置最大连接池存在连接对象数量
-        $config->setAutoPing(5); //设置自动ping客户端链接的间隔
+        $config->setMaxObjectNum(50); //设置最大连接池存在连接对象数量
+        $config->setAutoPing(3); //设置自动ping客户端链接的间隔
 
         DbManager::getInstance()->addConnection(new Connection($config));
     }

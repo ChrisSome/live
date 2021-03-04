@@ -24,8 +24,8 @@ class BasketballMatchNotice  implements TaskInterface
     protected $taskData;
     protected $trend_detail;
 
-    const TYPE_OVER = 1;
-    const TYPE_START = 2;
+    protected $user = 'mark9527';
+    protected $secret = 'dbfe8d40baa7374d54596ea513d8da96';
     public function __construct($taskData)
     {
         $this->trend_detail = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s';
@@ -44,40 +44,61 @@ class BasketballMatchNotice  implements TaskInterface
          * 用户不登录 不推送 会提示
          */
         // TODO: Implement run() method.
-
         $type = $this->taskData['type'];
+        $item = $this->taskData['item'];
         $match_id = $this->taskData['match_id'];
-        $match = BasketballMatch::getInstance()->where('match_id', $match_id)->get();
-        $score = $this->taskData['score'];
-        $match->home_scores = json_encode($score[3]);
-        $match->away_scores = json_encode($score[4]);
-        $match->status_id = $score[1];
-        $match->update();
+        $matchModel = $this->taskData['matchModel'];
+        $score = $item['score'];
+        $matchModel->home_scores = json_encode($score[3]);
+        $matchModel->away_scores = json_encode($score[4]);
+        $matchModel->status_id = $score[1];
+        $matchModel->update();
+        Log::getInstance()->info('basketball-np-stat-' . $match_id . '-type-' . $type);
         //主客队总得分
         $homeTotalScore = $awayTotalScore = 0;
         for ($i = 0; $i <= 4; $i++) {
+            if (!isset($score[3][$i]) || !isset($score[4][$i])) break;
             $homeTotalScore += $score[3][$i];
             $awayTotalScore += $score[4][$i];
         }
         if ($type == 1) { //比赛结束  推送 + 提示
             $item = $this->taskData['item'];
-            $matchTlive = BasketballMatchTlive::getInstance()->where('match_id', $match_id)->get();
-            $matchTlive->score = isset($item['scores']) ? json_encode($item['scores']) : '';
-            $matchTlive->stats = isset($item['stats']) ? json_encode($item['stats']) : '';
-            $matchTlive->tlive = isset($item['tlive']) ? json_encode($item['tlive']) : '';
-            $matchTlive->is_stop = 1;
-            $matchTlive->update();
-
-            $this->basketballPush($type, $match, $homeTotalScore, $awayTotalScore);
-            $this->basketballNotice($type, $match, $homeTotalScore, $awayTotalScore);
+            $columnScore = isset($item['score']) ? json_encode($item['score']) : '';
+            $columnStats = isset($item['stats']) ? json_encode($item['stats']) : '';
+            $columnTlive = isset($item['tlive']) ? json_encode($item['tlive']) : '';
+            $columnPlayers = isset($item['players']) ? json_encode($item['players']) : '';
+            if (!$matchTlive = BasketballMatchTlive::getInstance()->where('match_id', $match_id)->get()) {
+                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, $this->user, $this->secret, $match_id));
+                $match_trend = json_decode($match_res, true);
+                if ($match_trend['code'] != 0) {
+                    $match_trend_info = [];
+                } else {
+                    $match_trend_info = $match_trend['results'];
+                }
+                $insertData = [
+                    'match_id' => $match_id,
+                    'match_trend' => json_encode($match_trend_info),
+                    'score' => $columnScore,
+                    'stats' => $columnStats,
+                    'tlive' => $columnTlive,
+                    'players' => $columnPlayers,
+                    'is_stop' => 1
+                ];
+                BasketballMatchTlive::create()->insert($insertData);
+            } else {
+                $matchTlive->score = $columnScore;
+                $matchTlive->stats = $columnStats;
+                $matchTlive->tlive = $columnTlive;
+                $matchTlive->players = $columnPlayers;
+                $matchTlive->is_stop = 1;
+                $matchTlive->update();
+            }
+            $this->basketballPush($type, $matchModel, $homeTotalScore, $awayTotalScore);
+            $this->basketballNotice($type, $matchModel, $homeTotalScore, $awayTotalScore);
             return;
-        } else if ($type == 2) { //进球   只做提示
-            //只做提示
-            $position = $this->taskData['position'];
-            $this->basketballNotice($type, $match, $homeTotalScore, $awayTotalScore, $position);
-        } else if ($type == 3)  { //比赛开始   提示
-
-            $this->basketballNotice($type, $match, $homeTotalScore, $awayTotalScore);
+        } else if ($type == 2)  { //比赛开始   提示
+            $this->basketballPush($type, $matchModel, $homeTotalScore, $awayTotalScore);
+            $this->basketballNotice($type, $matchModel, $homeTotalScore, $awayTotalScore);
             return;
         } else {
             return;
@@ -91,19 +112,16 @@ class BasketballMatchNotice  implements TaskInterface
         $match_id = $match->match_id;
         $user_ids = AppFunc::getUsersInterestMatch($match_id, 2);
         if (!$user_ids) return;
-
         $home_name_zh = $match->home_team_name;
         $away_name_zh = $match->away_team_name;
-        $competition = $match->getCompetition();
-        $competition_name_zh = isset($competition->short_name_zh) ? $competition->short_name_zh : '';
-
+        $competition_name_zh = $match->competition_name;
         $users = AdminUser::getInstance()->where('id', $user_ids, 'in')->all();
         $prepare_cid_arr = [];
         $uids = [];
         foreach ($users as $user) {
             $user_setting = $user->userSetting();
-            $over = isset(json_decode($user_setting->push, true)['over']) ? json_decode($user_setting->push, true)['over'] : 0;
-            if ($over) {
+            //{"start":1,"over":1,"only_notice_my_interest":1}
+            if (!empty(json_decode($user_setting->basketball_push, true)['over'])) {
                 $prepare_cid_arr[] = $user->cid;
                 $uids[] = $user->id;
             }
@@ -120,25 +138,41 @@ class BasketballMatchNotice  implements TaskInterface
                 'type' => $type,
                 'title' => $title,
                 'content' => $content,
-                'item_type' => 3
+                'item_type' => 4
             ];
             $rs = AdminNoticeMatch::getInstance()->insert($insertData);
             $pushInfo['title'] = $title;
             $pushInfo['content'] = $content;
-            $pushInfo['payload'] = ['item_id' => $match_id, 'item_type' => 3];
+            $pushInfo['payload'] = ['item_id' => $match_id, 'item_type' => 4];
             $pushInfo['notice_id'] = $rs;  //开赛通知
             $batchPush = new BatchSignalPush();
             $batchPush->pushMessageToList($prepare_cid_arr, $pushInfo);
-        } else if ($type == 3) { //开始
-
+        } else if ($type == 2) { //开始
+            $title = '开赛通知';
+            $content = sprintf("%s %s(%s)-%s(%s),比赛开始",  $competition_name_zh, $home_name_zh, $home, $away_name_zh, $away);
+            $insertData = [
+                'uids' => json_encode($uids),
+                'match_id' => $match_id,
+                'type' => $type,
+                'title' => $title,
+                'content' => $content,
+                'item_type' => 4
+            ];
+            //足球:1:进球 10 即将开赛 12结束      篮球:1结束 2即将开始
+            $rs = AdminNoticeMatch::getInstance()->insert($insertData);
+            $pushInfo['title'] = $title;
+            $pushInfo['content'] = $content;
+            $pushInfo['payload'] = ['item_id' => $match_id, 'item_type' => 4];
+            $pushInfo['notice_id'] = $rs;  //开赛通知
+            $batchPush = new BatchSignalPush();
+            $batchPush->pushMessageToList($prepare_cid_arr, $pushInfo);
         }
 
     }
 
-    //篮球提示
+    //篮球提示 开始 结束
     public function basketballNotice($type, $match, $homeTotalScore, $awayTotalScore, $position = 0)
     {
-
         $tool = Tool::getInstance();
         $server = ServerManager::getInstance()->getSwooleServer();
         $match_id = $match->match_id;
@@ -154,36 +188,30 @@ class BasketballMatchNotice  implements TaskInterface
                 'home_name_zh' => $home_name_zh,
                 'away_name_zh' => $away_name_zh,
                 'match_id' => $match_id,
-                'basic' => AppFunc::getBasicFootballMatch($match_id),
+                'basic' => AppFunc::getBasicBasketballMatch($match_id),
                 'position' => $position
             ]
         ];
         $onlineUsers = OnlineUser::getInstance()->table();
         foreach ($onlineUsers as $fd => $onlineUser) {
-            if (!$user = OnlineUser::getInstance()->get($fd)) {
-                continue;
+            if (!$onlineUser['user_id']) { //未登录
+                $is_interest = false;
             } else {
-                if (!$user['user_id']) { //未登录
+                if (!$interest = AdminInterestMatches::getInstance()->where('uid', $onlineUser['user_id'])->where('type', AdminInterestMatches::BASKETBALL_TYPE)->get()) {
                     $is_interest = false;
                 } else {
-                    if (!$interest = AdminInterestMatches::getInstance()->where('uid', $user['user_id'])->where('type', AdminInterestMatches::FOOTBALL_TYPE)->get()) {
-                        $is_interest = false;
+                    if (in_array($match_id, json_decode($interest->match_ids))) {
+                        $is_interest = true;
                     } else {
-                        if (in_array($match_id, json_decode($interest->match_ids))) {
-                            $is_interest = true;
-                        } else {
-                            $is_interest = false;
+                        $is_interest = false;
 
-                        }
                     }
-
                 }
             }
             $returnData['is_interest'] = $is_interest;
             $connection = $server->connection_info($fd);
             if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-                Log::getInstance()->info('match-notice-4' . $match_id . '-type-' . $type . '-fd-' . $fd);
-
+                Log::getInstance()->info('basketball-notice-' . $match_id . '-type-' . $type);
                 $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
             }
         }

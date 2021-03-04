@@ -168,17 +168,16 @@ class UserCenter   extends FrontUserController{
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $formatPost, 'count' => $total]);
         } else { //收藏的资讯
             $model = AdminUserOperate::getInstance()->alias('o')->join('admin_information as i', 'o.item_id=i.id and o.author_id=i.user_id', 'inner')
-                ->field(['i.*'])->where('o.user_id', $user_id)->where('o.type', 2)->where('item_type', 3)->where('o.is_cancel', 0);
+                ->field(['i.*', 'o.created_at', 'o.item_id'])->where('o.user_id', $user_id)->where('o.type', 2)->where('item_type', 3)->where('o.is_cancel', 0);
+
             if ($key_word) {
                 $model = $model->where('i.title', '%' . $key_word . '%', 'like');
             }
-            $model = $model->getLimit($page, $size);
-            $operates = $model->all();
-
-            $informationIds = array_column($operates, 'id');
+            $model = $model->getLimit($page, $size, 'o.created_at');
+            $operates = $model->all(null);
+            $count = $model->lastQueryResult()->getTotalCount();
+            $informationIds = array_column($operates, 'item_id');
             if (!$informationIds) return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => [], 'count' => 0]);
-
-            $count = count($informationIds);
             $informations = AdminInformation::create()->where('id', $informationIds, 'in')->all();
             $formatInformation = FrontService::handInformation($informations, $user_id);
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['list' => $formatInformation, 'count' => $count]);
@@ -747,9 +746,8 @@ class UserCenter   extends FrontUserController{
 
         }
         if ($this->request()->getMethod() == 'GET') {
-            if (!$setting = AdminUserSetting::getInstance()->where('user_id', $this->auth['id'])->get()) {
+            if (!$setting = AdminUserSetting::getInstance()->where('user_id', (int)$this->auth['id'])->get()) {
                 return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
             }
             if ($type == 1) {
                 $data = json_decode($setting->basketball_notice, true);
@@ -757,7 +755,6 @@ class UserCenter   extends FrontUserController{
                 $data = json_decode($setting->basketball_push, true);
             } else {
                 return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
             }
 
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
@@ -769,24 +766,20 @@ class UserCenter   extends FrontUserController{
                     return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
                 }
                 $column = 'basketball_notice';
-                $data = $this->params['basketball_notice'];
+                $data = $this->params['notice'];
             } else if ($type == 2) {
                 $decode = json_decode($this->params['basketball_push'], true);
                 if (!isset($decode['start']) || !isset($decode['over']) || !isset($decode['open_push'])) {
                     return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
                 }
                 $column = 'basketball_push';
-                $data = $this->params['basketball_push'];//start goal over
+                $data = $this->params['push'];//start goal over
             } else {
                 return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
             }
-
             AdminUserSetting::getInstance()->update([$column=>$data], ['user_id' => $this->auth['id']]);
 
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
-
         }
     }
 

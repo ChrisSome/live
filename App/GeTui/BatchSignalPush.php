@@ -61,24 +61,6 @@ class BatchSignalPush{
 
     }
 
-    function IGtNotificationTemplateDemo1($info){
-        $transmisstionContent = json_encode(['title' => '开赛了', 'content' => '比赛马上开始', 'payload' => ['match_id' => 3295894, 'type' => 1]]);
-
-        $template = new \IGtNotificationTemplate();
-        $template->set_appId(self::APPID);                      //应用appid
-        $template->set_appkey(self::APPKEY);                    //应用appkey
-        $template->set_transmissionType(1);               //透传消息类型
-        $template->set_transmissionContent($transmisstionContent);   //透传内容
-        $template->set_title($info['title']);                     //通知栏标题
-        $template->set_text($info['content']);        //通知栏内容
-        $template->set_logo("http://live-broadcast-system.oss-cn-hongkong.aliyuncs.com/37e1e9e01586030a.jpg");                  //通知栏logo
-        $template->set_isRing(true);                      //是否响铃
-        $template->set_isVibrate(true);                   //是否震动
-        $template->set_isClearable(true);                 //通知栏是否可清除
-        //$template->set_notifyId(12345678);
-        return $template;
-    }
-
     function IGtTransmissionTemplateDemo($info){
 //        $transmisstionContent = json_encode(['title' => '开赛了', 'content' => '比赛马上开始', 'payload' => ['item_id' => 3295894, 'item_type' => 1]]);
         $template =  new \IGtTransmissionTemplate();

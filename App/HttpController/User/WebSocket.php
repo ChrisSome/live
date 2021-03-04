@@ -105,7 +105,6 @@ class WebSocket extends FrontUserController
         foreach ($fd_arr as $fd) {
             $connection = $server->connection_info($fd);
             if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-                Log::getInstance()->info('basketball tlive content-' . json_encode($diff) . '-fd-' . $fd . '-match_id-' . $match_id);
                 $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
             }
         }

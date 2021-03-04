@@ -56,6 +56,44 @@ class Broadcast extends Base
                 'sendTime' => date('Y-m-d H:i:s'),
                 'matchId' => $broadcastPayload['match_id'],
                 'atUserId' => $broadcastPayload['at_user_id'],
+                'sportType' => $sender_user['type'],
+            ];
+            TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message, 'fromFd' => $client->getFd()]));
+        }
+        $this->response()->setStatus($this->response()::STATUS_OK);
+    }
+
+    /**
+     * 发送消息给房间内的所有人
+     * @throws \Exception
+     */
+    function basketBallRoomBroadcast()
+    {
+        /** @var WebSocketClient $client */
+        $client = $this->caller()->getClient();
+        $broadcastPayload = $this->caller()->getArgs();
+        if (isset(self::$type[$broadcastPayload['content']])) {
+            $type = self::$type[$broadcastPayload['content']];
+        } else {
+            $type = 1;
+        }
+        $fd = (int)$client->getFd();
+        $server = ServerManager::getInstance()->getSwooleServer();
+        if (!$sender_user = OnlineUser::getInstance()->get($fd)) {
+            return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_CONNECTION_FAIL, WebSocketStatus::$msg[WebSocketStatus::STATUS_CONNECTION_FAIL]));
+        }
+        if (!$sender_user['user_id']) {
+            return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
+        }
+        if (!empty($broadcastPayload) && !empty($broadcastPayload['content']) && !empty($broadcastPayload['match_id'])) {
+            $message = [
+                'fromUserId' => $sender_user['user_id'],
+                'fromUserFd' => $client->getFd(),
+                'content' => base64_encode(addslashes($broadcastPayload['content'])),
+                'type' => $type,
+                'sendTime' => date('Y-m-d H:i:s'),
+                'matchId' => $broadcastPayload['match_id'],
+                'atUserId' => $broadcastPayload['at_user_id'],
             ];
             TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message, 'fromFd' => $client->getFd()]));
         }

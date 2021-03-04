@@ -21,6 +21,7 @@ use App\Model\AdminUser;
 use App\Model\AdminUserOperate;
 use App\Model\AdminUserSetting;
 use App\Model\BasketBallCompetition;
+use App\Model\BasketballMatch;
 use App\Storage\OnlineUser;
 use App\Task\SerialPointTask;
 use App\Utility\Message\Status;
@@ -178,42 +179,83 @@ class InformationApi extends FrontUserController
         $page =  !empty($this->params['page']) ? $this->params['page'] : 1;
         $size =  !empty($this->params['size']) ? $this->params['size'] : 10;
         $type = !empty($this->params['type']) ? $this->params['type'] : 1;
+        $sportType = !empty($this->params['sport_type']) ? $this->params['sport_type'] : 1; //默认篮球类型
         if ($type == 1) {
-            //头条banner
-            $setting = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_TITLE_BANNER)->get();
-            $decode = json_decode($setting->sys_value, true);
-            $banner_list = [];
+            if ($sportType == 1) { //资讯头条
+                //头条banner
+                $setting = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_TITLE_BANNER)->get();
+                $decode = json_decode($setting->sys_value, true);
+                $banner_list = [];
 
-            if ($banner = $decode['banner']) {
-                $sort = array_column($banner, 'sort');
-                array_multisort($banner,SORT_DESC,$sort);
-                foreach ($banner as $item_banner) {
-                    if (Time::isBetween($item_banner['start_time'], $item_banner['end_time'])) {
-                        $banner_list[] = $item_banner;
-                    } else {
-                        continue;
+                if ($banner = $decode['banner']) {
+                    $sort = array_column($banner, 'sort');
+                    array_multisort($banner,SORT_DESC,$sort);
+                    foreach ($banner as $item_banner) {
+                        if (Time::isBetween($item_banner['start_time'], $item_banner['end_time'])) {
+                            $banner_list[] = $item_banner;
+                        } else {
+                            continue;
+                        }
                     }
                 }
+                if (!empty($decode['match'])) {
+                    $matches = AdminMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
+                    $formatMatches = FrontService::formatMatchThree($matches, 0, []);
+                } else {
+                    $formatMatches = [];
+                }
+
+                $model = AdminInformation::getInstance()->where('type', 1)->where('sport_type', $sportType)
+                    ->where('status', AdminInformation::STATUS_NORMAL)->getLimit($page, $size);
+
+                $list = $model->all(null);
+                $format_information = FrontService::handInformation($list, $this->auth['id']);
+
+                $count = $model->lastQueryResult()->getTotalCount();
+                $return_data = [
+                    'banner' => $banner_list,
+                    'matches' => $formatMatches,
+                    'information' => ['list' => $format_information, 'count' => $count]
+                ];
+            } else { //篮球资讯
+                //头条banner
+                $setting = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_TITLE_BANNER)->get();
+                $decode = json_decode($setting->sys_value, true);
+                $banner_list = [];
+
+                if ($banner = $decode['banner']) {
+                    $sort = array_column($banner, 'sort');
+                    array_multisort($banner,SORT_DESC,$sort);
+                    foreach ($banner as $item_banner) {
+                        if (Time::isBetween($item_banner['start_time'], $item_banner['end_time'])) {
+                            $banner_list[] = $item_banner;
+                        } else {
+                            continue;
+                        }
+                    }
+                }
+                if (!empty($decode['match'])) {
+                    $matches = BasketballMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
+                    $formatMatches = FrontService::formatBasketballMatch($matches, 0, []);
+                } else {
+                    $formatMatches = [];
+                }
+
+
+                $model = AdminInformation::getInstance()->where('type', 1)->where('sport_type', $sportType)
+                    ->where('status', AdminInformation::STATUS_NORMAL)->getLimit($page, $size);
+
+                $list = $model->all(null);
+                $format_information = FrontService::handInformation($list, $this->auth['id']);
+
+                $count = $model->lastQueryResult()->getTotalCount();
+                $return_data = [
+                    'banner' => $banner_list,
+                    'matches' => $formatMatches,
+                    'information' => ['list' => $format_information, 'count' => $count]
+                ];
             }
-            if (!empty($decode['match'])) {
-                $matches = AdminMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
-                $formatMatches = FrontService::formatMatchThree($matches, 0, []);
-            } else {
-                $formatMatches = [];
-            }
 
-
-            $model = AdminInformation::getInstance()->where('type', 1)->where('status', AdminInformation::STATUS_NORMAL)->getLimit($page, $size);
-
-            $list = $model->all(null);
-            $format_information = FrontService::handInformation($list, $this->auth['id']);
-
-            $count = $model->lastQueryResult()->getTotalCount();
-            $return_data = [
-                'banner' => $banner_list,
-                'matches' => $formatMatches,
-                'information' => ['list' => $format_information, 'count' => $count]
-            ];
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_data);
         } else if ($type == 2) {
             //转会
@@ -457,7 +499,7 @@ class InformationApi extends FrontUserController
         // 填充用户信息
         $information['user_info'] = Utils::queryHandler(AdminUser::getInstance(),
             'id=?', $information['user_id'], 'id,nickname,photo,is_offical,level');
-        $information['user_info']['is_follow'] = AppFunc::isFollow($authId, $information['id']);
+        $information['user_info']['is_follow'] = AppFunc::isFollow($authId, $information['user_id']);
         // 是否未被举报
         $tmp = Utils::queryHandler(AdminUserOperate::getInstance(),
             'item_type=3 and type=1 and is_cancel=0 and item_id=? and user_id=?', [$informationId, $authId]);
@@ -905,7 +947,7 @@ class InformationApi extends FrontUserController
                 'match_id' => $information_id,
                 'title' => $information->title,
                 'content' => '',
-                'item_type' => 3,
+                'item_type' => 2,
                 'type' => 0
             ];
             $rs = AdminNoticeMatch::getInstance()->insert($insertData);
@@ -913,7 +955,7 @@ class InformationApi extends FrontUserController
             $pushInfo = [
                 'title' => $information->title,
                 'content' => mb_substr(preg_replace("/(\s|\&nbsp\;|　|\xc2\xa0)/", " ", strip_tags($information->content)), 0, 20),
-                'payload' => ['item_id' => $information_id, 'item_type' => 3],
+                'payload' => ['item_id' => $information_id, 'item_type' => 2],
                 'notice_id' => $rs,
 
             ];

@@ -78,7 +78,7 @@ class WebSocketEvents
             'match_id' => (int)$match_id,
             'user_id' => isset($user) ? (int)$user->id : 0,
             'level' => isset($user) ? $user->level : 0,
-            'type' => 0
+            'type' => isset($params['type']) ? (int)$params['type'] : 0
         ];
         $user_online = OnlineUser::getInstance()->get($fd);
         if (!$user_online) {

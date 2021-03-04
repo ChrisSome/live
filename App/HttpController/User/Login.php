@@ -69,31 +69,25 @@ class Login extends FrontUserController
         $valitor = new Validate();
         $valitor->addColumn('mobile', '手机号码')->required('手机号不为空')
             ->regex('/^1\d{10}/', '手机号格式不正确');
-        $valitor->addColumn('type')->required();
+        $valitor->addColumn('type')->required()->inArray([1,2]);
         if (!$valitor->validate($this->params)) {
             return $this->writeJson(Status::CODE_BAD_REQUEST, $valitor->getError()->__toString());
         }
-
-        if (!$type = $this->params['type']) {
-            return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+        if (!$user = AdminUser::getInstance()->where('mobile', trim($this->params['mobile']))->get()) {
+            return $this->writeJson(Statuses::CODE_PHONE_NOT_EXISTS, Statuses::$msg[Statuses::CODE_PHONE_NOT_EXISTS]);
+        } else if ($user->status == AdminUser::STATUS_BAN) {
+            return $this->writeJson(Statuses::CODE_USER_STATUS_BAN, Statuses::$msg[Statuses::CODE_USER_STATUS_BAN], 2);
+        } else if ($user->status == AdminUser::STATUS_CANCEL) {
+            return $this->writeJson(Statuses::CODE_USER_STATUS_CANCLE, Statuses::$msg[Statuses::CODE_USER_STATUS_CANCLE] , 3);
         }
-        $mobile = $this->params['mobile'];
+        $type = (int)$this->params['type'];
+        $mobile = trim($this->params['mobile']);
         if ($type == 1) {//手机号登录
-            if (!$this->params['code'] || !$mobile_code = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile)) {
+            if (empty($this->params['code']) || !$mobile_code = AdminUserPhonecode::getInstance()->getLastCodeByMobile($this->params['mobile'])) {
                 return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
             }
             if ($mobile_code['code'] != $this->params['code']) {
                 return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
-            }
-
-            if (!$user = AdminUser::getInstance()->where('mobile', $mobile)->get()) {
-                return $this->writeJson(Statuses::CODE_PHONE_NOT_EXISTS, Statuses::$msg[Statuses::CODE_PHONE_NOT_EXISTS]);
-            } else if ($user->status == AdminUser::STATUS_BAN) {
-                return $this->writeJson(Statuses::CODE_USER_STATUS_BAN, Statuses::$msg[Statuses::CODE_USER_STATUS_BAN]);
-
-            } else if ($user->status == AdminUser::STATUS_CANCEL) {
-                return $this->writeJson(Statuses::CODE_USER_STATUS_CANCLE, Statuses::$msg[Statuses::CODE_USER_STATUS_CANCLE]);
-
             }
             $mobile_code->status = AdminUserPhonecode::STATUS_USED;
             $mobile_code->update();
@@ -105,10 +99,8 @@ class Login extends FrontUserController
             } else if (!PasswordTool::getInstance()->checkPassword($password, $user->password_hash)) {
                 return $this->writeJson(Statuses::CODE_W_PHONE, Statuses::$msg[Statuses::CODE_W_PHONE]);
             }
-
         } else {
             return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
-
         }
 
         if (!empty($this->params['cid'])) {
@@ -450,9 +442,20 @@ class Login extends FrontUserController
                 if ($recCompetitionRes = AdminSysSettings::getInstance()->where('sys_key', 'array_competition')->get()) {
                     $userInterestComData = [
                         'competition_ids' => $recCompetitionRes->sys_value,
-                        'user_id' => $rs
+                        'user_id' => $rs,
+                        'type' => 1
                     ];
                     AdminUserInterestCompetition::getInstance()->insert($userInterestComData);
+                }
+                //写篮球关注赛事
+                if ($defaultRes = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::BASKETBALL_COMPETITION)->get()) {
+                    $userInterestBasCom = [
+                        'competition_ids' => $defaultRes->sys_value,
+                        'user_id' => $rs,
+                        'type' => 2
+                    ];
+                    AdminUserInterestCompetition::getInstance()->insert($userInterestBasCom);
+
                 }
 
             });
@@ -547,6 +550,47 @@ class Login extends FrontUserController
         $user->update();
         return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
 
+    }
+
+    public function checkUserInfo()
+    {
+        $type = isset($this->params['type']) ? (int)$this->params['type'] : 0;
+        if (!$type || !in_array($type, [1,2])) {
+            return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+        }
+        if ($type == 1) {//校验用户名
+            if (empty($this->params['nickname'])) {
+                return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+            }
+            if (AdminUser::getInstance()->where('nickname', trim($this->params['nickname']))->get()) {
+                $response = [
+                    'code' => Statuses::CODE_RES_EXIST,
+                    'msg' => Statuses::$msg[Statuses::CODE_RES_EXIST],
+                ];
+                return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK], $response);
+            } else {
+                return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
+            }
+        } else if ($type == 2) { //校验手机号
+            if (empty($this->params['mobile'])) {
+                return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+            }
+
+            if (AdminUser::getInstance()->where('mobile', trim($this->params['mobile']))->get()) {
+                $response = [
+                    'code' => Statuses::CODE_RES_EXIST,
+                    'msg' => Statuses::$msg[Statuses::CODE_RES_EXIST],
+                ];
+                return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK], $response);
+            } else {
+                return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
+
+            }
+        }
+        else {
+            return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+
+        }
     }
 
 
